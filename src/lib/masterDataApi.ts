@@ -36,20 +36,41 @@ export const fetchDepartmentsApi = async (): Promise<DepartmentOption[]> => {
   if (!res.data.success) {
     throw new Error(res.data.message || "Fetch departments failed");
   }
-  return res.data.result ?? [];
+
+  const list = (res.data.result ?? []) as Array<
+    DepartmentOption & { departmentId?: string | number | null; departmentName?: string | null }
+  >;
+
+  return list
+    .map((item) => ({
+      departmentId: String(item.departmentId ?? "").trim(),
+      departmentName: (item.departmentName ?? "").trim(),
+    }))
+    .filter((item) => item.departmentId.length > 0 && item.departmentName.length > 0);
 };
 
 export const fetchDoctorsApi = async (
-  departmentId?: number | null
+  departmentId?: string | number | null
 ): Promise<DoctorOption[]> => {
+  const normalizedDepartmentId =
+    departmentId == null ? undefined : String(departmentId).trim();
+
   const res = await receptionApi.get<ApiResponse<DoctorOption[]>>("/api/doctors", {
-    params: departmentId ? { departmentId } : undefined,
+    params: normalizedDepartmentId ? { departmentId: normalizedDepartmentId } : undefined,
   });
   if (!res.data.success) {
     throw new Error(res.data.message || "Fetch doctors failed");
   }
-  return res.data.result ?? [];
+
+  const list = (res.data.result ?? []) as Array<
+    DoctorOption & { doctorId?: number | string | null; doctorName?: string | null; departmentId?: string | number | null }
+  >;
+
+  return list
+    .map((item) => ({
+      doctorId: Number(item.doctorId),
+      doctorName: (item.doctorName ?? "").trim(),
+      departmentId: item.departmentId == null ? null : String(item.departmentId).trim(),
+    }))
+    .filter((item) => Number.isFinite(item.doctorId));
 };
-
-
-

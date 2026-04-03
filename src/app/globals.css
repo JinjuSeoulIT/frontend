@@ -1,0 +1,70 @@
+﻿@import "tailwindcss";
+
+:root {
+  --bg: #eef3f7;
+  --panel: #ffffff;
+  --panel-soft: #f6f9fc;
+  --ink: #1b2430;
+  --muted: #6a7b8c;
+  --line: #d9e3ee;
+  --brand: #0b5b8f;
+  --brand-strong: #0a3e62;
+  --brand-soft: rgba(11, 91, 143, 0.12);
+  --accent: #d97706;
+  --shadow-1: 0 12px 24px rgba(9, 37, 63, 0.12);
+  --shadow-2: 0 14px 28px rgba(9, 37, 63, 0.16);
+}
+
+@theme inline {
+  --color-background: var(--panel);
+  --color-foreground: var(--ink);
+  --font-sans: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo",
+    "Malgun Gothic", sans-serif;
+  --font-mono: var(--font-geist-mono);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo",
+    "Malgun Gothic", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.MuiPaper-root,
+.MuiCard-root {
+  border-radius: 12px !important;
+}
+
+.MuiButton-root {
+  border-radius: 10px !important;
+  text-transform: none !important;
+  font-weight: 700 !important;
+}
+
+.MuiChip-root {
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+}
+
+.MuiInputBase-root {
+  font-size: 14px !important;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

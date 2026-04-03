@@ -25,7 +25,6 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
@@ -199,7 +198,7 @@ const [selectedReceptionDetail, setSelectedReceptionDetail] = useState<Reception
 
     setSelectedReceptionDetail(data.result);
     setIsReceptionDialogOpen(true);
-  } catch (err) {
+  } catch {
     alert("접수 상세 정보를 불러오지 못했습니다.");
   }
 };
@@ -208,6 +207,7 @@ const handleCreateWithReception = () => {
   if (!selectedReceptionDetail) return;
 
   const params = new URLSearchParams({
+    receptionId: String(selectedReceptionDetail.receptionId),
     patientName: selectedReceptionDetail.patientName ?? "",
     departmentName: selectedReceptionDetail.departmentName ?? "",
   });

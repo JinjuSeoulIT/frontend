@@ -10,6 +10,10 @@ import {
   CardContent,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   Paper,
   Table,
@@ -122,11 +126,11 @@ export default function RecordList() {
     error: receptionsError,
   } = useSelector((state: RootState) => state.receptions);
 
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [selectedReceptionId, setSelectedReceptionId] = useState<number | null>(
-    null
-  );
+const [page, setPage] = useState(0);
+const [rowsPerPage, setRowsPerPage] = useState(10);
+const [selectedReceptionId, setSelectedReceptionId] = useState<number | null>(null);
+const [isReceptionDialogOpen, setIsReceptionDialogOpen] = useState(false);
+const [selectedReceptionDetail, setSelectedReceptionDetail] = useState<Reception | null>(null);
 
   useEffect(() => {
     dispatch(RecActions.fetchRecordsRequest());
@@ -156,14 +160,14 @@ export default function RecordList() {
     [receptions]
   );
 
-  const selectedReception = useMemo(
-    () =>
-      receptionList.find((item) => item.receptionId === selectedReceptionId) ??
-      null,
-    [receptionList, selectedReceptionId]
-  );
+  // const selectedReception = useMemo(
+  //   () =>
+  //     receptionList.find((item) => item.receptionId === selectedReceptionId) ??
+  //     null,
+  //   [receptionList, selectedReceptionId]
+  // );
 
-  const activeReception = selectedReception ?? receptionList[0] ?? null;
+  // const activeReception = selectedReception ?? receptionList[0] ?? null;
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
@@ -180,13 +184,36 @@ export default function RecordList() {
     router.push(`/medical_support/record/detail/${record.recordId}`);
   };
 
-  const handleReceptionClick = (reception: Reception) => {
-    setSelectedReceptionId(reception.receptionId);
-  };
+  const handleReceptionClick = async (reception: Reception) => {
+  setSelectedReceptionId(reception.receptionId);
 
-  const handleCreateWithReception = () => {
-    router.push("/medical_support/record/create");
-  };
+  try {
+    const res = await fetch(
+      `http://192.168.1.55:8283/api/receptions/${reception.receptionId}`
+    );
+    const data = await res.json();
+
+    if (!data.success) {
+      throw new Error(data.message || "접수 상세 조회 실패");
+    }
+
+    setSelectedReceptionDetail(data.result);
+    setIsReceptionDialogOpen(true);
+  } catch (err) {
+    alert("접수 상세 정보를 불러오지 못했습니다.");
+  }
+};
+
+const handleCreateWithReception = () => {
+  if (!selectedReceptionDetail) return;
+
+  const params = new URLSearchParams({
+    patientName: selectedReceptionDetail.patientName ?? "",
+    departmentName: selectedReceptionDetail.departmentName ?? "",
+  });
+
+  router.push(`/medical_support/record/create?${params.toString()}`);
+};
 
   return (
     <Box
@@ -275,7 +302,7 @@ export default function RecordList() {
                   새로고침
                 </Button>
 
-                <Button
+               {/* <Button
                   variant="contained"
                   size="small"
                   color="secondary"
@@ -291,11 +318,11 @@ export default function RecordList() {
                   }}
                 >
                   간호 기록 등록
-                </Button>
+                </Button> */}
               </Box>
             </Box>
 
-            <Box
+            {/* <Box
               sx={{
                 mt: 2,
                 px: 2,
@@ -370,7 +397,7 @@ export default function RecordList() {
                   </Box>
                 </Box>
               )}
-            </Box>
+            </Box> */}
           </Box>
 
           <Divider />
@@ -649,6 +676,79 @@ export default function RecordList() {
           </CardContent>
         </Card>
       </Box>
+      
+      <Dialog
+        open={isReceptionDialogOpen}
+        onClose={() => setIsReceptionDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>접수 환자 상세</DialogTitle>
+
+        <DialogContent dividers>
+          {!selectedReceptionDetail ? (
+            <Typography>상세 정보를 불러오는 중입니다.</Typography>
+          ) : (
+            <Box sx={{ display: "grid", gap: 2 }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  접수번호
+                </Typography>
+                <Typography fontWeight={700}>
+                  {selectedReceptionDetail.receptionNo ?? "-"}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  환자명
+                </Typography>
+                <Typography fontWeight={700}>
+                  {selectedReceptionDetail.patientName ?? "-"}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  진료과
+                </Typography>
+                <Typography fontWeight={700}>
+                  {selectedReceptionDetail.departmentName ?? "-"}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  담당의
+                </Typography>
+                <Typography fontWeight={700}>
+                  {selectedReceptionDetail.doctorName ?? "-"}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  상태
+                </Typography>
+                <Typography fontWeight={700}>
+                  {getReceptionStatusLabel(selectedReceptionDetail.status)}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setIsReceptionDialogOpen(false)}>닫기</Button>
+          <Button
+            variant="contained"
+            onClick={handleCreateWithReception}
+            disabled={!selectedReceptionDetail}
+          >
+            간호 기록 등록
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

@@ -251,9 +251,10 @@ const RecordForm: React.FC<Props> = ({
                   <TextField
                     label="간호사명"
                     value={toStr(form.nurseName)}
+                    onChange={handleFieldChange("nurseName")}
                     size="small"
                     fullWidth
-                    InputProps={{ readOnly: true }}
+                    // InputProps={{ readOnly: true }}
                   />
                 </Grid>
 
@@ -271,9 +272,10 @@ const RecordForm: React.FC<Props> = ({
                   <TextField
                     label="간호사 ID"
                     value={toStr(form.nursingId)}
+                    onChange={handleFieldChange("nursingId")}
                     size="small"
                     fullWidth
-                    InputProps={{ readOnly: true }}
+                    // InputProps={{ readOnly: true }}
                   />
                 </Grid>
 

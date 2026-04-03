@@ -633,11 +633,11 @@ const handleCreateWithReception = () => {
                       border: "1px solid",
                       cursor: "pointer",
                       backgroundColor:
-                        activeReception?.receptionId === reception.receptionId
+                        selectedReceptionId === reception.receptionId
                           ? "#f0f7ff"
                           : "rgba(255,255,255,0.9)",
                       borderColor:
-                        activeReception?.receptionId === reception.receptionId
+                        selectedReceptionId === reception.receptionId
                           ? "#93c5fd"
                           : "grey.200",
                       "&:hover": {

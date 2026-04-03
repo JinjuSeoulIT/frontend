@@ -253,7 +253,7 @@ const RecordForm: React.FC<Props> = ({
                     value={toStr(form.nurseName)}
                     size="small"
                     fullWidth
-                    InputProps={{ readOnly: true }}
+                    // InputProps={{ readOnly: true }}
                   />
                 </Grid>
 
@@ -273,7 +273,7 @@ const RecordForm: React.FC<Props> = ({
                     value={toStr(form.nursingId)}
                     size="small"
                     fullWidth
-                    InputProps={{ readOnly: true }}
+                    // InputProps={{ readOnly: true }}
                   />
                 </Grid>
 

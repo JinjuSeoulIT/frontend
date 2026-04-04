@@ -2,7 +2,6 @@ export interface RecordFormType {
   recordId: string;
   receptionId?: number | null;
   nursingId: string;
-  visitId: string;
   recordedAt: string;
   systolicBp: string;
   diastolicBp: string;
@@ -14,6 +13,7 @@ export interface RecordFormType {
   painScore: string;
   consciousnessLevel: string;
   initialAssessment: string;
+  pastMedicalHistory?: string;
   status: string;
   createdAt: string;
   updatedAt: string;

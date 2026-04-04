@@ -282,7 +282,7 @@ const RecordForm: React.FC<Props> = ({
                 {/* <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     label="진료 ID"
-                    value={toStr(form.visitId)}
+                    value=""
                     size="small"
                     fullWidth
                     InputProps={{ readOnly: true }}
@@ -555,6 +555,18 @@ const RecordForm: React.FC<Props> = ({
                     onChange={handleFieldChange("initialAssessment")}
                     size="small"
                     fullWidth
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    label="과거 병력"
+                    value={toStr(form.pastMedicalHistory)}
+                    onChange={handleFieldChange("pastMedicalHistory")}
+                    size="small"
+                    fullWidth
+                    multiline
+                    minRows={3}
                   />
                 </Grid>
 

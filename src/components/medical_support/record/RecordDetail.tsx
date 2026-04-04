@@ -260,7 +260,7 @@ export default function RecordDetail() {
                   <DetailItem label="간호사 ID" value={record.nursingId || "-"} />
                 </Grid>
                 {/* <Grid size={{ xs: 12, md: 6 }}>
-                  <DetailItem label="진료 ID" value={record.visitId || "-"} />
+                  <DetailItem label="진료 ID" value="-" />
                 </Grid> */}
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem label="진료과" value={record.departmentName || "-"} />
@@ -363,6 +363,12 @@ export default function RecordDetail() {
                   <DetailItem
                     label="초기 문진 요약"
                     value={record.initialAssessment || "-"}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <DetailItem
+                    label="과거 병력"
+                    value={record.pastMedicalHistory || "-"}
                   />
                 </Grid>
                 <Grid size={{ xs: 12 }}>

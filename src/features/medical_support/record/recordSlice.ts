@@ -3,8 +3,8 @@ import { RecordFormType } from "@/features/medical_support/record/recordTypes";
 
 const initialRecord: RecordFormType = {
   recordId: "",
+  receptionId: null,
   nursingId: "",
-  visitId: "",
   recordedAt: "",
   systolicBp: "",
   diastolicBp: "",
@@ -16,6 +16,7 @@ const initialRecord: RecordFormType = {
   painScore: "",
   consciousnessLevel: "",
   initialAssessment: "",
+  pastMedicalHistory: "",
   status: "",
   createdAt: "",
   updatedAt: "",

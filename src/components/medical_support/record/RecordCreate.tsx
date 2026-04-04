@@ -13,7 +13,6 @@ import { RecordFormType } from "@/features/medical_support/record/recordTypes";
 const emptyForm: RecordFormType = {
   recordId: "",
   receptionId: null,
-  visitId: "",
   nursingId: "",
   recordedAt: "",
   createdAt: "",
@@ -28,6 +27,7 @@ const emptyForm: RecordFormType = {
   painScore: "",
   consciousnessLevel: "",
   initialAssessment: "",
+  pastMedicalHistory: "",
   status: "ACTIVE",
   patientName: "",
   nurseName: "",
@@ -49,7 +49,6 @@ const RecordCreate = () => {
     () => ({
       ...emptyForm,
       receptionId: parsedReceptionId,
-      visitId: searchParams.get("visitId") ?? "",
       nursingId: searchParams.get("nursingId") ?? "",
       patientName: searchParams.get("patientName") ?? "",
       nurseName: searchParams.get("nurseName") ?? "",

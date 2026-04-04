@@ -367,7 +367,7 @@ export default function RecordDetail() {
                 </Grid>
                 <Grid size={{ xs: 12 }}>
                   <DetailItem
-                    label="과거 병력"
+                    label="과거력"
                     value={record.pastMedicalHistory || "-"}
                   />
                 </Grid>

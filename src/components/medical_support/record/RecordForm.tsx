@@ -560,7 +560,7 @@ const RecordForm: React.FC<Props> = ({
 
                 <Grid size={{ xs: 12 }}>
                   <TextField
-                    label="과거 병력"
+                    label="과거력"
                     value={toStr(form.pastMedicalHistory)}
                     onChange={handleFieldChange("pastMedicalHistory")}
                     size="small"

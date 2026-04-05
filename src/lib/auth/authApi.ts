@@ -1,8 +1,7 @@
-import axios from "axios";
+﻿import axios from "axios";
 import type { ApiResponse } from "@/features/patients/patientTypes";
 import { applyAuthInterceptors } from "@/lib/auth/apiInterceptors";
-
-const DEFAULT_AUTH_API_BASE_URL = "http://192.168.1.64:8081";
+import { AUTH_API_BASE_URL, AUTH_SERVER_ORIGIN } from "@/lib/common/env";
 
 type LoginRequest = {
   username: string;
@@ -45,56 +44,9 @@ export type LoginResult = {
   passwordChangeRequired: boolean;
 };
 
-function resolveAuthApiBaseUrl() {
-  const base = (process.env.NEXT_PUBLIC_AUTH_API_BASE_URL || "").trim();
-  if (!base) return "";
-  if (typeof window === "undefined") return base;
-
-  try {
-    const parsed = new URL(base);
-    if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
-      return "";
-    }
-    return base;
-  } catch {
-    return "";
-  }
-}
-
 const api = axios.create({
-  baseURL: resolveAuthApiBaseUrl(),
+  baseURL: AUTH_API_BASE_URL,
 });
-
-function resolveBackendOrigin() {
-  const base = (process.env.NEXT_PUBLIC_AUTH_API_BASE_URL || "").trim();
-  
-  const normalized = base.endsWith("/api") ? base.slice(0, -4) : base;
-  if (typeof window === "undefined") 
-    {
-    if (normalized) 
-      return normalized;
-
-    return DEFAULT_AUTH_API_BASE_URL;
-  }
-  const runtimeOrigin = DEFAULT_AUTH_API_BASE_URL;
-
-  if (!normalized) 
-    return runtimeOrigin;
-
-  try 
-  {
-    const parsed = new URL(normalized);
-
-    if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
-      return runtimeOrigin;
-    }
-    return normalized;
-  }
-   catch 
-   {
-    return runtimeOrigin;
-  }
-}
 
 applyAuthInterceptors(api, {
   skipRedirectPaths: [
@@ -109,7 +61,7 @@ applyAuthInterceptors(api, {
 export const loginApi = async (payload: LoginRequest): Promise<LoginResult> => {
   const res = await api.post<ApiResponse<LoginResult>>("/api/auth/login", payload);
   if (!res.data.success || !res.data.result) {
-    throw new Error(res.data.message || "Login failed");
+    throw new Error(res.data.message || "로그인에 실패했습니다.");
   }
   return res.data.result;
 };
@@ -123,9 +75,8 @@ export const registerApi = async (payload: RegisterRequest): Promise<void> => {
 
 export const getMeApi = async (): Promise<AuthUser> => {
   const res = await api.get<ApiResponse<AuthUser>>("/api/auth/me");
-
   if (!res.data.success || !res.data.result) {
-    throw new Error(res.data.message || "Unauthorized");
+    throw new Error(res.data.message || "인증 정보가 유효하지 않습니다.");
   }
   return res.data.result;
 };
@@ -135,26 +86,24 @@ export const logoutApi = async (): Promise<void> => {
 };
 
 export const getOAuthLoginUrl = (provider: "google" | "naver") => {
-  const origin = resolveBackendOrigin();
-  return `${origin}/oauth2/authorization/${provider}`;
+  return `${AUTH_SERVER_ORIGIN}/oauth2/authorization/${provider}`;
 };
 
 export const getRegisterSocialVerifyUrl = (provider: "naver" | "google") => {
-  const origin = resolveBackendOrigin();
-  return `${origin}/api/auth/oauth/${provider}/register/start`;
+  return `${AUTH_SERVER_ORIGIN}/api/auth/oauth/${provider}/register/start`;
 };
 
 export const sendVerificationEmailApi = async (payload: EmailSendRequest): Promise<void> => {
   const res = await api.post<ApiResponse<string>>("/api/auth/email/send", payload);
   if (!res.data.success) {
-    throw new Error(res.data.message || "인증 메일 발송에 실패했습니다.");
+    throw new Error(res.data.message || "이메일 발송에 실패했습니다.");
   }
 };
 
 export const verifyEmailCodeApi = async (payload: EmailVerifyRequest): Promise<boolean> => {
   const res = await api.post<ApiResponse<boolean>>("/api/auth/email/verify", payload);
   if (!res.data.success || !res.data.result) {
-    throw new Error(res.data.message || "인증 코드 확인에 실패했습니다.");
+    throw new Error(res.data.message || "이메일 인증 확인에 실패했습니다.");
   }
   return true;
 };

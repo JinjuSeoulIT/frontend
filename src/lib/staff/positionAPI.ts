@@ -1,19 +1,16 @@
 import axios from "axios";
+import { STAFF_API_BASE_URL } from "@/lib/common/env";
 import {
   ApiResponse,
   PositionRequest,
   PositionResponse,
 } from "@/features/staff/position/positiontypes";
 
-const POSITION_API_BASE_URL =
-  process.env.NEXT_PUBLIC_PATIENTS_API_BASE_URL ?? "http://192.168.1.58:8022";
-
-const LOCAL_API_BASE_URL =
-  process.env.LOCAL_API_BASE_URL ?? "http://localhost:8022";
+const API_BASE_URL = STAFF_API_BASE_URL;
 
 
 const positionApi = axios.create({
-  baseURL: POSITION_API_BASE_URL,
+  baseURL: API_BASE_URL,
 });
 
 export const fetchPositionListApi = async (): Promise<ApiResponse<PositionResponse[]>> => {

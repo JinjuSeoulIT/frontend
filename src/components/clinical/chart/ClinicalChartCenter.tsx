@@ -11,12 +11,19 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  Grid,
   IconButton,
+  Paper,
+  Skeleton,
   Stack,
   Typography,
 } from "@mui/material";
 import type { Patient } from "@/features/patients/patientTypes";
-import type { VitalSignsRes, AssessmentRes } from "@/lib/clinical/clinicalVitalsApi";
+import {
+  fetchVitalsApi,
+  type VitalSignsRes,
+  type AssessmentRes,
+} from "@/lib/clinical/clinicalVitalsApi";
 import type { PastHistoryItem } from "@/lib/clinical/clinicalPastHistoryApi";
 import type { DoctorNoteRes, DiagnosisRes, PrescriptionRes } from "@/lib/clinical/clinicalRecordApi";
 import type { ClinicalRes } from "../types";
@@ -24,6 +31,297 @@ import { ClinicalVitalsCard } from "./ClinicalVitalsCard";
 import { ClinicalPastHistoryCard } from "./ClinicalPastHistoryCard";
 import { ClinicalPastVisitsCard, type PriorSubjectiveApplyMode } from "./ClinicalPastVisitsCard";
 import { ClinicalSoapCard } from "./ClinicalSoapCard";
+import type { RecordFormType } from "@/features/medical_support/record/recordTypes";
+import { formatDateTime } from "../clinicalDocumentation";
+
+type RecordVitalsLineFields = Pick<
+  RecordFormType,
+  | "heightCm"
+  | "weightKg"
+  | "systolicBp"
+  | "diastolicBp"
+  | "pulse"
+  | "respiration"
+  | "temperature"
+  | "spo2"
+  | "painScore"
+  | "consciousnessLevel"
+>;
+
+type VitalSeverity = "normal" | "warning" | "critical";
+
+type GroupedVitalRow = {
+  key: string;
+  label: string;
+  value: string;
+  empty: boolean;
+  severity: VitalSeverity;
+  trendKey: "sbp" | "pulse" | "rr" | "temp" | null;
+};
+
+function formatVitalLineValue(
+  value?: string | number | null,
+  unit?: string
+): string | number {
+  if (value === null || value === undefined || value === "") return "-";
+  return unit ? `${value} ${unit}` : value;
+}
+
+function severityPain(n: number): VitalSeverity {
+  if (n >= 9) return "critical";
+  if (n >= 7) return "warning";
+  return "normal";
+}
+
+function buildGroupedVitalRows(v: Partial<RecordVitalsLineFields>): GroupedVitalRow[] {
+  const sbp = parseNumField(v.systolicBp);
+  const dbp = parseNumField(v.diastolicBp);
+  const pulse = parseNumField(v.pulse);
+  const rr = parseNumField(v.respiration);
+  const temp = parseNumField(v.temperature);
+  const spo2 = parseNumField(v.spo2);
+  const painN = parseNumField(v.painScore);
+
+  let bpValue: string;
+  if (sbp != null && dbp != null) bpValue = `${sbp}/${dbp} mmHg`;
+  else if (sbp != null) bpValue = `${sbp} / - mmHg`;
+  else if (dbp != null) bpValue = `- / ${dbp} mmHg`;
+  else bpValue = "-";
+
+  const hDisp = formatVitalLineValue(v.heightCm, "cm");
+  const wDisp = formatVitalLineValue(v.weightKg, "kg");
+  const anthEmpty = hDisp === "-" && wDisp === "-";
+  const anthValue = anthEmpty ? "-" : `${hDisp} · ${wDisp}`;
+
+  const pain =
+    v.painScore === null || v.painScore === undefined || String(v.painScore).trim() === ""
+      ? "-"
+      : String(v.painScore);
+  const consciousness =
+    v.consciousnessLevel != null && String(v.consciousnessLevel).trim()
+      ? String(v.consciousnessLevel)
+      : "-";
+
+  return [
+    {
+      key: "bp",
+      label: "혈압",
+      value: bpValue,
+      empty: bpValue === "-",
+      severity: sbp != null || dbp != null ? bpSeverity(sbp, dbp) : "normal",
+      trendKey: "sbp",
+    },
+    {
+      key: "hw",
+      label: "신체계측 (키·몸무게)",
+      value: anthValue,
+      empty: anthEmpty,
+      severity: "normal",
+      trendKey: null,
+    },
+    {
+      key: "p",
+      label: "맥박",
+      value: String(formatVitalLineValue(v.pulse, "bpm")),
+      empty: formatVitalLineValue(v.pulse, "bpm") === "-",
+      severity: pulse != null ? severityPulse(pulse) : "normal",
+      trendKey: "pulse",
+    },
+    {
+      key: "rr",
+      label: "호흡수",
+      value: String(formatVitalLineValue(v.respiration, "rpm")),
+      empty: formatVitalLineValue(v.respiration, "rpm") === "-",
+      severity: rr != null ? severityRr(rr) : "normal",
+      trendKey: "rr",
+    },
+    {
+      key: "t",
+      label: "체온",
+      value: String(formatVitalLineValue(v.temperature, "℃")),
+      empty: formatVitalLineValue(v.temperature, "℃") === "-",
+      severity: temp != null ? severityTemp(temp) : "normal",
+      trendKey: "temp",
+    },
+    {
+      key: "spo2",
+      label: "산소포화도",
+      value: String(formatVitalLineValue(v.spo2, "%")),
+      empty: formatVitalLineValue(v.spo2, "%") === "-",
+      severity: spo2 != null ? severitySpo2(spo2) : "normal",
+      trendKey: null,
+    },
+    {
+      key: "pain",
+      label: "통증 점수",
+      value: pain,
+      empty: pain === "-",
+      severity: painN != null ? severityPain(painN) : "normal",
+      trendKey: null,
+    },
+    {
+      key: "loc",
+      label: "의식 수준",
+      value: consciousness,
+      empty: consciousness === "-",
+      severity: "normal",
+      trendKey: null,
+    },
+  ];
+}
+
+function trendSeriesForRow(
+  row: GroupedVitalRow,
+  historyPoints: { v: VitalSignsRes }[]
+): number[] {
+  if (!row.trendKey) return [];
+  switch (row.trendKey) {
+    case "sbp":
+      return numericSeriesFromHistory(historyPoints, (r) => r.bpSystolic ?? null);
+    case "pulse":
+      return numericSeriesFromHistory(historyPoints, (r) => r.pulse ?? null);
+    case "rr":
+      return numericSeriesFromHistory(historyPoints, (r) => r.respiratoryRate ?? null);
+    case "temp":
+      return numericSeriesFromHistory(historyPoints, (r) => r.temperature ?? null);
+    default:
+      return [];
+  }
+}
+
+function mapClinicalVitalsToRecordVitalsLine(
+  res: VitalSignsRes | null
+): Partial<RecordVitalsLineFields> {
+  if (!res) return {};
+  const out: Partial<RecordVitalsLineFields> = {};
+  if (res.bpSystolic != null) out.systolicBp = String(res.bpSystolic);
+  if (res.bpDiastolic != null) out.diastolicBp = String(res.bpDiastolic);
+  if (res.pulse != null) out.pulse = String(res.pulse);
+  if (res.respiratoryRate != null) out.respiration = String(res.respiratoryRate);
+  if (res.temperature != null) out.temperature = String(res.temperature);
+  return out;
+}
+
+function parseNumField(v: string | number | null | undefined): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = typeof v === "number" ? v : Number(String(v).replace(",", ".").trim());
+  return Number.isFinite(n) ? n : null;
+}
+
+function severitySbp(n: number): VitalSeverity {
+  if (n < 90 || n > 180) return "critical";
+  if (n < 100 || n >= 140) return "warning";
+  return "normal";
+}
+
+function severityDbp(n: number): VitalSeverity {
+  if (n < 60 || n > 120) return "critical";
+  if (n < 70 || n >= 90) return "warning";
+  return "normal";
+}
+
+function severityPulse(n: number): VitalSeverity {
+  if (n < 50 || n > 120) return "critical";
+  if (n < 55 || n > 100) return "warning";
+  return "normal";
+}
+
+function severityRr(n: number): VitalSeverity {
+  if (n < 8 || n > 30) return "critical";
+  if (n < 10 || n > 24) return "warning";
+  return "normal";
+}
+
+function severityTemp(n: number): VitalSeverity {
+  if (n < 35 || n >= 39) return "critical";
+  if (n < 35.5 || n >= 37.5) return "warning";
+  return "normal";
+}
+
+function severitySpo2(n: number): VitalSeverity {
+  if (n < 92) return "critical";
+  if (n < 95) return "warning";
+  return "normal";
+}
+
+function maxSeverity(a: VitalSeverity, b: VitalSeverity): VitalSeverity {
+  const o = { normal: 0, warning: 1, critical: 2 };
+  return o[a] >= o[b] ? a : b;
+}
+
+function bpSeverity(sbp: number | null, dbp: number | null): VitalSeverity {
+  let s: VitalSeverity = "normal";
+  if (sbp != null) s = maxSeverity(s, severitySbp(sbp));
+  if (dbp != null) s = maxSeverity(s, severityDbp(dbp));
+  return s;
+}
+
+function numericSeriesFromHistory(
+  points: { v: VitalSignsRes }[],
+  pick: (r: VitalSignsRes) => number | null | undefined
+): number[] {
+  const out: number[] = [];
+  for (const { v } of points) {
+    const x = pick(v);
+    if (x != null && Number.isFinite(x)) out.push(x);
+  }
+  return out;
+}
+
+function lastDelta(series: number[]): number | null {
+  if (series.length < 2) return null;
+  return series[series.length - 1] - series[series.length - 2];
+}
+
+function VitalSparkline({ series }: { series: number[] }) {
+  const w = 112;
+  const h = 36;
+  const pad = 4;
+  if (series.length < 2) {
+    return (
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
+        추세: 방문별 기록이 2회 이상일 때 표시
+      </Typography>
+    );
+  }
+  const min = Math.min(...series);
+  const max = Math.max(...series);
+  const range = max - min || 1;
+  const pts = series.map((v, i) => {
+    const x = pad + (series.length === 1 ? w / 2 : (i / (series.length - 1)) * (w - 2 * pad));
+    const y = h - pad - ((v - min) / range) * (h - 2 * pad);
+    return `${x},${y}`;
+  });
+  return (
+    <Box sx={{ mt: 0.75, color: "primary.main", opacity: 0.9 }}>
+      <Box component="svg" width={w} height={h} viewBox={`0 0 ${w} ${h}`} sx={{ display: "block" }}>
+        <polyline fill="none" stroke="currentColor" strokeWidth="1.75" points={pts.join(" ")} />
+      </Box>
+    </Box>
+  );
+}
+
+function TrendDeltaChip({ delta }: { delta: number | null }) {
+  if (delta == null) return null;
+  if (delta === 0) {
+    return (
+      <Chip
+        size="small"
+        label="변화 없음"
+        sx={{ height: 22, fontWeight: 700, fontSize: 11, "& .MuiChip-label": { px: 0.75 } }}
+      />
+    );
+  }
+  const up = delta > 0;
+  return (
+    <Chip
+      size="small"
+      color={up ? "warning" : "info"}
+      label={`${up ? "↑" : "↓"} ${Math.abs(Math.round(delta * 10) / 10)}`}
+      sx={{ height: 22, fontWeight: 800, fontSize: 11, "& .MuiChip-label": { px: 0.75 } }}
+    />
+  );
+}
 
 function formatClinicalBirthDate(raw: string | null | undefined): string {
   if (raw == null || !String(raw).trim()) return "—";
@@ -50,6 +348,7 @@ function formatClinicalGender(g: string | null | undefined): string {
 type Props = {
   selectedPatient: Patient | null;
   visitId: number | null;
+  currentVisitStartedAt?: string | null;
   vitals: VitalSignsRes | null;
   assessment: AssessmentRes | null;
   vitalsLoading: boolean;
@@ -119,12 +418,70 @@ export function ClinicalChartCenter(p: Props) {
   const [vitalsOpen, setVitalsOpen] = React.useState(false);
   const [pastHistoryOpen, setPastHistoryOpen] = React.useState(false);
   const [pastVisitsOpen, setPastVisitsOpen] = React.useState(false);
+  const [vitalHistoryPoints, setVitalHistoryPoints] = React.useState<{ v: VitalSignsRes }[]>([]);
+  const [vitalHistoryLoading, setVitalHistoryLoading] = React.useState(false);
 
   const pat = p.selectedPatient;
   const displayName = pat?.name ?? "환자 미선택";
   const displayNo = pat?.patientNo?.trim() || "—";
   const birthLabel = formatClinicalBirthDate(pat?.birthDate);
   const genderLabel = formatClinicalGender(pat?.gender);
+
+  const vitalLine = React.useMemo(
+    () => mapClinicalVitalsToRecordVitalsLine(p.vitals),
+    [p.vitals]
+  );
+  const groupedVitalRows = React.useMemo(() => buildGroupedVitalRows(vitalLine), [vitalLine]);
+
+  React.useEffect(() => {
+    if (!vitalsOpen || p.visitId == null) {
+      setVitalHistoryPoints([]);
+      setVitalHistoryLoading(false);
+      return;
+    }
+    const visitId = p.visitId;
+    let cancelled = false;
+    setVitalHistoryLoading(true);
+    const clinicalById = new Map<number, ClinicalRes>();
+    for (const c of p.pastClinicalsForPatient) {
+      const id = c.clinicalId ?? c.id;
+      if (id != null) clinicalById.set(id, c);
+    }
+    const pastIds = p.pastClinicalsForPatient
+      .map((c) => c.clinicalId ?? c.id)
+      .filter((x): x is number => x != null)
+      .slice(0, 15);
+
+    Promise.all(pastIds.map((id) => fetchVitalsApi(id)))
+      .then((results) => {
+        if (cancelled) return;
+        const rows: { at: number; v: VitalSignsRes; id: number }[] = [];
+        pastIds.forEach((id, i) => {
+          const v = results[i];
+          if (!v) return;
+          const cl = clinicalById.get(id);
+          const raw = v.measuredAt ?? cl?.clinicalAt ?? cl?.createdAt ?? "";
+          const at = Date.parse(raw) || 0;
+          rows.push({ at, v, id });
+        });
+        if (p.vitals) {
+          const rawCur = p.vitals.measuredAt ?? p.currentVisitStartedAt ?? "";
+          const atCur = Date.parse(rawCur) || Date.now();
+          rows.push({ at: atCur, v: p.vitals, id: visitId });
+        }
+        rows.sort((a, b) => a.at - b.at || a.id - b.id);
+        setVitalHistoryPoints(rows.map((r) => ({ v: r.v })));
+      })
+      .catch(() => {
+        if (!cancelled) setVitalHistoryPoints(p.vitals ? [{ v: p.vitals }] : []);
+      })
+      .finally(() => {
+        if (!cancelled) setVitalHistoryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [vitalsOpen, p.visitId, p.pastClinicalsForPatient, p.vitals, p.currentVisitStartedAt]);
 
   return (
     <Box sx={{ overflow: "auto", p: 2, bgcolor: "rgba(0,0,0,0.02)" }}>
@@ -301,6 +658,119 @@ export function ClinicalChartCenter(p: Props) {
       >
         <ModalTitleBar title="신체계측/바이탈 (SOAP O)" onClose={() => setVitalsOpen(false)} />
         <DialogContent dividers sx={{ pt: 2 }}>
+          {pat ? (
+            <Box sx={{ mb: 2 }}>
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                alignItems={{ xs: "flex-start", sm: "baseline" }}
+                justifyContent="space-between"
+                sx={{ mb: 1 }}
+              >
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.25 }}>
+                    신체 정보 및 활력징후
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    항목을 묶어 보여 주고, 이상 구간은 강조합니다. 동일 환자 과거 방문 활력이 있으면 미니 추세선과 직전 대비 변화를 표시합니다.
+                  </Typography>
+                </Box>
+                {!p.vitalsLoading && p.vitals?.measuredAt ? (
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    label={`측정 ${formatDateTime(p.vitals.measuredAt)}`}
+                    sx={{ fontWeight: 600, flexShrink: 0 }}
+                  />
+                ) : null}
+              </Stack>
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: (t) => (t.palette.mode === "dark" ? "action.hover" : "grey.50"),
+                }}
+              >
+                {p.vitalsLoading ? (
+                  <Grid container spacing={1.25}>
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <Grid key={i} size={{ xs: 6, sm: 4, md: 3 }}>
+                        <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 1.5, bgcolor: "background.paper" }}>
+                          <Skeleton variant="text" width="45%" height={14} sx={{ mb: 0.75 }} />
+                          <Skeleton variant="text" width="72%" height={24} sx={{ mb: 1 }} />
+                          <Skeleton variant="rounded" width="100%" height={36} />
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+                ) : (
+                  <Grid container spacing={1.25}>
+                    {groupedVitalRows.map((row) => {
+                      const series = trendSeriesForRow(row, vitalHistoryPoints);
+                      const delta = lastDelta(series);
+                      const borderW = row.severity !== "normal" ? 2 : 1;
+                      const borderColor =
+                        row.severity === "critical"
+                          ? "error.main"
+                          : row.severity === "warning"
+                            ? "warning.main"
+                            : "divider";
+                      return (
+                        <Grid key={row.key} size={{ xs: 6, sm: 4, md: 3 }}>
+                          <Paper
+                            elevation={0}
+                            sx={{
+                              p: 1.25,
+                              height: "100%",
+                              borderRadius: 1.5,
+                              border: `${borderW}px solid`,
+                              borderColor,
+                              bgcolor: "background.paper",
+                            }}
+                          >
+                            <Stack direction="row" alignItems="center" flexWrap="wrap" useFlexGap spacing={0.5} sx={{ mb: 0.5 }}>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ fontWeight: 600, letterSpacing: "0.02em" }}
+                              >
+                                {row.label}
+                              </Typography>
+                              {row.severity === "critical" ? (
+                                <Chip size="small" color="error" label="위험" sx={{ height: 20, fontSize: 10, fontWeight: 800 }} />
+                              ) : row.severity === "warning" ? (
+                                <Chip size="small" color="warning" label="주의" sx={{ height: 20, fontSize: 10, fontWeight: 800 }} />
+                              ) : null}
+                              {row.trendKey ? <TrendDeltaChip delta={delta} /> : null}
+                            </Stack>
+                            <Typography
+                              variant="body2"
+                              fontWeight={700}
+                              sx={{
+                                lineHeight: 1.35,
+                                color: row.empty ? "text.disabled" : "text.primary",
+                                mb: 0.25,
+                              }}
+                            >
+                              {row.value}
+                            </Typography>
+                            {row.trendKey ? (
+                              vitalHistoryLoading ? (
+                                <Skeleton variant="rounded" width="100%" height={36} sx={{ mt: 0.5 }} />
+                              ) : (
+                                <VitalSparkline series={series} />
+                              )
+                            ) : null}
+                          </Paper>
+                        </Grid>
+                      );
+                    })}
+                  </Grid>
+                )}
+              </Paper>
+            </Box>
+          ) : null}
           <ClinicalVitalsCard
             embedded
             selectedPatient={p.selectedPatient}

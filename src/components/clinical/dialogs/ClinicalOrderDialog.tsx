@@ -81,6 +81,7 @@ type Props = {
 export function ClinicalOrderDialog({ open, variant, onClose, visitId, onCreated }: Props) {
   const [newOrderType, setNewOrderType] = React.useState<LabOrderType>(() => defaultOrderType(variant));
   const [newOrderName, setNewOrderName] = React.useState("");
+  const [treatmentPick, setTreatmentPick] = React.useState<TreatmentSuggestOption | null>(null);
   const [creating, setCreating] = React.useState(false);
   const [treatmentOptions, setTreatmentOptions] = React.useState<TreatmentSuggestOption[]>([]);
   const [treatmentSuggestLoading, setTreatmentSuggestLoading] = React.useState(false);
@@ -99,10 +100,15 @@ export function ClinicalOrderDialog({ open, variant, onClose, visitId, onCreated
     if (open) {
       setNewOrderType(defaultOrderType(variant));
       setNewOrderName("");
+      setTreatmentPick(null);
       setTreatmentOptions([]);
       setTreatmentSuggestLoading(false);
     }
   }, [open, variant]);
+
+  React.useEffect(() => {
+    setTreatmentPick(null);
+  }, [newOrderType]);
 
   React.useEffect(() => {
     if (!open || variant !== "treatment" || visitId == null) {
@@ -191,12 +197,17 @@ export function ClinicalOrderDialog({ open, variant, onClose, visitId, onCreated
               isOptionEqualToValue={(a, b) => a.key === b.key}
               loading={treatmentSuggestLoading}
               inputValue={newOrderName}
-              onInputChange={(_, v) => setNewOrderName(v)}
+              onInputChange={(_, v) => {
+                setNewOrderName(v);
+                setTreatmentPick(null);
+              }}
               onChange={(_, v) => {
                 if (typeof v === "string") {
                   setNewOrderName(v);
+                  setTreatmentPick(null);
                 } else if (v && typeof v === "object" && "orderName" in v) {
                   setNewOrderName(v.orderName);
+                  setTreatmentPick(v);
                 }
               }}
               renderInput={(params) => (
@@ -245,6 +256,7 @@ export function ClinicalOrderDialog({ open, variant, onClose, visitId, onCreated
             try {
               await createClinicalOrderApi(visitId, {
                 orderType: newOrderType,
+                orderCode: variant === "treatment" ? treatmentPick?.key ?? null : null,
                 orderName: newOrderName.trim(),
               });
               await onCreated();

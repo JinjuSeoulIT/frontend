@@ -4,6 +4,8 @@ export interface PhysiologicalExam {
   examEquipmentId?: string | number | null;
   rawData?: string | null;
   reportDocId?: string | number | null;
+  performerId?: string | number | null;
+  progressStatus?: string | null;
   status?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -14,6 +16,8 @@ export interface PhysiologicalExamCreatePayload {
   examEquipmentId?: string | number | null;
   rawData?: string | null;
   reportDocId?: string | number | null;
+  performerId?: string | number | null;
+  progressStatus?: string | null;
   status?: string | null;
 }
 
@@ -22,5 +26,7 @@ export interface PhysiologicalExamUpdatePayload {
   examEquipmentId?: string | number | null;
   rawData?: string | null;
   reportDocId?: string | number | null;
+  performerId?: string | number | null;
+  progressStatus?: string | null;
   status?: string | null;
 }

@@ -56,11 +56,11 @@ function DetailItem({
 
 function StatusChip({ status }: { status?: string | null }) {
   if (status === "ACTIVE") {
-    return <Chip label="ACTIVE" color="success" size="small" />;
+    return <Chip label="활성화" color="success" size="small" />;
   }
 
   if (status === "INACTIVE") {
-    return <Chip label="INACTIVE" color="default" size="small" />;
+    return <Chip label="비활성화" color="default" size="small" />;
   }
 
   return <Chip label={status || "-"} color="default" size="small" />;
@@ -278,7 +278,7 @@ export default function RecordDetail() {
                       color="text.secondary"
                       sx={{ mb: 0.5, fontWeight: 500 }}
                     >
-                      상태
+                      활성 여부
                     </Typography>
                     <StatusChip status={record.status} />
                   </Box>

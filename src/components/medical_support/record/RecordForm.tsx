@@ -318,7 +318,7 @@ const RecordForm: React.FC<Props> = ({
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     select
-                    label="상태"
+                    label="활성 여부"
                     value={toStr(form.status || "ACTIVE")}
                     onChange={handleFieldChange("status")}
                     size="small"
@@ -326,12 +326,12 @@ const RecordForm: React.FC<Props> = ({
                     disabled={!isEditMode}
                     helperText={
                       isEditMode
-                        ? "수정 모드에서만 상태를 변경할 수 있습니다."
-                        : "등록 시 기본값은 ACTIVE입니다."
+                        ? "수정 모드에서만 활성 여부를 변경할 수 있습니다."
+                        : "등록 시 기본값은 활성화입니다."
                     }
                   >
-                    <MenuItem value="ACTIVE">ACTIVE</MenuItem>
-                    <MenuItem value="INACTIVE">INACTIVE</MenuItem>
+                    <MenuItem value="ACTIVE">활성화</MenuItem>
+                    <MenuItem value="INACTIVE">비활성화</MenuItem>
                   </TextField>
                 </Grid>
               </Grid>

@@ -57,6 +57,17 @@ const formatDateTime = (value?: string | null) => {
 const normalizeStatus = (value?: string | null) =>
   value?.trim().toUpperCase() ?? "";
 
+const formatProgressStatusLabel = (status?: string | null) => {
+  const normalized = normalizeStatus(status);
+
+  if (normalized === "WAITING") return "대기중";
+  if (normalized === "IN_PROGRESS") return "검사중";
+  if (normalized === "COMPLETED") return "검사완료";
+  if (normalized === "CANCELLED") return "취소";
+
+  return safeValue(status);
+};
+
 // const getStatusColor = (
 //   status?: string | null
 // ): "default" | "info" | "warning" | "success" => {
@@ -354,7 +365,7 @@ export default function TestExecutionList() {
                             size="small"
                           /> */}
                           <Chip
-                            label={safeValue(item.progressStatus)}
+                            label={formatProgressStatusLabel(item.progressStatus)}
                             color={getStatusColor(item.progressStatus)}
                             size="small"
                             sx={getStatusSx(item.progressStatus)}

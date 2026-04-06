@@ -1,6 +1,16 @@
 import axios from "axios";
 
-const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8090";
+const resolveClinicalApiBaseUrl = () => {
+  const value = process.env.NEXT_PUBLIC_CLINICAL_API_BASE_URL?.trim();
+  if (!value) {
+    throw new Error(
+      "[env] Missing required environment variable: NEXT_PUBLIC_CLINICAL_API_BASE_URL"
+    );
+  }
+  return value;
+};
+
+const baseURL = resolveClinicalApiBaseUrl();
 
 const api = axios.create({
   baseURL,

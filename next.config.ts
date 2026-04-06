@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const DEFAULT_AUTH_API_BASE_URL = "http://192.168.1.64:8081";
+const DEFAULT_MENU_API_BASE_URL = "http://192.168.1.64:8081";
 const DEFAULT_PATIENTS_API_BASE_URL = "http://192.168.1.60:8181";
 const DEFAULT_RECEPTION_API_BASE_URL = "http://192.168.1.55:8283";
 const DEFAULT_BILLING_API_BASE_URL = "http://192.168.1.68:8081";
@@ -31,6 +32,10 @@ const nextConfig: NextConfig = {
       process.env.NEXT_PUBLIC_AUTH_API_BASE_URL,
       DEFAULT_AUTH_API_BASE_URL
     );
+    const menuApiBase = resolveBaseUrl(
+      process.env.NEXT_PUBLIC_MENU_API_BASE_URL,
+      DEFAULT_MENU_API_BASE_URL
+    );
     const billingApiBase = resolveBaseUrl(
       process.env.NEXT_PUBLIC_BILLING_API_BASE_URL,
       DEFAULT_BILLING_API_BASE_URL
@@ -43,7 +48,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/api/menus/:path*",
-        destination: `${patientsApiBase}/api/menus/:path*`,
+        destination: `${menuApiBase}/api/menus/:path*`,
       },
       {
         source: "/api/codes/:path*",

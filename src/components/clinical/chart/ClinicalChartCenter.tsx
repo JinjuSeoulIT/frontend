@@ -9,6 +9,7 @@ import {
   CardContent,
   Chip,
   Dialog,
+  DialogActions,
   DialogContent,
   DialogTitle,
   Grid,
@@ -810,6 +811,19 @@ export function ClinicalChartCenter(p: Props) {
             onDeletePhx={p.onDeletePhx}
           />
         </DialogContent>
+        <DialogActions sx={{ px: 2.5, py: 1.5, borderTop: 1, borderColor: "divider" }}>
+          <Button color="inherit" onClick={() => setPastHistoryOpen(false)} sx={{ textTransform: "none", fontWeight: 600 }}>
+            닫기
+          </Button>
+          <Button
+            variant="contained"
+            disabled={p.selectedPatient == null || p.visitId == null || p.pastHistoryLoading}
+            onClick={p.onAddPhx}
+            sx={{ textTransform: "none", fontWeight: 700 }}
+          >
+            항목 추가
+          </Button>
+        </DialogActions>
       </Dialog>
 
       <Dialog

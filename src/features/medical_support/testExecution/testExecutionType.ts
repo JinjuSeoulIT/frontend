@@ -9,3 +9,13 @@ export interface TestExecution {
   performerId?: string | number | null;
   updatedAt?: string | null;
 }
+
+export type TestExecutionSearchType = "executionType";
+
+export const TEST_EXECUTION_TYPE_OPTIONS = [
+  "SPECIMEN",
+  "IMAGING",
+  "PATHOLOGY",
+  "ENDOSCOPY",
+  "PHYSIOLOGICAL",
+] as const;

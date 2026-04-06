@@ -12,7 +12,10 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import type { TestExecution } from "@/features/medical_support/testExecution/testExecutionType";
+import {
+  TEST_EXECUTION_TYPE_OPTIONS,
+  type TestExecution,
+} from "@/features/medical_support/testExecution/testExecutionType";
 
 type TestExecutionFormData = {
   testExecutionId: string;
@@ -49,14 +52,6 @@ export const toTestExecutionFormData = (
   // : value?.performerId performerId? String(value.performerId) : "",
   updatedAt: toDateTimeInputValue(value?.updatedAt),
 });
-
-const executionTypeOptions = [
-  "SPECIMEN",
-  "IMAGING",
-  "PATHOLOGY",
-  "ENDOSCOPY",
-  "PHYSIOLOGICAL",
-] as const;
 
 const progressStatusOptions = [
   "WAITING",
@@ -197,7 +192,7 @@ export default function TestExecutionForm({
                     disabled={isEditMode}
                   >
                     <MenuItem value="">선택</MenuItem>
-                    {executionTypeOptions.map((option) => (
+                    {TEST_EXECUTION_TYPE_OPTIONS.map((option) => (
                       <MenuItem key={option} value={option}>
                         {option}
                       </MenuItem>

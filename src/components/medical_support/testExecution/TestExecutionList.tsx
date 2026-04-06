@@ -27,6 +27,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { TestExecutionActions } from "@/features/medical_support/testExecution/testExecutionSlice";
 import type { RootState } from "@/store/rootReducer";
 import type { AppDispatch } from "@/store/store";
+import TestExecutionSearch from "./TestExecutionSearch";
 
 // const DONE_STATUSES = ["COMPLETED", "DONE", "FINISHED", "SUCCESS"];
 // const ACTIVE_STATUSES = ["IN_PROGRESS", "INPROGRESS", "RUNNING", "PROCESSING"];
@@ -279,6 +280,10 @@ export default function TestExecutionList() {
         <Divider />
 
         <CardContent sx={{ p: 2.5 }}>
+          <Box sx={{ mb: 2 }}>
+            <TestExecutionSearch />
+          </Box>
+
           {loading && (
             <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
               <CircularProgress size={28} />

@@ -9,6 +9,7 @@ import {
   Chip,
   IconButton,
   Paper,
+  Skeleton,
   Stack,
   Table,
   TableBody,
@@ -16,22 +17,30 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import MedicalInformationOutlinedIcon from "@mui/icons-material/MedicalInformationOutlined";
 import type { VitalSignsRes, AssessmentRes } from "@/lib/clinical/clinicalVitalsApi";
-import type { PastHistoryItem } from "@/lib/clinical/clinicalPastHistoryApi";
+import type { PastHistoryItem, PastHistoryType } from "@/lib/clinical/clinicalPastHistoryApi";
 import type { Patient } from "@/features/patients/patientTypes";
 import {
   CLINICAL_SUPPORT_PAST_HISTORY_SYNC,
+  formatDateTime,
   formatVitalsSummaryLine,
   parseNurseInterviewPhx,
   PAST_HISTORY_TYPE_LABEL,
   sortPastHistoryRows,
 } from "../clinicalDocumentation";
+
+type PhxFilter = PastHistoryType | "ALL";
+
+const PHX_TYPES = Object.keys(PAST_HISTORY_TYPE_LABEL) as PastHistoryType[];
 
 type Props = {
   selectedPatient: Patient | null;
@@ -60,6 +69,20 @@ export function ClinicalPastHistoryCard({
   onDeletePhx,
   embedded = false,
 }: Props) {
+  const [phxFilter, setPhxFilter] = React.useState<PhxFilter>("ALL");
+
+  React.useEffect(() => {
+    setPhxFilter("ALL");
+  }, [visitId]);
+
+  const sortedPhx = React.useMemo(() => sortPastHistoryRows(pastHistoryList), [pastHistoryList]);
+  const filteredPhx = React.useMemo(
+    () => (phxFilter === "ALL" ? sortedPhx : sortedPhx.filter((r) => r.historyType === phxFilter)),
+    [sortedPhx, phxFilter]
+  );
+
+  const phxTableMaxHeight = embedded ? "min(52vh, 440px)" : 200;
+
   return (
     <Card
       variant={embedded ? "outlined" : undefined}
@@ -116,6 +139,10 @@ export function ClinicalPastHistoryCard({
                   </Typography>
                   <Chip label="연동 예정" size="small" variant="outlined" sx={{ height: 20, fontSize: 10 }} />
                 </Stack>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75, lineHeight: 1.5 }}>
+                  진료 SOAP·문진·간호 기록이 연동되면 활력·문진 요약이 이 영역에 자동으로 채워집니다. 아래 PHx는 방문별
+                  구조화 목록입니다.
+                </Typography>
                 <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1 }}>
                   <Table size="small">
                     <TableHead>
@@ -163,11 +190,15 @@ export function ClinicalPastHistoryCard({
                     <TableBody>
                       {assessmentLoading ? (
                         <TableRow>
-                          <TableCell colSpan={2} sx={{ color: "var(--muted)", fontSize: 13, py: 2 }}>
-                            불러오는 중…
+                          <TableCell colSpan={2} sx={{ py: 1.5 }}>
+                            <Stack spacing={0.75}>
+                              <Skeleton variant="text" width="40%" height={18} />
+                              <Skeleton variant="text" width="88%" height={18} />
+                            </Stack>
                           </TableCell>
                         </TableRow>
-                      ) : (() => {
+                      ) : (
+                        (() => {
                           const vitalsLine = formatVitalsSummaryLine(vitals);
                           const n = parseNurseInterviewPhx(assessment);
                           const hasNurse =
@@ -201,14 +232,25 @@ export function ClinicalPastHistoryCard({
                             if (n.hpi) cells.push({ k: "현병력", v: n.hpi });
                           }
                           return cells.map((c) => (
-                            <TableRow key={c.k}>
+                            <TableRow
+                              key={c.k}
+                              sx={
+                                c.k === "알레르기"
+                                  ? (t) => ({
+                                      bgcolor: alpha(t.palette.error.main, 0.06),
+                                      boxShadow: `inset 3px 0 0 ${t.palette.error.main}`,
+                                    })
+                                  : undefined
+                              }
+                            >
                               <TableCell sx={{ fontSize: 12, color: "var(--muted)", verticalAlign: "top" }}>
                                 {c.k}
                               </TableCell>
                               <TableCell sx={{ fontSize: 13 }}>{c.v}</TableCell>
                             </TableRow>
                           ));
-                        })()}
+                        })()
+                      )}
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -235,31 +277,40 @@ export function ClinicalPastHistoryCard({
                   항목 추가
                 </Button>
               </Stack>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75, lineHeight: 1.5 }}>
+                문진 서술형 과거력과 별도로, 처방·안전 확인용 구조화 항목을 관리합니다.
+              </Typography>
+              {pastHistoryList.length > 0 ? (
+                <Box sx={{ mb: 1 }}>
+                  <ToggleButtonGroup
+                    exclusive
+                    size="small"
+                    value={phxFilter}
+                    onChange={(_, v: PhxFilter | null) => {
+                      if (v != null) setPhxFilter(v);
+                    }}
+                    aria-label="PHx 구분 필터"
+                    sx={{ flexWrap: "wrap", gap: 0.5, "& .MuiToggleButton-root": { textTransform: "none", fontWeight: 600, fontSize: 12, py: 0.35, px: 1 } }}
+                  >
+                    <ToggleButton value="ALL">전체</ToggleButton>
+                    {PHX_TYPES.map((t) => (
+                      <ToggleButton key={t} value={t}>
+                        {PAST_HISTORY_TYPE_LABEL[t]}
+                      </ToggleButton>
+                    ))}
+                  </ToggleButtonGroup>
+                </Box>
+              ) : null}
               {pastHistoryLoading ? (
-                <Typography color="text.secondary" sx={{ fontSize: 13, py: 1 }}>
-                  불러오는 중…
-                </Typography>
-              ) : pastHistoryList.length === 0 ? (
                 <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1 }}>
                   <Table size="small">
-                    <TableBody>
-                      <TableRow>
-                        <TableCell sx={{ color: "var(--muted)", fontSize: 13, py: 2, textAlign: "center" }}>
-                          등록된 항목이 없습니다.
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              ) : (
-                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1, maxHeight: 200 }}>
-                  <Table size="small" stickyHeader>
                     <TableHead>
                       <TableRow>
                         <TableCell sx={{ fontWeight: 700 }}>구분</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>내용</TableCell>
-                        <TableCell sx={{ fontWeight: 700, display: { xs: "none", sm: "table-cell" } }}>
-                          비고
+                        <TableCell sx={{ fontWeight: 700, display: { xs: "none", sm: "table-cell" } }}>비고</TableCell>
+                        <TableCell sx={{ fontWeight: 700, display: { xs: "none", md: "table-cell" }, width: 120 }}>
+                          등록
                         </TableCell>
                         <TableCell align="right" sx={{ fontWeight: 700, width: 88 }}>
                           관리
@@ -267,63 +318,163 @@ export function ClinicalPastHistoryCard({
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {sortPastHistoryRows(pastHistoryList).map((row) => {
-                        const chipColor =
-                          row.historyType === "ALLERGY"
-                            ? ("error" as const)
-                            : row.historyType === "MEDICATION"
-                              ? ("success" as const)
-                              : row.historyType === "SURGERY"
-                                ? ("info" as const)
-                                : ("default" as const);
-                        return (
-                          <TableRow key={row.id} hover>
-                            <TableCell sx={{ fontSize: 12, py: 0.75 }}>
-                              <Chip
-                                label={PAST_HISTORY_TYPE_LABEL[row.historyType] ?? row.historyType}
-                                size="small"
-                                color={chipColor}
-                                variant={row.historyType === "DISEASE" ? "outlined" : "filled"}
-                                sx={{ height: 22, fontSize: 10 }}
-                              />
-                            </TableCell>
-                            <TableCell sx={{ fontSize: 13, py: 0.75, wordBreak: "break-word" }}>
-                              {row.name || "-"}
-                            </TableCell>
-                            <TableCell
-                              sx={{
-                                fontSize: 12,
-                                color: "var(--muted)",
-                                py: 0.75,
-                                display: { xs: "none", sm: "table-cell" },
-                              }}
+                      {[0, 1, 2].map((i) => (
+                        <TableRow key={i}>
+                          <TableCell>
+                            <Skeleton variant="rounded" width={56} height={22} />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton variant="text" width="90%" />
+                          </TableCell>
+                          <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
+                            <Skeleton variant="text" width="70%" />
+                          </TableCell>
+                          <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
+                            <Skeleton variant="text" width={96} />
+                          </TableCell>
+                          <TableCell align="right">
+                            <Skeleton variant="rounded" width={72} height={32} sx={{ ml: "auto" }} />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              ) : pastHistoryList.length === 0 ? (
+                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1 }}>
+                  <Table size="small">
+                    <TableBody>
+                      <TableRow>
+                        <TableCell sx={{ color: "var(--muted)", fontSize: 13, py: 2.5, textAlign: "center" }}>
+                          등록된 항목이 없습니다.
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              ) : (
+                <TableContainer
+                  component={Paper}
+                  variant="outlined"
+                  sx={{ borderRadius: 1, maxHeight: phxTableMaxHeight }}
+                >
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 700, bgcolor: "background.paper" }}>구분</TableCell>
+                        <TableCell sx={{ fontWeight: 700, bgcolor: "background.paper" }}>내용</TableCell>
+                        <TableCell
+                          sx={{ fontWeight: 700, display: { xs: "none", sm: "table-cell" }, bgcolor: "background.paper" }}
+                        >
+                          비고
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontWeight: 700,
+                            display: { xs: "none", md: "table-cell" },
+                            width: 120,
+                            bgcolor: "background.paper",
+                          }}
+                        >
+                          등록
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700, width: 88, bgcolor: "background.paper" }}>
+                          관리
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredPhx.length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={5}
+                            sx={{ color: "var(--muted)", fontSize: 13, py: 2, textAlign: "center" }}
+                          >
+                            선택한 구분에 해당하는 항목이 없습니다.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredPhx.map((row) => {
+                          const chipColor =
+                            row.historyType === "ALLERGY"
+                              ? ("error" as const)
+                              : row.historyType === "MEDICATION"
+                                ? ("success" as const)
+                                : row.historyType === "SURGERY"
+                                  ? ("info" as const)
+                                  : ("default" as const);
+                          const allergyRow = row.historyType === "ALLERGY";
+                          return (
+                            <TableRow
+                              key={row.id}
+                              hover
+                              sx={
+                                allergyRow
+                                  ? (t) => ({
+                                      bgcolor: alpha(t.palette.error.main, 0.06),
+                                      boxShadow: `inset 3px 0 0 ${t.palette.error.main}`,
+                                    })
+                                  : undefined
+                              }
                             >
-                              {(row.memo ?? "").trim() || "—"}
-                            </TableCell>
-                            <TableCell align="right" sx={{ py: 0.5 }}>
-                              <IconButton size="small" aria-label="수정" onClick={() => onEditPhx(row)}>
-                                <EditOutlinedIcon fontSize="small" />
-                              </IconButton>
-                              <IconButton
-                                size="small"
-                                aria-label="삭제"
-                                color="error"
-                                onClick={async () => {
-                                  if (row.id == null) return;
-                                  if (!window.confirm("삭제할까요?")) return;
-                                  try {
-                                    await onDeletePhx(row.id);
-                                  } catch (e) {
-                                    window.alert(e instanceof Error ? e.message : "삭제 실패");
-                                  }
+                              <TableCell sx={{ fontSize: 12, py: 0.75 }}>
+                                <Chip
+                                  label={PAST_HISTORY_TYPE_LABEL[row.historyType] ?? row.historyType}
+                                  size="small"
+                                  color={chipColor}
+                                  variant={row.historyType === "DISEASE" ? "outlined" : "filled"}
+                                  sx={{ height: 22, fontSize: 10 }}
+                                />
+                              </TableCell>
+                              <TableCell sx={{ fontSize: 13, py: 0.75, wordBreak: "break-word" }}>
+                                {row.name || "-"}
+                              </TableCell>
+                              <TableCell
+                                sx={{
+                                  fontSize: 12,
+                                  color: "var(--muted)",
+                                  py: 0.75,
+                                  display: { xs: "none", sm: "table-cell" },
                                 }}
                               >
-                                <DeleteOutlineIcon fontSize="small" />
-                              </IconButton>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
+                                {(row.memo ?? "").trim() || "—"}
+                              </TableCell>
+                              <TableCell
+                                sx={{
+                                  fontSize: 11,
+                                  color: "var(--muted)",
+                                  py: 0.75,
+                                  whiteSpace: "nowrap",
+                                  display: { xs: "none", md: "table-cell" },
+                                }}
+                              >
+                                {formatDateTime(row.createdAt)}
+                              </TableCell>
+                              <TableCell align="right" sx={{ py: 0.5 }}>
+                                <IconButton size="small" aria-label="수정" onClick={() => onEditPhx(row)}>
+                                  <EditOutlinedIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  aria-label="삭제"
+                                  color="error"
+                                  onClick={async () => {
+                                    if (row.id == null) return;
+                                    if (!window.confirm("삭제할까요?")) return;
+                                    try {
+                                      await onDeletePhx(row.id);
+                                    } catch (e) {
+                                      window.alert(e instanceof Error ? e.message : "삭제 실패");
+                                    }
+                                  }}
+                                >
+                                  <DeleteOutlineIcon fontSize="small" />
+                                </IconButton>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
                     </TableBody>
                   </Table>
                 </TableContainer>

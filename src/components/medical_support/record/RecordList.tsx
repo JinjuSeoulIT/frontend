@@ -501,7 +501,7 @@ const handleCreateWithReception = () => {
                           }}
                           align="center"
                         >
-                          기록일시
+                          생성일시
                         </TableCell>
                         <TableCell
                           sx={{
@@ -551,7 +551,7 @@ const handleCreateWithReception = () => {
                             {record.departmentName ?? "-"}
                           </TableCell>
                           <TableCell align="center">
-                            {formatDateTime(record.recordedAt)}
+                            {formatDateTime(record.createdAt ?? record.recordedAt)}
                           </TableCell>
                           <TableCell align="center">
                             <Chip

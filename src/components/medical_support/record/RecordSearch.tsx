@@ -31,7 +31,7 @@ const SEARCH_TYPE_OPTIONS: Array<{
   { value: "nurseName", label: "간호사명" },
   { value: "patientName", label: "환자명" },
   { value: "departmentName", label: "진료과" },
-  { value: "recordedAt", label: "기록일시" },
+  // { value: "recordedAt", label: "기록일시" }, // 사용 안함
 ];
 
 const TEXT_SEARCH_LABELS: Record<RecordTextSearchType, string> = {
@@ -56,8 +56,11 @@ export default function RecordSearch() {
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
   const [departmentError, setDepartmentError] = useState<string | null>(null);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+
+  // recordedAt 검색 안 써서 주석처리
+  // const [startDate, setStartDate] = useState("");
+  // const [endDate, setEndDate] = useState("");
+
   const [searchError, setSearchError] = useState("");
 
   const departmentOptions = useMemo(() => {
@@ -81,15 +84,11 @@ export default function RecordSearch() {
         setDepartmentError(null);
         const departmentList = await fetchDepartmentsApi();
 
-        if (!active) {
-          return;
-        }
+        if (!active) return;
 
         setDepartments(departmentList);
       } catch (err: unknown) {
-        if (!active) {
-          return;
-        }
+        if (!active) return;
 
         const message =
           err instanceof Error && err.message
@@ -97,9 +96,7 @@ export default function RecordSearch() {
             : "진료과 목록을 불러오지 못했습니다.";
         setDepartmentError(message);
       } finally {
-        if (!active) {
-          return;
-        }
+        if (!active) return;
 
         setDepartmentsLoading(false);
       }
@@ -116,8 +113,8 @@ export default function RecordSearch() {
     setSearchType(nextSearchType);
     setSearchKeyword("");
     setDepartmentName("");
-    setStartDate("");
-    setEndDate("");
+    // setStartDate("");
+    // setEndDate("");
     setSearchError("");
     setDepartmentError(null);
   };
@@ -125,6 +122,8 @@ export default function RecordSearch() {
   const handleSearch = () => {
     setSearchError("");
 
+    // 기록일시 검색 막음
+    /*
     if (searchType === "recordedAt") {
       if (!startDate || !endDate) {
         setSearchError("시작일과 종료일을 모두 입력해주세요.");
@@ -140,6 +139,7 @@ export default function RecordSearch() {
       dispatch(RecActions.searchRecordsRequest(payload));
       return;
     }
+    */
 
     if (searchType === "departmentName") {
       if (departmentsLoading) {
@@ -213,26 +213,16 @@ export default function RecordSearch() {
         </Select>
       </FormControl>
 
+      {/* 기록일시 UI 제거
       {searchType === "recordedAt" ? (
         <>
-          <TextField
-            type="date"
-            size="small"
-            label="시작일"
-            InputLabelProps={{ shrink: true }}
-            value={startDate}
-            onChange={(event) => setStartDate(event.target.value)}
-          />
-          <TextField
-            type="date"
-            size="small"
-            label="종료일"
-            InputLabelProps={{ shrink: true }}
-            value={endDate}
-            onChange={(event) => setEndDate(event.target.value)}
-          />
+          <TextField ... />
+          <TextField ... />
         </>
-      ) : searchType === "departmentName" ? (
+      ) :
+      */}
+
+      {searchType === "departmentName" ? (
         <FormControl size="small" sx={{ minWidth: 180 }}>
           <InputLabel id="record-search-department-label">
             {TEXT_SEARCH_LABELS.departmentName}

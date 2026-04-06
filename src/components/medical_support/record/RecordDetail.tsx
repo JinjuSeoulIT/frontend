@@ -267,8 +267,8 @@ export default function RecordDetail() {
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem
-                    label="기록일시"
-                    value={formatDateTime(record.recordedAt)}
+                    label="생성일시"
+                    value={formatDateTime(record.createdAt ?? record.recordedAt)}
                   />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
@@ -355,7 +355,7 @@ export default function RecordDetail() {
                 간호 평가 및 상태 정보
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                초기 문진, 관찰 내용, 수정일시를 확인할 수 있습니다.
+                초기 문진, 과거력, 관찰 내용, 수정일시를 확인할 수 있습니다.
               </Typography>
 
               <Grid container spacing={2}>
@@ -377,12 +377,6 @@ export default function RecordDetail() {
                     value={record.observation || "-"}
                   />
                 </Grid>
-                {/* <Grid size={{ xs: 12, md: 6 }}>
-                  <DetailItem
-                    label="생성일시"
-                    value={formatDateTime(record.createdAt)}
-                  />
-                </Grid> */}
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem
                     label="수정일시"

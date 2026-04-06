@@ -13,11 +13,6 @@ import {
   Divider,
   Grid,
 } from "@mui/material";
-import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import dayjs from "dayjs";
-import "dayjs/locale/ko";
 import { RecordFormType } from "@/features/medical_support/record/recordTypes";
 
 interface Props {
@@ -53,20 +48,6 @@ const RecordForm: React.FC<Props> = ({
       }));
     };
 
-  const handleDateTimeChange =
-    (field: "recordedAt") =>
-    (newValue: dayjs.Dayjs | null) => {
-      onChange({
-        ...form,
-        [field]: newValue ? newValue.format("YYYY-MM-DDTHH:mm:ss") : "",
-      });
-
-      setErrors((prev) => ({
-        ...prev,
-        [field]: "",
-      }));
-    };
-
   const isInteger = (value: string) => /^\d+$/.test(value);
   const isDecimal = (value: string) => /^\d+(\.\d+)?$/.test(value);
 
@@ -88,7 +69,6 @@ const RecordForm: React.FC<Props> = ({
   const validateForm = () => {
     const newErrors: RecordFormErrors = {};
 
-    const recordedAt = toStr(form.recordedAt).trim();
     const systolicBp = toStr(form.systolicBp).trim();
     const diastolicBp = toStr(form.diastolicBp).trim();
     const pulse = toStr(form.pulse).trim();
@@ -98,11 +78,6 @@ const RecordForm: React.FC<Props> = ({
     const painScore = toStr(form.painScore).trim();
     const heightCm = toStr(form.heightCm).trim();
     const weightKg = toStr(form.weightKg).trim();
-
-    // 기록일시만 필수
-    if (!recordedAt) {
-      newErrors.recordedAt = "기록일시는 필수 입력입니다.";
-    }
 
     if (heightCm) {
       if (!isInteger(heightCm)) {
@@ -290,29 +265,18 @@ const RecordForm: React.FC<Props> = ({
                 </Grid> */}
 
                 <Grid size={{ xs: 12, md: 6 }}>
-                  <LocalizationProvider
-                    dateAdapter={AdapterDayjs}
-                    adapterLocale="ko"
-                  >
-                    <DateTimePicker
-                      label="기록일시"
-                      value={
-                        toStr(form.recordedAt)
-                          ? dayjs(toStr(form.recordedAt))
-                          : null
-                      }
-                      onChange={handleDateTimeChange("recordedAt")}
-                      timeSteps={{ minutes: 1 }}
-                      slotProps={{
-                        textField: {
-                          size: "small",
-                          fullWidth: true,
-                          error: !!errors.recordedAt,
-                          helperText: errors.recordedAt,
-                        },
-                      }}
-                    />
-                  </LocalizationProvider>
+                  <TextField
+                    label="생성일시"
+                    value={toStr(form.createdAt)}
+                    size="small"
+                    fullWidth
+                    InputProps={{ readOnly: true }}
+                    helperText={
+                      isEditMode
+                        ? "생성일시는 수정할 수 없습니다."
+                        : "저장 후 자동 생성됩니다."
+                    }
+                  />
                 </Grid>
 
                 <Grid size={{ xs: 12, md: 6 }}>

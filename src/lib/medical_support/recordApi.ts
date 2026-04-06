@@ -1,5 +1,8 @@
 import axios from "axios";
-import { RecordFormType } from "@/features/medical_support/record/recordTypes";
+import type {
+  RecordFormType,
+  RecordSearchPayload,
+} from "@/features/medical_support/record/recordTypes";
 
 const api = axios.create({
   baseURL: "http://192.168.1.66:8181",
@@ -42,12 +45,9 @@ export const updateRecordStatusApi = async (
   return res.data.result;
 };
 
-export const searchRecordsApi = async (payload: {
-  searchType?: string;
-  searchValue?: string;
-  startDate?: string;
-  endDate?: string;
-}): Promise<RecordFormType[]> => {
+export const searchRecordsApi = async (
+  payload: RecordSearchPayload
+): Promise<RecordFormType[]> => {
   const res = await api.get("/api/record/search", {
     params: {
       searchType: payload.searchType,

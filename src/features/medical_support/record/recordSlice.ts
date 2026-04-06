@@ -1,5 +1,8 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { RecordFormType } from "@/features/medical_support/record/recordTypes";
+import type {
+  RecordFormType,
+  RecordSearchPayload,
+} from "@/features/medical_support/record/recordTypes";
 
 const initialRecord: RecordFormType = {
   recordId: "",
@@ -85,24 +88,25 @@ const recordSlice = createSlice({
     },
 
     // ===== 생성 =====
-createRecordRequest: (state, action: PayloadAction<RecordFormType>) => {
-  void action;
-  state.loading = true;
-  state.error = null;
-  state.createSuccess = false;
-},
-createRecordSuccess: (state) => {
-  state.loading = false;
-  state.createSuccess = true;
-},
-createRecordFailure: (state, action: PayloadAction<string>) => {
-  state.loading = false;
-  state.error = action.payload;
-  state.createSuccess = false;
-},
-resetCreateSuccess: (state) => {
-  state.createSuccess = false;
-},
+    createRecordRequest: (state, action: PayloadAction<RecordFormType>) => {
+      void action;
+      state.loading = true;
+      state.error = null;
+      state.createSuccess = false;
+    },
+    createRecordSuccess: (state) => {
+      state.loading = false;
+      state.createSuccess = true;
+    },
+    createRecordFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+      state.createSuccess = false;
+    },
+    resetCreateSuccess: (state) => {
+      state.createSuccess = false;
+    },
+
     // ===== 수정 =====
     updateRecordRequest: (
       state,
@@ -161,29 +165,22 @@ resetCreateSuccess: (state) => {
     },
 
     // ===== 검색 =====
-  searchRecordsRequest: (
-  state,
-  action: PayloadAction<{
-    searchType: string;
-    searchValue?: string;
-    startDate?: string;
-    endDate?: string;
-  }>
-) => {
-  void action;
-  state.loading = true;
-  state.error = null;
-},
-
-searchRecordsSuccess: (state, action: PayloadAction<RecordFormType[]>) => {
-  state.loading = false;
-  state.list = action.payload;
-},
-
-searchRecordsFailure: (state, action: PayloadAction<string>) => {
-  state.loading = false;
-  state.error = action.payload;
-},
+    searchRecordsRequest: (
+      state,
+      action: PayloadAction<RecordSearchPayload>
+    ) => {
+      void action;
+      state.loading = true;
+      state.error = null;
+    },
+    searchRecordsSuccess: (state, action: PayloadAction<RecordFormType[]>) => {
+      state.loading = false;
+      state.list = action.payload;
+    },
+    searchRecordsFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
+    },
   },
 });
 

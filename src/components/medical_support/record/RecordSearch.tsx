@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
+  Box,
   Button,
   FormControl,
   InputLabel,
@@ -9,22 +11,119 @@ import {
   Select,
   TextField,
 } from "@mui/material";
-import { useDispatch } from "react-redux";
-import type { AppDispatch } from "@/store/store";
+import type { DepartmentOption } from "@/features/Reservations/ReservationTypes";
+import type {
+  RecordSearchPayload,
+  RecordSearchType,
+  RecordTextSearchType,
+} from "@/features/medical_support/record/recordTypes";
 import { RecActions } from "@/features/medical_support/record/recordSlice";
+import { fetchDepartmentsApi } from "@/lib/masterDataApi";
+import type { AppDispatch } from "@/store/store";
+import { useDispatch } from "react-redux";
+
+const DEFAULT_SEARCH_TYPE: RecordSearchType = "nurseName";
+
+const SEARCH_TYPE_OPTIONS: Array<{
+  value: RecordSearchType;
+  label: string;
+}> = [
+  { value: "nurseName", label: "간호사명" },
+  { value: "patientName", label: "환자명" },
+  { value: "departmentName", label: "진료과" },
+  { value: "recordedAt", label: "기록일시" },
+];
+
+const TEXT_SEARCH_LABELS: Record<RecordTextSearchType, string> = {
+  nurseName: "간호사명 입력",
+  patientName: "환자명 입력",
+  departmentName: "진료과 선택",
+};
+
+const TEXT_SEARCH_ERROR_MESSAGES: Record<RecordTextSearchType, string> = {
+  nurseName: "간호사명을 입력해주세요.",
+  patientName: "환자명을 입력해주세요.",
+  departmentName: "진료과를 선택해주세요.",
+};
 
 export default function RecordSearch() {
   const dispatch = useDispatch<AppDispatch>();
 
-  const [searchType, setSearchType] = useState("nurseName");
+  const [searchType, setSearchType] =
+    useState<RecordSearchType>(DEFAULT_SEARCH_TYPE);
   const [searchKeyword, setSearchKeyword] = useState("");
+  const [departmentName, setDepartmentName] = useState("");
+  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
+  const [departmentError, setDepartmentError] = useState<string | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchError, setSearchError] = useState("");
 
+  const departmentOptions = useMemo(() => {
+    return [...departments]
+      .filter((department) => department.departmentName.trim().length > 0)
+      .sort((a, b) =>
+        a.departmentName.localeCompare(b.departmentName, "ko-KR")
+      );
+  }, [departments]);
+
+  useEffect(() => {
+    if (searchType !== "departmentName" || departments.length > 0) {
+      return;
+    }
+
+    let active = true;
+
+    const loadDepartments = async () => {
+      try {
+        setDepartmentsLoading(true);
+        setDepartmentError(null);
+        const departmentList = await fetchDepartmentsApi();
+
+        if (!active) {
+          return;
+        }
+
+        setDepartments(departmentList);
+      } catch (err: unknown) {
+        if (!active) {
+          return;
+        }
+
+        const message =
+          err instanceof Error && err.message
+            ? err.message
+            : "진료과 목록을 불러오지 못했습니다.";
+        setDepartmentError(message);
+      } finally {
+        if (!active) {
+          return;
+        }
+
+        setDepartmentsLoading(false);
+      }
+    };
+
+    void loadDepartments();
+
+    return () => {
+      active = false;
+    };
+  }, [departments.length, searchType]);
+
+  const resetSearchFields = (nextSearchType: RecordSearchType) => {
+    setSearchType(nextSearchType);
+    setSearchKeyword("");
+    setDepartmentName("");
+    setStartDate("");
+    setEndDate("");
+    setSearchError("");
+    setDepartmentError(null);
+  };
+
   const handleSearch = () => {
     setSearchError("");
-    const keyword = searchKeyword.trim();
 
     if (searchType === "recordedAt") {
       if (!startDate || !endDate) {
@@ -32,43 +131,66 @@ export default function RecordSearch() {
         return;
       }
 
-      dispatch(
-        RecActions.searchRecordsRequest({
-          searchType,
-          startDate,
-          endDate,
-        })
-      );
-      return;
-    }
-
-    if (!keyword) {
-      setSearchError("간호사명을 입력해주세요.");
-      return;
-    }
-
-    dispatch(
-      RecActions.searchRecordsRequest({
+      const payload: RecordSearchPayload = {
         searchType,
-        searchValue: keyword,
-      })
-    );
+        startDate,
+        endDate,
+      };
+
+      dispatch(RecActions.searchRecordsRequest(payload));
+      return;
+    }
+
+    if (searchType === "departmentName") {
+      if (departmentsLoading) {
+        setSearchError("진료과 목록을 불러오는 중입니다.");
+        return;
+      }
+
+      if (departmentError) {
+        setSearchError("진료과 목록을 불러오지 못했습니다. 다시 시도해주세요.");
+        return;
+      }
+
+      const selectedDepartment = departmentName.trim();
+      if (!selectedDepartment) {
+        setSearchError(TEXT_SEARCH_ERROR_MESSAGES.departmentName);
+        return;
+      }
+
+      const payload: RecordSearchPayload = {
+        searchType,
+        searchValue: selectedDepartment,
+      };
+
+      dispatch(RecActions.searchRecordsRequest(payload));
+      return;
+    }
+
+    const keyword = searchKeyword.trim();
+    if (!keyword) {
+      setSearchError(TEXT_SEARCH_ERROR_MESSAGES[searchType]);
+      return;
+    }
+
+    const payload: RecordSearchPayload = {
+      searchType,
+      searchValue: keyword,
+    };
+
+    dispatch(RecActions.searchRecordsRequest(payload));
   };
 
   const handleResetSearch = () => {
-    setSearchType("nurseName");
-    setSearchKeyword("");
-    setStartDate("");
-    setEndDate("");
-    setSearchError("");
+    resetSearchFields(DEFAULT_SEARCH_TYPE);
     dispatch(RecActions.fetchRecordsRequest());
   };
 
   return (
-    <div
-      style={{
+    <Box
+      sx={{
         display: "flex",
-        gap: "8px",
+        gap: 1,
         alignItems: "center",
         flexWrap: "wrap",
       }}
@@ -79,16 +201,15 @@ export default function RecordSearch() {
           labelId="record-search-type-label"
           label="검색 기준"
           value={searchType}
-          onChange={(event) => {
-            setSearchType(String(event.target.value));
-            setSearchKeyword("");
-            setStartDate("");
-            setEndDate("");
-            setSearchError("");
-          }}
+          onChange={(event) =>
+            resetSearchFields(event.target.value as RecordSearchType)
+          }
         >
-          <MenuItem value="nurseName">간호사명</MenuItem>
-          <MenuItem value="recordedAt">기록일시</MenuItem>
+          {SEARCH_TYPE_OPTIONS.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
         </Select>
       </FormControl>
 
@@ -111,16 +232,62 @@ export default function RecordSearch() {
             onChange={(event) => setEndDate(event.target.value)}
           />
         </>
+      ) : searchType === "departmentName" ? (
+        <FormControl size="small" sx={{ minWidth: 180 }}>
+          <InputLabel id="record-search-department-label">
+            {TEXT_SEARCH_LABELS.departmentName}
+          </InputLabel>
+          <Select
+            labelId="record-search-department-label"
+            label={TEXT_SEARCH_LABELS.departmentName}
+            value={departmentName}
+            onChange={(event) => {
+              setDepartmentName(String(event.target.value));
+              setSearchError("");
+            }}
+            disabled={departmentsLoading || Boolean(departmentError)}
+          >
+            {departmentsLoading ? (
+              <MenuItem value="" disabled>
+                진료과 목록 불러오는 중
+              </MenuItem>
+            ) : departmentOptions.length > 0 ? (
+              departmentOptions.map((department) => (
+                <MenuItem
+                  key={department.departmentId}
+                  value={department.departmentName}
+                >
+                  {department.departmentName}
+                </MenuItem>
+              ))
+            ) : (
+              <MenuItem value="" disabled>
+                등록된 진료과가 없습니다
+              </MenuItem>
+            )}
+          </Select>
+        </FormControl>
       ) : (
         <TextField
           size="small"
-          label="간호사명 입력"
+          label={TEXT_SEARCH_LABELS[searchType]}
           value={searchKeyword}
-          onChange={(event) => setSearchKeyword(event.target.value)}
+          onChange={(event) => {
+            setSearchKeyword(event.target.value);
+            setSearchError("");
+          }}
         />
       )}
 
-      <Button variant="outlined" size="small" onClick={handleSearch}>
+      <Button
+        variant="outlined"
+        size="small"
+        onClick={handleSearch}
+        disabled={
+          searchType === "departmentName" &&
+          (departmentsLoading || Boolean(departmentError))
+        }
+      >
         검색
       </Button>
 
@@ -128,11 +295,17 @@ export default function RecordSearch() {
         초기화
       </Button>
 
-      {searchError && (
-        <div style={{ color: "red", width: "100%" }}>
-          {searchError}
-        </div>
+      {searchType === "departmentName" && departmentError && (
+        <Alert severity="warning" sx={{ width: "100%" }}>
+          진료과 목록을 불러오지 못했습니다. 다른 검색 기준은 계속 사용할 수 있습니다.
+        </Alert>
       )}
-    </div>
+
+      {searchError && (
+        <Alert severity="error" sx={{ width: "100%" }}>
+          {searchError}
+        </Alert>
+      )}
+    </Box>
   );
 }

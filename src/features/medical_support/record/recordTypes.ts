@@ -24,3 +24,28 @@ export interface RecordFormType {
   heightCm?: string | number;
   weightKg?: string | number;
 }
+
+export type RecordTextSearchType =
+  | "nurseName"
+  | "patientName"
+  | "departmentName";
+
+export type RecordSearchType = RecordTextSearchType | "recordedAt";
+
+export type RecordTextSearchPayload = {
+  searchType: RecordTextSearchType;
+  searchValue: string;
+  startDate?: never;
+  endDate?: never;
+};
+
+export type RecordDateSearchPayload = {
+  searchType: "recordedAt";
+  searchValue?: never;
+  startDate: string;
+  endDate: string;
+};
+
+export type RecordSearchPayload =
+  | RecordTextSearchPayload
+  | RecordDateSearchPayload;

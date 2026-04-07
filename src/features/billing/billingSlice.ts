@@ -7,6 +7,7 @@ import {
   PaymentMethod,
   BillingClaimRequest,
   BillingClaimResult,
+  BillHistory,
 } from "@/lib/billing/billingApi";
 
 // 상태 필터 payload 타입
@@ -19,6 +20,7 @@ interface BillingState {
   billingList: BillSummary[];
   billingDetail: BillDetail | null;
   payments: Payment[];
+  billHistory: BillHistory[];
   billingStats: BillingStats | null;
 
   //claims 생성 결과 상태
@@ -33,6 +35,7 @@ const initialState: BillingState = {
   billingList: [],
   billingDetail: null,
   payments: [],
+  billHistory: [],
   billingStats: null,
 
   billingClaimResult: null,  //claims 생성 결과 초기값
@@ -56,6 +59,14 @@ const billingSlice = createSlice({
     },
 
     fetchBillingDetailRequest(
+      state,
+      action: PayloadAction<number>
+    ) {
+      state.loading = true;
+      state.error = null;
+    },
+
+    fetchBillHistoryRequest(
       state,
       action: PayloadAction<number>
     ) {
@@ -169,6 +180,13 @@ const billingSlice = createSlice({
       state.billingDetail = action.payload;
     },
 
+    setBillHistory(
+      state,
+      action: PayloadAction<BillHistory[]>
+    ) {
+      state.billHistory = action.payload;
+    },
+
     setBillingStats(
       state,
       action: PayloadAction<BillingStats | null>
@@ -196,6 +214,7 @@ const billingSlice = createSlice({
 export const {
   fetchBillsByPatientRequest,
   fetchBillingDetailRequest,
+  fetchBillHistoryRequest,
   fetchOutstandingBillsRequest,
   createPaymentRequest,
   confirmBillRequest,
@@ -212,6 +231,7 @@ export const {
   setError,
   setBillingList,
   setBillingDetail,
+  setBillHistory,
   setPayments,
 
   setBillingClaimResult,

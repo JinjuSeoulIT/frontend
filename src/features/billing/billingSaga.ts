@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import {
   fetchBillsByPatientApi,
   fetchBillDetailApi,
+  fetchBillHistoryApi,
   fetchOutstandingBillsApi,
   createPaymentApi,
   cancelPaymentApi,
@@ -19,6 +20,7 @@ import {
 import {
   fetchBillsByPatientRequest,
   fetchBillingDetailRequest,
+  fetchBillHistoryRequest,
   fetchOutstandingBillsRequest,
   createPaymentRequest,
   cancelPaymentRequest,
@@ -32,6 +34,7 @@ import {
   setError,
   setBillingList,
   setBillingDetail,
+  setBillHistory,
   setPayments,
   setBillingStats,
   setBillingClaimResult,
@@ -94,6 +97,24 @@ function* fetchBillingDetailSaga(
 }
 
 /**
+ * 청구 이력 조회
+ */
+function* fetchBillHistorySaga(
+  action: PayloadAction<number>
+): Generator<any, void, any> {
+  try {
+    const billId = action.payload;
+    const data = yield call(fetchBillHistoryApi, billId);
+    yield put(setBillHistory(data));
+  } catch (error: any) {
+    yield put(setError(error.message || "청구 이력 조회 실패"));
+    toast.error(error.message || "청구 이력 조회 실패");
+  } finally {
+    yield put(setLoading(false));
+  }
+}
+
+/**
  * 청구 기준 결제 이력 조회
  */
 function* fetchPaymentsByBillSaga(
@@ -147,6 +168,9 @@ function* createPaymentSaga(
     // 상세 재조회
     yield put(fetchBillingDetailRequest(billId));
 
+    // 청구 이력 재조회
+    yield put(fetchBillHistoryRequest(billId));
+
     // 결제 이력 재조회
     yield put(fetchPaymentsByBillRequest(billId));
 
@@ -182,6 +206,9 @@ function* cancelPaymentSaga(
 
     // 상세 재조회
     yield put(fetchBillingDetailRequest(billId));
+
+    // 청구 이력 재조회
+    yield put(fetchBillHistoryRequest(billId));
 
     // 결제 이력 재조회
     yield put(fetchPaymentsByBillRequest(billId));
@@ -219,6 +246,9 @@ function* refundPaymentSaga(
 
     // 상세 재조회
     yield put(fetchBillingDetailRequest(billId));
+
+    // 청구 이력 재조회
+    yield put(fetchBillHistoryRequest(billId));
 
     // 결제 이력 재조회
     yield put(fetchPaymentsByBillRequest(billId));
@@ -267,6 +297,9 @@ function* confirmBillSaga(
     // 상세 재조회
     yield put(fetchBillingDetailRequest(billId));
 
+    // 청구 이력 재조회
+    yield put(fetchBillHistoryRequest(billId));
+
     // 전체 통계 재조회
     yield put(fetchBillingStatsRequest());
   } catch (error: any) {
@@ -309,6 +342,7 @@ export default function* billingSaga(): Generator<any, void, any> {
   yield takeLatest(fetchBillsByPatientRequest.type, fetchBillsByPatientSaga);
   yield takeLatest(fetchBillsRequest.type, fetchBillsSaga);
   yield takeLatest(fetchBillingDetailRequest.type, fetchBillingDetailSaga);
+  yield takeLatest(fetchBillHistoryRequest.type, fetchBillHistorySaga);
   yield takeLatest(fetchPaymentsByBillRequest.type, fetchPaymentsByBillSaga);
   yield takeLatest(fetchOutstandingBillsRequest.type, fetchOutstandingBillsSaga);
   yield takeLatest(createPaymentRequest.type, createPaymentSaga);

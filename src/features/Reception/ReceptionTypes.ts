@@ -7,7 +7,7 @@ export type ReceptionStatus =
   | "ON_HOLD"
   | "CANCELED"
   | "INACTIVE";
-
+ // Reception은 조회 결과, 완성된 데이터
 export interface Reception {
   receptionId: number;
   receptionNo: string;
@@ -36,7 +36,7 @@ export interface Reception {
   createdAt?: string | null;
   updatedAt?: string | null;
 }
-
+// ReceptionForm은 입력/전송용 데이터
 export interface ReceptionForm {
   receptionNo: string;
   patientId?: number | null;

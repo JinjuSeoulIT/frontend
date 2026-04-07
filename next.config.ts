@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const DEFAULT_AUTH_API_BASE_URL = "http://192.168.1.64:8081";
-const DEFAULT_PATIENTS_API_BASE_URL = "http://192.168.1.55:8181";
+const DEFAULT_PATIENTS_API_BASE_URL = "http://192.168.1.60:8181";
 const DEFAULT_RECEPTION_API_BASE_URL = "http://192.168.1.55:8283";
 const DEFAULT_BILLING_API_BASE_URL = "http://192.168.1.68:8081";
 

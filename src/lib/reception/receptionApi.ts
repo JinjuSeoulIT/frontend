@@ -86,7 +86,7 @@ export const fetchReceptionsApi = async (): Promise<Reception[]> => {
   }
   return (res.data.result ?? []).map(normalizeReception);
 };
-
+// 외래접수 목록을 백엔드에서 가져오는 API 함수
 export const fetchReceptionApi = async (receptionId: string): Promise<Reception> => {
   const res = await api.get<ReceptionApiResponse<Reception>>(`/api/receptions/${receptionId}`);
   if (!res.data.success) {

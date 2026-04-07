@@ -1,6 +1,7 @@
 import axios from "axios";
 import type { MenuNode } from "@/types/menu";
 import { MENU_API_BASE_URL } from "@/lib/common/env";
+import { applyAuthInterceptors } from "@/lib/auth/apiInterceptors";
 
 type ApiResponse<T> = {
   success: boolean;
@@ -21,6 +22,7 @@ type MenuResponse = {
 const api = axios.create({
   baseURL: MENU_API_BASE_URL,
 });
+applyAuthInterceptors(api, { redirectOn401: false });
 
 const normalizeMenuNode = (menu: MenuResponse): MenuNode => ({
   id: menu.menuId,

@@ -84,7 +84,8 @@ export function MedicationRecordListSection() {
   );
 
   const inactiveCount = React.useMemo(
-    () => rows.filter((item) => normalizeStatus(item.status) === "INACTIVE").length,
+    () =>
+      rows.filter((item) => normalizeStatus(item.status) === "INACTIVE").length,
     [rows]
   );
 
@@ -141,7 +142,9 @@ export function MedicationRecordListSection() {
             </Typography>
           </Box>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+          <Box
+            sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}
+          >
             <Chip label={`총 ${rows.length}건`} size="small" />
             <Chip
               label={`활성 ${activeCount}건`}
@@ -184,12 +187,11 @@ export function MedicationRecordListSection() {
             }}
           >
             <TableContainer>
-              <Table size="small" stickyHeader sx={{ minWidth: 1100 }}>
+              <Table size="small" stickyHeader sx={{ minWidth: 980 }}>
                 <TableHead>
                   <TableRow>
                     <TableCell align="center">번호</TableCell>
                     <TableCell align="center">투약기록 ID</TableCell>
-                    <TableCell align="center">오더항목 ID</TableCell>
                     <TableCell align="center">투약일시</TableCell>
                     <TableCell align="center">투약량</TableCell>
                     <TableCell align="center">투약단위</TableCell>
@@ -201,7 +203,7 @@ export function MedicationRecordListSection() {
                 <TableBody>
                   {paginatedRows.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={8} align="center">
+                      <TableCell colSpan={7} align="center">
                         투약 기록 데이터가 없습니다.
                       </TableCell>
                     </TableRow>
@@ -212,10 +214,15 @@ export function MedicationRecordListSection() {
                       <TableCell align="center">
                         {currentPage * rowsPerPage + index + 1}
                       </TableCell>
-                      <TableCell align="center">{safeValue(row.medicationId)}</TableCell>
-                      <TableCell align="center">{safeValue(row.orderItemId)}</TableCell>
-                      <TableCell align="center">{formatDateTime(row.administeredAt)}</TableCell>
-                      <TableCell align="center">{safeValue(row.doseNumber)}</TableCell>
+                      <TableCell align="center">
+                        {safeValue(row.medicationId)}
+                      </TableCell>
+                      <TableCell align="center">
+                        {formatDateTime(row.administeredAt)}
+                      </TableCell>
+                      <TableCell align="center">
+                        {safeValue(row.doseNumber)}
+                      </TableCell>
                       <TableCell align="center">{safeValue(row.doseUnit)}</TableCell>
                       <TableCell align="center">{safeValue(row.nurseId)}</TableCell>
                       <TableCell align="center">

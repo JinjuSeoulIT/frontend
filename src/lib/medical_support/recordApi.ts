@@ -71,13 +71,20 @@ export const updateRecordStatusApi = async (
 export const searchRecordsApi = async (
   payload: RecordSearchPayload
 ): Promise<RecordFormType[]> => {
+  const params =
+    payload.searchType === "createdAt"
+      ? {
+          searchType: payload.searchType,
+          startDate: payload.startDate,
+          endDate: payload.endDate,
+        }
+      : {
+          searchType: payload.searchType,
+          searchValue: payload.searchValue,
+        };
+
   const res = await api.get<{ result: RecordApiRaw[] }>("/api/record/search", {
-    params: {
-      searchType: payload.searchType,
-      searchValue: payload.searchValue,
-      // startDate: payload.startDate,
-      // endDate: payload.endDate,
-    },
+    params,
   });
 
   return normalizeRecords(res.data.result ?? []);

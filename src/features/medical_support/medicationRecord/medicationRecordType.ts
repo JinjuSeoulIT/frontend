@@ -1,6 +1,5 @@
 export interface MedicationRecord {
   medicationId: string | number;
-  orderItemId?: string | number | null;
   administeredAt?: string | null;
   doseNumber?: number | string | null;
   doseUnit?: string | null;
@@ -10,7 +9,6 @@ export interface MedicationRecord {
 
 export interface MedicationRecordCreatePayload {
   medicationId?: string | number | null;
-  orderItemId?: string | number | null;
   administeredAt?: string | null;
   doseNumber?: number | string | null;
   doseUnit?: string | null;
@@ -19,7 +17,6 @@ export interface MedicationRecordCreatePayload {
 }
 
 export interface MedicationRecordUpdatePayload {
-  orderItemId?: string | number | null;
   administeredAt?: string | null;
   doseNumber?: number | string | null;
   doseUnit?: string | null;

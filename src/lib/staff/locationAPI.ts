@@ -1,4 +1,5 @@
 import axios from "axios";
+import { STAFF_API_BASE_URL } from "@/lib/common/env";
 import {
   ApiResponse,
   LocationCreateRequest,
@@ -6,17 +7,10 @@ import {
   LocationUpdateRequest,
 } from "@/features/staff/location/locationtypes";
 
-const LOCATION_API_BASE_URL =
-  process.env.NEXT_PUBLIC_PATIENTS_API_BASE_URL ?? "http://192.168.1.58:8022";
-
-
-
-
-const LOCAL_API_BASE_URL =
-  process.env.LOCAL_API_BASE_URL ?? "http://localhost:8022";
+const API_BASE_URL = STAFF_API_BASE_URL;
 
 const locationApi = axios.create({
-  baseURL: LOCATION_API_BASE_URL,
+  baseURL: API_BASE_URL,
 });
 
 export const fetchLocationListApi = async (): Promise<ApiResponse<LocationResponse[]>> => {

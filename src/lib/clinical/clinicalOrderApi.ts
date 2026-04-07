@@ -26,6 +26,18 @@ export type ClinicalOrderCreatePayload = {
   orderName: string;
 };
 
+function deriveItemCode(orderCode: string | null | undefined, orderName: string): string {
+  const name = orderName.trim();
+  const paren = name.match(/\(([A-Za-z0-9._-]+)\)\s*$/);
+  const fromParen = paren ? paren[1] : null;
+  const oc = orderCode?.trim();
+  if (oc) {
+    if (oc.length <= 50) return oc;
+    return (fromParen ?? oc.slice(0, 50)).slice(0, 50);
+  }
+  return (fromParen ?? name.slice(0, 50)).slice(0, 50);
+}
+
 type ApiEnvelope<T> = {
   success?: boolean;
   message?: string | null;
@@ -103,10 +115,11 @@ export async function createClinicalOrderApi(
   clinicalId: number,
   payload: ClinicalOrderCreatePayload
 ): Promise<ClinicalOrder> {
-  const itemCode = (payload.orderCode ?? payload.orderName ?? payload.orderType).trim();
+  const orderName = payload.orderName.trim();
+  const itemCode = deriveItemCode(payload.orderCode ?? null, orderName);
   const body = {
     orderType: payload.orderType,
-    items: [{ itemCode }],
+    items: [{ itemCode, itemName: orderName }],
   };
   const res = await fetch(
     `${CLINICAL_API_BASE}/api/visits/${clinicalId}/orders`,

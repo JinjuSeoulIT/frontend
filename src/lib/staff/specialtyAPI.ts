@@ -1,4 +1,5 @@
 import axios from "axios";
+import { STAFF_API_BASE_URL } from "@/lib/common/env";
 import type {
   ApiResponse,
   SpecialtyCreateRequest,
@@ -6,11 +7,10 @@ import type {
   SpecialtyUpdateRequest,
 } from "@/features/staff/doctor/MedicalSpecialty/medicalSpecialtytypes";
 
-const SPECIALTY_API_BASE_URL =
-  process.env.NEXT_PUBLIC_PATIENTS_API_BASE_URL ?? "http://192.168.1.58:8022";
+const API_BASE_URL = STAFF_API_BASE_URL;
 
 const specialtyApi = axios.create({
-  baseURL: SPECIALTY_API_BASE_URL,
+  baseURL: API_BASE_URL,
 });
 
 export const fetchSpecialtyListApi = async (): Promise<ApiResponse<SpecialtyResponse[]>> => {

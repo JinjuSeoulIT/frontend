@@ -1,4 +1,5 @@
 import axios from "axios";
+import { STAFF_API_BASE_URL } from "@/lib/common/env";
 import {
   ApiResponse,
   DepartmentCreateRequest,
@@ -6,16 +7,11 @@ import {
   DepartmentUpdateRequest,
 } from "@/features/staff/department/departmentType";
 
-const DEPARTMENT_API_BASE_URL =
-  process.env.NEXT_PUBLIC_PATIENTS_API_BASE_URL ?? "http://192.168.1.58:8022";
-
-
-const LOCAL_API_BASE_URL =
-  process.env.LOCAL_API_BASE_URL ?? "http://localhost:8022";
+const API_BASE_URL = STAFF_API_BASE_URL;
 
 
 const departmentApi = axios.create({
-  baseURL: DEPARTMENT_API_BASE_URL,
+  baseURL: API_BASE_URL,
 });
 
 

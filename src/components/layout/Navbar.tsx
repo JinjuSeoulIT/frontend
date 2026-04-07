@@ -5,13 +5,10 @@ import {
   Toolbar,
   Typography,
   Box,
-  IconButton,
   Stack,
-  Badge,
   Button,
 } from "@mui/material";
 import MedicalServicesOutlinedIcon from "@mui/icons-material/MedicalServicesOutlined";
-import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -89,12 +86,6 @@ export default function Navbar() {
         <Box sx={{ flexGrow: 1 }} />
 
         <Stack direction="row" spacing={2} alignItems="center">
-          <IconButton sx={{ color: "#dbe8ff" }}>
-            <Badge color="error" variant="dot">
-              <NotificationsNoneOutlinedIcon />
-            </Badge>
-          </IconButton>
-
           <Stack direction="row" spacing={1} alignItems="center">
             <PersonOutlineOutlinedIcon sx={{ color: "#dbe8ff" }} />
             <Typography sx={{ color: "#e8f1ff", fontSize: 14, fontWeight: 600 }}>

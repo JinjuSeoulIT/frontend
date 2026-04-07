@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { BILLING_API_BASE_URL } from "@/lib/common/env";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -112,11 +113,7 @@ export default function TossSuccessPage() {
           return;
         }
 
-        const baseUrl =
-          typeof window !== "undefined" &&
-          window.location.hostname !== "localhost"
-            ? `http://${window.location.hostname}:8081`
-            : "http://192.168.1.68:8081";
+        const baseUrl = BILLING_API_BASE_URL;
 
         const response = await fetch(`${baseUrl}/api/billing/toss/approve`, {
           method: "POST",

@@ -1,4 +1,5 @@
 import axios, { type AxiosResponse } from "axios";
+import { STAFF_API_BASE_URL } from "@/lib/common/env";
 import type {
   ApiResponse,
   ReceptionCreateRequest,
@@ -8,10 +9,10 @@ import type {
   ReceptionUpdateRequest,
 } from "@/features/staff/reception/receptionTypes";
 
-const RECEPTION_API_BASE_URL = process.env.NEXT_PUBLIC_PATIENTS_API_BASE_URL ?? "http://192.168.1.58:8022";
+const API_BASE_URL = STAFF_API_BASE_URL;
 
 const receptionApi = axios.create({
-  baseURL: RECEPTION_API_BASE_URL,
+  baseURL: API_BASE_URL,
 });
 
 

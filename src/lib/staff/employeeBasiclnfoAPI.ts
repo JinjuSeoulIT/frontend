@@ -1,4 +1,5 @@
 import axios from "axios";
+import { STAFF_API_BASE_URL } from "@/lib/common/env";
 import type {
   ApiResponse,
   staffCreateRequest,
@@ -7,15 +8,11 @@ import type {
   staffUpdateRequest,
 } from "@/features/staff/Basiclnfo/BasiclnfoType";
 
-const STAFF_API_BASE_URL = process.env.NEXT_PUBLIC_PATIENTS_API_BASE_URL ?? "http://192.168.1.58:8022";
-
-
-const LOCAL_API_BASE_URL =
-  process.env.LOCAL_API_BASE_URL ?? "http://localhost:8022";
+const API_BASE_URL = STAFF_API_BASE_URL;
 
 
 const staffApi = axios.create({
-  baseURL: STAFF_API_BASE_URL,
+  baseURL: API_BASE_URL,
 });
 
 //검색

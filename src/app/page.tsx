@@ -9,7 +9,6 @@ import {
   Stack,
   Typography,
   Button,
-  Chip,
 } from "@mui/material";
 import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
 import MedicalServicesOutlinedIcon from "@mui/icons-material/MedicalServicesOutlined";
@@ -18,7 +17,6 @@ import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettin
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import PersonSearchOutlinedIcon from "@mui/icons-material/PersonSearchOutlined";
 import MonetizationOnOutlinedIcon from "@mui/icons-material/MonetizationOnOutlined";
-import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
 
 const ROLES = [
   {
@@ -84,23 +82,12 @@ const ROLES = [
     tone:
       "linear-gradient(135deg, rgba(75, 85, 99, 0.24), rgba(75, 85, 99, 0))",
   },
-  {
-    key: "login",
-    label: "로그인",
-    desc: "인증/세션 진입",
-    href: "/login",
-    icon: <LoginOutlinedIcon />,
-    tone:
-      "linear-gradient(135deg, rgba(2, 132, 199, 0.2), rgba(2, 132, 199, 0))",
-  },
 ];
 
 export default function HomePage() {
   return (
     <MainLayout showSidebar={false}>
       <Stack spacing={3}>
-        
-
         <Box
           sx={{
             display: "grid",
@@ -124,7 +111,6 @@ export default function HomePage() {
             >
               <CardContent sx={{ p: 3 }}>
                 <Box
-                
                   sx={{
                     width: 44,
                     height: 44,
@@ -141,9 +127,7 @@ export default function HomePage() {
                 <Typography sx={{ fontWeight: 800, fontSize: 18 }}>
                   {role.label}
                 </Typography>
-                <Typography
-                  sx={{ color: "var(--muted)", mt: 0.5, minHeight: 44 }}
-                >
+                <Typography sx={{ color: "var(--muted)", mt: 0.5, minHeight: 44 }}>
                   {role.desc}
                 </Typography>
                 <Button component={Link} href={role.href} size="small" sx={{ mt: 2 }}>

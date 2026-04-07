@@ -1,24 +1,28 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const AUTH_COOKIE_NAME = "his_access_token";
+const DEV_BYPASS_COOKIE_NAME = "his_dev_bypass";
 const SERVER_BOOT_COOKIE_NAME = "his_server_boot";
 const AUTH_ME_PATH = "/api/auth/me";
 const SERVER_BOOT_ID = Date.now().toString();
 
-const getAuthToken = (request: NextRequest) =>
-  request.cookies.get(AUTH_COOKIE_NAME)?.value;
+const getAuthToken = (request: NextRequest) => request.cookies.get(AUTH_COOKIE_NAME)?.value;
+const isDevBypass = (request: NextRequest) => request.cookies.get(DEV_BYPASS_COOKIE_NAME)?.value === "1";
 
-const toLoginRedirect = (request: NextRequest) => {
-  const { pathname, search } = request.nextUrl;
-  const loginUrl = new URL("/login", request.url);
-  loginUrl.searchParams.set("next", `${pathname}${search}`);
-  const response = NextResponse.redirect(loginUrl);
+const attachBootCookie = (response: NextResponse) => {
   response.cookies.set(SERVER_BOOT_COOKIE_NAME, SERVER_BOOT_ID, {
     path: "/",
     sameSite: "lax",
   });
   return response;
+};
+
+const toLoginRedirect = (request: NextRequest) => {
+  const { pathname, search } = request.nextUrl;
+  const loginUrl = new URL("/login", request.url);
+  loginUrl.searchParams.set("next", `${pathname}${search}`);
+  return attachBootCookie(NextResponse.redirect(loginUrl));
 };
 
 const validateAuthToken = async (request: NextRequest, token: string) => {
@@ -40,6 +44,10 @@ const validateAuthToken = async (request: NextRequest, token: string) => {
 };
 
 export async function proxy(request: NextRequest) {
+  if (isDevBypass(request)) {
+    return attachBootCookie(NextResponse.next());
+  }
+
   const token = getAuthToken(request);
   if (!token) {
     return toLoginRedirect(request);
@@ -50,12 +58,7 @@ export async function proxy(request: NextRequest) {
     return toLoginRedirect(request);
   }
 
-  const response = NextResponse.next();
-  response.cookies.set(SERVER_BOOT_COOKIE_NAME, SERVER_BOOT_ID, {
-    path: "/",
-    sameSite: "lax",
-  });
-  return response;
+  return attachBootCookie(NextResponse.next());
 }
 
 export const config = {

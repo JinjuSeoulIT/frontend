@@ -1,4 +1,5 @@
 import axios from "axios";
+import { STAFF_API_BASE_URL } from "@/lib/common/env";
 import type { ApiResponse } from "@/features/patients/patientTypes";
 import type {
   AdminStaffUpdateReq,
@@ -17,7 +18,7 @@ import type {
 import { applyAuthInterceptors } from "@/lib/auth/apiInterceptors";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_STAFF_API_BASE_URL ?? "",
+  baseURL: STAFF_API_BASE_URL,
 });
 
 applyAuthInterceptors(api);

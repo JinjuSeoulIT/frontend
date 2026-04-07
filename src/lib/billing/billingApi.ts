@@ -1,4 +1,5 @@
 import axios from "axios";
+import { BILLING_API_BASE_URL } from "@/lib/common/env";
 
 /**
  * 공통 API 응답 타입
@@ -12,11 +13,7 @@ export interface ApiResponse<T> {
 // 결제 수단 타입
 export type PaymentMethod = "CASH" | "CARD" | "TRANSFER";
 
-const baseURL =
-  typeof window !== "undefined" &&
-  window.location.hostname !== "localhost"
-    ? `http://${window.location.hostname}:8081`
-    : "http://192.168.1.68:8081";
+const baseURL = BILLING_API_BASE_URL;
 
 const api = axios.create({
   baseURL,

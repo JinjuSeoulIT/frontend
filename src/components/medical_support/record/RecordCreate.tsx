@@ -12,6 +12,7 @@ import { RecordFormType } from "@/features/medical_support/record/recordTypes";
 
 const emptyForm: RecordFormType = {
   recordId: "",
+  receptionId: null,
   visitId: "",
   nursingId: "",
   recordedAt: "",
@@ -39,9 +40,15 @@ const RecordCreate = () => {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const receptionIdParam = searchParams.get("receptionId");
+  const parsedReceptionId =
+    receptionIdParam && !Number.isNaN(Number(receptionIdParam))
+      ? Number(receptionIdParam)
+      : null;
   const initialForm = useMemo<RecordFormType>(
     () => ({
       ...emptyForm,
+      receptionId: parsedReceptionId,
       visitId: searchParams.get("visitId") ?? "",
       nursingId: searchParams.get("nursingId") ?? "",
       patientName: searchParams.get("patientName") ?? "",
@@ -49,13 +56,17 @@ const RecordCreate = () => {
       departmentName: searchParams.get("departmentName") ?? "",
       status: "ACTIVE",
     }),
-    [searchParams]
+    [parsedReceptionId, searchParams]
   );
   const [form, setForm] = useState<RecordFormType>(initialForm);
 
   const { loading, error, createSuccess } = useSelector(
     (state: RootState) => state.records
   );
+
+  useEffect(() => {
+    setForm(initialForm);
+  }, [initialForm]);
 
   useEffect(() => {
     if (!createSuccess) return;
@@ -82,6 +93,7 @@ const RecordCreate = () => {
     const payload: RecordFormType = {
       ...form,
       recordId: "",
+      receptionId: form.receptionId ?? null,
       createdAt: now,
       updatedAt: now,
       status: form.status || "ACTIVE",

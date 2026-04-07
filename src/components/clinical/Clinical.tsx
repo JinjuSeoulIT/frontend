@@ -11,11 +11,10 @@ import type { RootState } from "@/store/store";
 import { deletePastHistoryApi } from "@/lib/clinical/clinicalPastHistoryApi";
 import { fetchClinicalOrdersApi, type ClinicalOrder } from "@/lib/clinical/clinicalOrderApi";
 import {
-  fetchVitalsApi,
-  fetchAssessmentApi,
   type VitalSignsRes,
   type AssessmentRes,
 } from "@/lib/clinical/clinicalVitalsApi";
+import { fetchVitalsAndAssessmentWithMedicalSupport } from "@/lib/clinical/medicalSupportRecordBridge";
 import {
   fetchPastHistoryApi,
   type PastHistoryItem,
@@ -172,27 +171,27 @@ export default function ClinicalPage() {
     }
   }, []);
 
-  const loadVitals = React.useCallback(async (visitId: number) => {
-    setVitalsLoading(true);
-    try {
-      setVitals((await fetchVitalsApi(visitId)) ?? null);
-    } catch {
-      setVitals(null);
-    } finally {
-      setVitalsLoading(false);
-    }
-  }, []);
-
-  const loadAssessment = React.useCallback(async (visitId: number) => {
-    setAssessmentLoading(true);
-    try {
-      setAssessment((await fetchAssessmentApi(visitId)) ?? null);
-    } catch {
-      setAssessment(null);
-    } finally {
-      setAssessmentLoading(false);
-    }
-  }, []);
+  const loadVitalsAndAssessment = React.useCallback(
+    async (visitId: number, receptionId: number | null) => {
+      setVitalsLoading(true);
+      setAssessmentLoading(true);
+      try {
+        const { vitals: v, assessment: a } = await fetchVitalsAndAssessmentWithMedicalSupport(
+          visitId,
+          receptionId
+        );
+        setVitals(v);
+        setAssessment(a);
+      } catch {
+        setVitals(null);
+        setAssessment(null);
+      } finally {
+        setVitalsLoading(false);
+        setAssessmentLoading(false);
+      }
+    },
+    []
+  );
 
   const loadDoctorNote = React.useCallback(async (visitId: number) => {
     try {
@@ -345,6 +344,11 @@ export default function ClinicalPage() {
   }, [clinicals, selectedReception]);
   const currentClinicalId = activeVisitClinical?.clinicalId ?? activeVisitClinical?.id ?? null;
 
+  const receptionIdForSupport = React.useMemo(
+    () => activeVisitClinical?.receptionId ?? selectedReception?.receptionId ?? null,
+    [activeVisitClinical?.receptionId, selectedReception?.receptionId]
+  );
+
   const pastClinicalsForPatient = React.useMemo(() => {
     if (!selectedPatient) return [];
     const id = currentClinicalId ?? undefined;
@@ -472,8 +476,7 @@ export default function ClinicalPage() {
   React.useEffect(() => {
     if (currentClinicalId != null) {
       loadOrders(currentClinicalId);
-      loadVitals(currentClinicalId);
-      loadAssessment(currentClinicalId);
+      void loadVitalsAndAssessment(currentClinicalId, receptionIdForSupport);
       loadDoctorNote(currentClinicalId);
       loadDiagnoses(currentClinicalId);
       loadPrescriptions(currentClinicalId);
@@ -492,9 +495,9 @@ export default function ClinicalPage() {
     }
   }, [
     currentClinicalId,
+    receptionIdForSupport,
     loadOrders,
-    loadVitals,
-    loadAssessment,
+    loadVitalsAndAssessment,
     loadDoctorNote,
     loadDiagnoses,
     loadPrescriptions,
@@ -748,6 +751,9 @@ export default function ClinicalPage() {
           <ClinicalChartCenter
             selectedPatient={selectedPatient}
             visitId={currentClinicalId}
+            currentVisitStartedAt={
+              activeVisitClinical?.clinicalAt ?? activeVisitClinical?.createdAt ?? null
+            }
             vitals={vitals}
             assessment={assessment}
             vitalsLoading={vitalsLoading}
@@ -869,10 +875,7 @@ export default function ClinicalPage() {
         onAssessmentFormChange={setAssessmentForm}
         onSaved={async () => {
           if (currentClinicalId != null) {
-            await Promise.all([
-              loadVitals(currentClinicalId),
-              loadAssessment(currentClinicalId),
-            ]);
+            await loadVitalsAndAssessment(currentClinicalId, receptionIdForSupport);
           }
         }}
       />

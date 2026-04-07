@@ -7,14 +7,14 @@ import type {
   PatientSearchPayload,
   PatientMultiSearchPayload,
 } from "./patientTypes";
-import * as api from "../../lib/reception/patientApi";
+import * as api from "@/lib/patient/patientApi";
 
 function* fetchPatientsSaga() {
   try {
     const list: Patient[] = yield call(api.fetchPatientsApi);
     yield put(actions.fetchPatientsSuccess(list));
   } catch (err: any) {
-    yield put(actions.fetchPatientsFailure(err.message ?? "ȯ�� ��� ��ȸ ����"));
+    yield put(actions.fetchPatientsFailure(err.message ?? "환자 목록 조회 실패"));
   }
 }
 
@@ -23,7 +23,7 @@ function* fetchPatientSaga(action: PayloadAction<{ patientId: number }>) {
     const p: Patient = yield call(api.fetchPatientApi, action.payload.patientId);
     yield put(actions.fetchPatientSuccess(p));
   } catch (err: any) {
-    yield put(actions.fetchPatientFailure(err.message ?? "ȯ�� ��ȸ ����"));
+    yield put(actions.fetchPatientFailure(err.message ?? "환자 조회 실패"));
   }
 }
 
@@ -34,7 +34,7 @@ function* createPatientSaga(action: PayloadAction<PatientForm>) {
     yield put(actions.createPatientSuccess());
     yield put(actions.fetchPatientsRequest());
   } catch (err: any) {
-    yield put(actions.createPatientFailure(err.message ?? "ȯ�� ��� ����"));
+    yield put(actions.createPatientFailure(err.message ?? "환자 등록 실패"));
   }
 }
 
@@ -50,7 +50,7 @@ function* updatePatientSaga(
     yield put(actions.updatePatientSuccess());
     yield put(actions.fetchPatientsRequest());
   } catch (err: any) {
-    yield put(actions.updatePatientFailure(err.message ?? "ȯ�� ���� ����"));
+    yield put(actions.updatePatientFailure(err.message ?? "환자 수정 실패"));
   }
 }
 
@@ -64,7 +64,7 @@ function* updatePatientVipSaga(
     yield put(actions.fetchPatientRequest({ patientId }));
     yield put(actions.fetchPatientsRequest());
   } catch (err: any) {
-    yield put(actions.updatePatientVipFailure(err.message ?? "VIP ���� ����"));
+    yield put(actions.updatePatientVipFailure(err.message ?? "VIP 수정 실패"));
   }
 }
 
@@ -73,7 +73,7 @@ function* deletePatientSaga(action: PayloadAction<number>) {
     yield call(api.deletePatientApi, action.payload);
     yield put(actions.deletePatientSuccess(action.payload));
   } catch (err: any) {
-    yield put(actions.deletePatientFailure(err.message ?? "ȯ�� ��Ȱ�� ó�� ����"));
+    yield put(actions.deletePatientFailure(err.message ?? "환자 비활성 처리 실패"));
   }
 }
 
@@ -84,8 +84,8 @@ function* searchPatientsMultiSaga(
     const list: Patient[] = yield call(api.searchPatientsMultiApi, action.payload);
     yield put(actions.fetchPatientsSuccess(list));
   } catch (err: any) {
-    alert(err.message ?? "ȯ�� �˻� ����");
-    yield put(actions.fetchPatientsFailure(err.message ?? "ȯ�� �˻� ����"));
+    alert(err.message ?? "환자 검색 실패");
+    yield put(actions.fetchPatientsFailure(err.message ?? "환자 검색 실패"));
   }
 }
 
@@ -95,8 +95,8 @@ function* searchPatientsSaga(action: PayloadAction<PatientSearchPayload>) {
     const list: Patient[] = yield call(api.searchPatientsApi, type, keyword);
     yield put(actions.fetchPatientsSuccess(list));
   } catch (err: any) {
-    alert(err.message ?? "ȯ�� �˻� ����");
-    yield put(actions.fetchPatientsFailure(err.message ?? "ȯ�� �˻� ����"));
+    alert(err.message ?? "환자 검색 실패");
+    yield put(actions.fetchPatientsFailure(err.message ?? "환자 검색 실패"));
   }
 }
 

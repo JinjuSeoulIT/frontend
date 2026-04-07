@@ -22,7 +22,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import type { Patient } from "@/features/patients/patientTypes";
 import type { PatientForm as PatientFormPayload } from "@/features/patients/patientTypes";
-import { searchPatientsApi } from "@/lib/reception/patientApi";
+import { searchPatientsApi } from "@/lib/patient/patientApi";
 
 type DaumPostcodeData = { address?: string };
 type DaumPostcodeInstance = { open: () => void };

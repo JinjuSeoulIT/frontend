@@ -4,7 +4,6 @@ import { RecordFormType } from "@/features/medical_support/record/recordTypes";
 const api = axios.create({
   baseURL: "http://192.168.1.66:8181",
 });
-
 export const fetchRecordsApi = async (): Promise<RecordFormType[]> => {
   const res = await api.get("/api/record");
   return res.data.result;

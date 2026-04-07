@@ -1,6 +1,14 @@
 "use client";
 
-import { CircularProgress, Box, Button, Stack, TextField, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  MenuItem,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
@@ -12,8 +20,9 @@ type ImagingEditForm = {
   imagingExamId: string;
   testExecutionId: string;
   imagingType: string;
-  examStatusYn: string;
-  examAt: string;
+  performerId: string;
+  progressStatus: string;
+  status: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -24,8 +33,9 @@ const toImagingFormData = (
   imagingExamId: item?.imagingExamId ?? "",
   testExecutionId: item?.testExecutionId ?? "",
   imagingType: item?.imagingType ?? "",
-  examStatusYn: item?.examStatusYn ?? "",
-  examAt: item?.examAt ?? "",
+  performerId: item?.performerId ?? "",
+  progressStatus: item?.progressStatus ?? "",
+  status: item?.status ?? "",
   createdAt: item?.createdAt ?? "",
   updatedAt: item?.updatedAt ?? "",
 });
@@ -63,8 +73,9 @@ export default function ImagingEdit() {
       imagingExamId: String(selected.imagingExamId ?? ""),
       testExecutionId: String(selected.testExecutionId ?? ""),
       imagingType: selected.imagingType ?? "",
-      examStatusYn: selected.examStatusYn ?? "",
-      examAt: selected.examAt ?? "",
+      performerId: String(selected.performerId ?? ""),
+      progressStatus: selected.progressStatus ?? "",
+      status: selected.status ?? "",
       createdAt: selected.createdAt ?? "",
       updatedAt: selected.updatedAt ?? "",
     });
@@ -127,29 +138,50 @@ export default function ImagingEdit() {
           />
 
           <TextField
-            label="검사상태여부"
-            value={form.examStatusYn}
+            label="담당자아이디"
+            value={form.performerId}
             onChange={(e) =>
               setDraftForm({
                 ...form,
-                examStatusYn: e.target.value,
+                performerId: e.target.value,
               })
             }
             fullWidth
-            helperText="Y 또는 N"
           />
 
           <TextField
-            label="검사일시"
-            value={form.examAt}
+            select
+            label="진행상태"
+            value={form.progressStatus}
             onChange={(e) =>
               setDraftForm({
                 ...form,
-                examAt: e.target.value,
+                progressStatus: e.target.value,
               })
             }
             fullWidth
-          />
+          >
+            <MenuItem value="WAITING">대기중</MenuItem>
+            <MenuItem value="IN_PROGRESS">검사중</MenuItem>
+            <MenuItem value="COMPLETED">검사완료</MenuItem>
+          </TextField>
+
+          <TextField
+            select
+            label="활성 여부"
+            value={form.status}
+            onChange={(e) =>
+              setDraftForm({
+                ...form,
+                status: e.target.value,
+              })
+            }
+            helperText="활성 여부는 활성화 또는 비활성화입니다."
+            fullWidth
+          >
+            <MenuItem value="ACTIVE">활성화</MenuItem>
+            <MenuItem value="INACTIVE">비활성화</MenuItem>
+          </TextField>
 
           <TextField
             label="생성일시"
@@ -184,8 +216,9 @@ export default function ImagingEdit() {
                     form: {
                       testExecutionId: form.testExecutionId,
                       imagingType: form.imagingType,
-                      examStatusYn: form.examStatusYn,
-                      examAt: form.examAt,
+                      performerId: form.performerId,
+                      progressStatus: form.progressStatus,
+                      status: form.status,
                     },
                   })
                 );

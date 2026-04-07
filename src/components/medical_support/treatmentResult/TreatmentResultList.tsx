@@ -92,7 +92,7 @@ const safeValue = (value?: string | number | null) => {
   return text ? text : "-";
 };
 
-export default function TreatmentResultList() {
+export function TreatmentResultListSection() {
   const dispatch = useDispatch<AppDispatch>();
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
@@ -145,141 +145,147 @@ export default function TreatmentResultList() {
   };
 
   return (
-    <MainLayout>
-      <Box sx={{ px: 3, py: 3, maxWidth: 1400, mx: "auto" }}>
-        <Card
-          elevation={2}
+    <Card
+      elevation={2}
+      sx={{
+        borderRadius: 3,
+        overflow: "hidden",
+        border: "1px solid",
+        borderColor: "grey.200",
+        backgroundColor: "#fff",
+      }}
+    >
+      <Box sx={{ px: 3, py: 2.5, backgroundColor: "#fafafa" }}>
+        <Box
           sx={{
-            borderRadius: 3,
-            overflow: "hidden",
-            border: "1px solid",
-            borderColor: "grey.200",
-            backgroundColor: "#fff",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: { xs: "flex-start", lg: "center" },
+            gap: 2,
+            flexWrap: "wrap",
           }}
         >
-          <Box sx={{ px: 3, py: 2.5, backgroundColor: "#fafafa" }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: { xs: "flex-start", lg: "center" },
-                gap: 2,
-                flexWrap: "wrap",
-              }}
-            >
-              <Box sx={{ minWidth: 240, flex: "1 1 280px" }}>
-                <Typography variant="h6" fontWeight={700}>
-                  처치 결과 목록
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  처치 결과 정보를 조회할 수 있습니다.
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                <Chip label={`총 ${rows.length}건`} size="small" />
-                <Chip
-                  label={`진행 중 ${inProgressCount}건`}
-                  size="small"
-                  color="info"
-                  variant="outlined"
-                />
-                <Chip
-                  label={`완료 ${completedCount}건`}
-                  size="small"
-                  color="success"
-                  variant="outlined"
-                />
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<RefreshIcon />}
-                  onClick={() =>
-                    dispatch(TreatmentResultActions.fetchTreatmentResultsRequest())
-                  }
-                >
-                  새로고침
-                </Button>
-              </Box>
-            </Box>
+          <Box sx={{ minWidth: 240, flex: "1 1 280px" }}>
+            <Typography variant="h6" fontWeight={700}>
+              처치 결과 목록
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              처치 결과 정보를 조회할 수 있습니다.
+            </Typography>
           </Box>
 
-          <CardContent sx={{ p: 2.5 }}>
-            {loading && <CircularProgress />}
-            {error && <Alert severity="error">{error}</Alert>}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+            <Chip label={`총 ${rows.length}건`} size="small" />
+            <Chip
+              label={`진행 중 ${inProgressCount}건`}
+              size="small"
+              color="info"
+              variant="outlined"
+            />
+            <Chip
+              label={`완료 ${completedCount}건`}
+              size="small"
+              color="success"
+              variant="outlined"
+            />
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<RefreshIcon />}
+              onClick={() =>
+                dispatch(TreatmentResultActions.fetchTreatmentResultsRequest())
+              }
+            >
+              새로고침
+            </Button>
+          </Box>
+        </Box>
+      </Box>
 
-            {!loading && !error && (
-              <Paper
-                elevation={0}
-                sx={{
-                  borderRadius: 2,
-                  border: "1px solid",
-                  borderColor: "grey.200",
-                  overflow: "hidden",
-                }}
-              >
-                <TableContainer>
-                  <Table size="small" stickyHeader sx={{ minWidth: 900 }}>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell align="center">번호</TableCell>
-                        <TableCell align="center">처치결과 ID</TableCell>
-                        <TableCell align="center">상태</TableCell>
-                        <TableCell align="center">시행일시</TableCell>
-                        <TableCell align="center">시행자 ID</TableCell>
-                        <TableCell align="center">처치내용</TableCell>
-                      </TableRow>
-                    </TableHead>
+      <CardContent sx={{ p: 2.5 }}>
+        {loading && <CircularProgress />}
+        {error && <Alert severity="error">{error}</Alert>}
 
-                    <TableBody>
-                      {paginatedRows.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={6} align="center">
-                            처치 결과 데이터가 없습니다.
-                          </TableCell>
-                        </TableRow>
-                      )}
+        {!loading && !error && (
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: "grey.200",
+              overflow: "hidden",
+            }}
+          >
+            <TableContainer>
+              <Table size="small" stickyHeader sx={{ minWidth: 900 }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell align="center">번호</TableCell>
+                    <TableCell align="center">처치결과 ID</TableCell>
+                    <TableCell align="center">상태</TableCell>
+                    <TableCell align="center">시행일시</TableCell>
+                    <TableCell align="center">시행자 ID</TableCell>
+                    <TableCell align="center">처치내용</TableCell>
+                  </TableRow>
+                </TableHead>
 
-                      {paginatedRows.map((row, index) => (
-                        <TableRow key={String(row.procedureResultId)} hover>
-                          <TableCell align="center">
-                            {currentPage * rowsPerPage + index + 1}
-                          </TableCell>
-                          <TableCell align="center">{safeValue(row.procedureResultId)}</TableCell>
-                          <TableCell align="center">
-                            <Chip
-                              label={safeValue(row.status)}
-                              color={getStatusColor(row.status)}
-                              size="small"
-                              sx={getStatusSx(row.status)}
-                            />
-                          </TableCell>
-                          <TableCell align="center">{formatDateTime(row.performedAt)}</TableCell>
-                          <TableCell align="center">{safeValue(row.performerId)}</TableCell>
-                          <TableCell align="center">{safeValue(row.detail)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                <TableBody>
+                  {paginatedRows.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center">
+                        처치 결과 데이터가 없습니다.
+                      </TableCell>
+                    </TableRow>
+                  )}
 
-                <TablePagination
-                  component="div"
-                  count={rows.length}
-                  page={currentPage}
-                  onPageChange={handleChangePage}
-                  rowsPerPage={rowsPerPage}
-                  onRowsPerPageChange={handleChangeRowsPerPage}
-                  rowsPerPageOptions={[10, 20, 50]}
-                  labelRowsPerPage="페이지당 행 수"
-                  labelDisplayedRows={({ from, to, count }) =>
-                    `${from}-${to} / 총 ${count}`
-                  }
-                />
-              </Paper>
-            )}
-          </CardContent>
-        </Card>
+                  {paginatedRows.map((row, index) => (
+                    <TableRow key={String(row.procedureResultId)} hover>
+                      <TableCell align="center">
+                        {currentPage * rowsPerPage + index + 1}
+                      </TableCell>
+                      <TableCell align="center">{safeValue(row.procedureResultId)}</TableCell>
+                      <TableCell align="center">
+                        <Chip
+                          label={safeValue(row.status)}
+                          color={getStatusColor(row.status)}
+                          size="small"
+                          sx={getStatusSx(row.status)}
+                        />
+                      </TableCell>
+                      <TableCell align="center">{formatDateTime(row.performedAt)}</TableCell>
+                      <TableCell align="center">{safeValue(row.performerId)}</TableCell>
+                      <TableCell align="center">{safeValue(row.detail)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            <TablePagination
+              component="div"
+              count={rows.length}
+              page={currentPage}
+              onPageChange={handleChangePage}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              rowsPerPageOptions={[10, 20, 50]}
+              labelRowsPerPage="페이지당 행 수"
+              labelDisplayedRows={({ from, to, count }) =>
+                `${from}-${to} / 총 ${count}`
+              }
+            />
+          </Paper>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function TreatmentResultList() {
+  return (
+    <MainLayout>
+      <Box sx={{ px: 3, py: 3, maxWidth: 1400, mx: "auto" }}>
+        <TreatmentResultListSection />
       </Box>
     </MainLayout>
   );

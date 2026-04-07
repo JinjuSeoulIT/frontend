@@ -6,6 +6,14 @@ import { Box, Card, CardContent, Typography } from "@mui/material";
 const ExamDashboard = () => {
   const menu = [
     {
+      key: "testexecution",
+      label: "검사 수행",
+      desc: "검사 수행 관리",
+      path: "/medical_support/testExecution/list",
+      tone:
+        "linear-gradient(135deg, rgba(23, 162, 142, 0.22), rgba(23, 162, 142, 0))",
+    },
+    {
       key: "imaging",
       label: "영상 검사",
       desc: "영상 검사 관리",

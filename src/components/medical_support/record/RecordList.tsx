@@ -56,8 +56,8 @@ const formatDateTime = (value?: string | null) => {
 };
 
 const getStatusLabel = (status?: string | null) => {
-  if (status === "ACTIVE") return "ACTIVE";
-  if (status === "INACTIVE") return "INACTIVE";
+  if (status === "ACTIVE") return "활성화";
+  if (status === "INACTIVE") return "비활성화";
   return "-";
 };
 
@@ -220,7 +220,7 @@ const handleCreateWithReception = () => {
       sx={{
         px: 3,
         py: 3,
-        maxWidth: 1240,
+        maxWidth: 1380,
         mx: "auto",
       }}
     >
@@ -231,7 +231,7 @@ const handleCreateWithReception = () => {
           alignItems: "start",
           gridTemplateColumns: {
             xs: "1fr",
-            xl: "360px minmax(0, 1.8fr)",
+            xl: "320px minmax(0, 1fr)",
           },
         }}
       >
@@ -272,7 +272,7 @@ const handleCreateWithReception = () => {
                   color="text.secondary"
                   sx={{
                     mt: 0.5,
-                    whiteSpace: "nowrap",
+                    whiteSpace: { xs: "normal", sm: "nowrap" },
                   }}
                 >
                   간호 기록 목록을 조회하고 상세 페이지로 이동할 수 있습니다.
@@ -430,7 +430,17 @@ const handleCreateWithReception = () => {
                 }}
               >
                 <TableContainer>
-                  <Table size="small" stickyHeader sx={{ minWidth: 820 }}>
+                  <Table
+                    size="small"
+                    stickyHeader
+                    sx={{
+                      width: "100%",
+                      minWidth: 0,
+                      "& .MuiTableCell-root": {
+                        px: 1.5,
+                      },
+                    }}
+                  >
                     <TableHead>
                       <TableRow>
                         <TableCell
@@ -451,6 +461,7 @@ const handleCreateWithReception = () => {
                             py: 1.4,
                             backgroundColor: "#f8f9fa",
                             whiteSpace: "nowrap",
+                            width: 120,
                           }}
                           align="center"
                         >
@@ -462,6 +473,7 @@ const handleCreateWithReception = () => {
                             py: 1.4,
                             backgroundColor: "#f8f9fa",
                             whiteSpace: "nowrap",
+                            width: 120,
                           }}
                           align="center"
                         >
@@ -473,6 +485,7 @@ const handleCreateWithReception = () => {
                             py: 1.4,
                             backgroundColor: "#f8f9fa",
                             whiteSpace: "nowrap",
+                            width: 140,
                           }}
                           align="center"
                         >
@@ -484,10 +497,11 @@ const handleCreateWithReception = () => {
                             py: 1.4,
                             backgroundColor: "#f8f9fa",
                             whiteSpace: "nowrap",
+                            width: 190,
                           }}
                           align="center"
                         >
-                          기록일시
+                          생성일시
                         </TableCell>
                         <TableCell
                           sx={{
@@ -495,10 +509,11 @@ const handleCreateWithReception = () => {
                             py: 1.4,
                             backgroundColor: "#f8f9fa",
                             whiteSpace: "nowrap",
+                            width: 100,
                           }}
                           align="center"
                         >
-                          상태
+                          활성 여부
                         </TableCell>
                       </TableRow>
                     </TableHead>
@@ -536,7 +551,7 @@ const handleCreateWithReception = () => {
                             {record.departmentName ?? "-"}
                           </TableCell>
                           <TableCell align="center">
-                            {formatDateTime(record.recordedAt)}
+                            {formatDateTime(record.createdAt ?? record.recordedAt)}
                           </TableCell>
                           <TableCell align="center">
                             <Chip
@@ -728,7 +743,7 @@ const handleCreateWithReception = () => {
 
               <Box>
                 <Typography variant="caption" color="text.secondary">
-                  상태
+                  활성 여부
                 </Typography>
                 <Typography fontWeight={700}>
                   {getReceptionStatusLabel(selectedReceptionDetail.status)}

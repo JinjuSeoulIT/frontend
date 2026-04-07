@@ -4,9 +4,10 @@ export interface SpecimenExam {
   specimenType?: string | null;
   specimenStatus?: string | null;
   collectedAt?: string | null;
-  collectedById?: string | number | null;
+  performerId?: string | number | null;
   collectionSite?: string | null;
   recollectionYn?: string | null;
+  progressStatus?: string | null;
   status?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -17,9 +18,10 @@ export interface SpecimenExamCreatePayload {
   specimenType?: string | null;
   specimenStatus?: string | null;
   collectedAt?: string | null;
-  collectedById?: string | number | null;
+  performerId?: string | number | null;
   collectionSite?: string | null;
   recollectionYn?: string | null;
+  progressStatus?: string | null;
   status?: string | null;
 }
 
@@ -28,8 +30,9 @@ export interface SpecimenExamUpdatePayload {
   specimenType?: string | null;
   specimenStatus?: string | null;
   collectedAt?: string | null;
-  collectedById?: string | number | null;
+  performerId?: string | number | null;
   collectionSite?: string | null;
   recollectionYn?: string | null;
+  progressStatus?: string | null;
   status?: string | null;
 }

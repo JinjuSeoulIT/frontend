@@ -1,6 +1,14 @@
 "use client";
 
-import { CircularProgress, Box, Button, Stack, TextField, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  MenuItem,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
@@ -16,8 +24,9 @@ type PathologyEditForm = {
   tissueSite: string;
   tissueType: string;
   collectedAt: string;
-  collectedById: string;
+  performerId: string;
   reexamYn: string;
+  progressStatus: string;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -33,8 +42,9 @@ const toPathologyFormData = (
   tissueSite: item?.tissueSite ?? "",
   tissueType: item?.tissueType ?? "",
   collectedAt: item?.collectedAt ?? "",
-  collectedById: item?.collectedById ?? "",
+  performerId: item?.performerId ?? "",
   reexamYn: item?.reexamYn ?? "",
+  progressStatus: item?.progressStatus ?? "",
   status: item?.status ?? "",
   createdAt: item?.createdAt ?? "",
   updatedAt: item?.updatedAt ?? "",
@@ -77,8 +87,9 @@ export default function PathologyEdit() {
       tissueSite: selected.tissueSite ?? "",
       tissueType: selected.tissueType ?? "",
       collectedAt: selected.collectedAt ?? "",
-      collectedById: String(selected.collectedById ?? ""),
+      performerId: String(selected.performerId ?? ""),
       reexamYn: selected.reexamYn ?? "",
+      progressStatus: selected.progressStatus ?? "",
       status: selected.status ?? "",
       createdAt: selected.createdAt ?? "",
       updatedAt: selected.updatedAt ?? "",
@@ -148,9 +159,9 @@ export default function PathologyEdit() {
             fullWidth
           />
           <TextField
-            label="채취담당아이디"
-            value={form.collectedById}
-            onChange={(e) => setDraftForm({ ...form, collectedById: e.target.value })}
+            label="담당자아이디"
+            value={form.performerId}
+            onChange={(e) => setDraftForm({ ...form, performerId: e.target.value })}
             fullWidth
           />
           <TextField
@@ -161,12 +172,27 @@ export default function PathologyEdit() {
             fullWidth
           />
           <TextField
-            label="상태"
+            select
+            label="진행상태"
+            value={form.progressStatus}
+            onChange={(e) => setDraftForm({ ...form, progressStatus: e.target.value })}
+            fullWidth
+          >
+            <MenuItem value="WAITING">대기중</MenuItem>
+            <MenuItem value="IN_PROGRESS">검사중</MenuItem>
+            <MenuItem value="COMPLETED">검사완료</MenuItem>
+          </TextField>
+          <TextField
+            select
+            label="활성 여부"
             value={form.status}
             onChange={(e) => setDraftForm({ ...form, status: e.target.value })}
-            helperText="ACTIVE 또는 INACTIVE"
+            helperText="활성 여부는 활성화 또는 비활성화입니다."
             fullWidth
-          />
+          >
+            <MenuItem value="ACTIVE">활성화</MenuItem>
+            <MenuItem value="INACTIVE">비활성화</MenuItem>
+          </TextField>
           <TextField label="생성일시" value={form.createdAt} disabled fullWidth />
           <TextField label="수정일시" value={form.updatedAt} disabled fullWidth />
 
@@ -193,8 +219,9 @@ export default function PathologyEdit() {
                       tissueSite: form.tissueSite,
                       tissueType: form.tissueType,
                       collectedAt: form.collectedAt,
-                      collectedById: form.collectedById,
+                      performerId: form.performerId,
                       reexamYn: form.reexamYn,
+                      progressStatus: form.progressStatus,
                       status: form.status,
                     },
                   })

@@ -12,7 +12,6 @@ import {
   Chip,
   CircularProgress,
   Paper,
-  Stack,
   Table,
   TableBody,
   TableCell,
@@ -66,7 +65,7 @@ const getStatusColor = (
   return "default";
 };
 
-export default function MedicationRecordList() {
+export function MedicationRecordListSection() {
   const dispatch = useDispatch<AppDispatch>();
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
@@ -113,132 +112,150 @@ export default function MedicationRecordList() {
   };
 
   return (
-    <MainLayout>
-      <Box sx={{ px: 3, py: 3, maxWidth: 1600, mx: "auto" }}>
-        <Card
-          elevation={2}
+    <Card
+      elevation={2}
+      sx={{
+        borderRadius: 3,
+        overflow: "hidden",
+        border: "1px solid",
+        borderColor: "grey.200",
+        backgroundColor: "#fff",
+      }}
+    >
+      <Box sx={{ px: 3, py: 2.5, backgroundColor: "#fafafa" }}>
+        <Box
           sx={{
-            borderRadius: 3,
-            overflow: "hidden",
-            border: "1px solid",
-            borderColor: "grey.200",
-            backgroundColor: "#fff",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: { xs: "flex-start", lg: "center" },
+            gap: 2,
+            flexWrap: "wrap",
           }}
         >
-          <Box sx={{ px: 3, py: 2.5, backgroundColor: "#fafafa" }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: { xs: "flex-start", lg: "center" },
-                gap: 2,
-                flexWrap: "wrap",
-              }}
-            >
-              <Box sx={{ minWidth: 240, flex: "1 1 280px" }}>
-                <Typography variant="h6" fontWeight={700}>
-                  투약 기록 목록
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  투약 기록 정보를 조회할 수 있습니다.
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                <Chip label={`총 ${rows.length}건`} size="small" />
-                <Chip label={`활성 ${activeCount}건`} size="small" color="success" variant="outlined" />
-                <Chip label={`비활성 ${inactiveCount}건`} size="small" color="error" variant="outlined" />
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<RefreshIcon />}
-                  onClick={() => dispatch(MedicationRecordActions.fetchMedicationRecordsRequest())}
-                >
-                  새로고침
-                </Button>
-              </Box>
-            </Box>
+          <Box sx={{ minWidth: 240, flex: "1 1 280px" }}>
+            <Typography variant="h6" fontWeight={700}>
+              투약 기록 목록
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              투약 기록 정보를 조회할 수 있습니다.
+            </Typography>
           </Box>
 
-          <CardContent sx={{ p: 2.5 }}>
-            {loading && <CircularProgress />}
-            {error && <Alert severity="error">{error}</Alert>}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+            <Chip label={`총 ${rows.length}건`} size="small" />
+            <Chip
+              label={`활성 ${activeCount}건`}
+              size="small"
+              color="success"
+              variant="outlined"
+            />
+            <Chip
+              label={`비활성 ${inactiveCount}건`}
+              size="small"
+              color="error"
+              variant="outlined"
+            />
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<RefreshIcon />}
+              onClick={() =>
+                dispatch(MedicationRecordActions.fetchMedicationRecordsRequest())
+              }
+            >
+              새로고침
+            </Button>
+          </Box>
+        </Box>
+      </Box>
 
-            {!loading && !error && (
-              <Paper
-                elevation={0}
-                sx={{
-                  borderRadius: 2,
-                  border: "1px solid",
-                  borderColor: "grey.200",
-                  overflow: "hidden",
-                }}
-              >
-                <TableContainer>
-                  <Table size="small" stickyHeader sx={{ minWidth: 1100 }}>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell align="center">번호</TableCell>
-                        <TableCell align="center">투약기록 ID</TableCell>
-                        <TableCell align="center">오더항목 ID</TableCell>
-                        <TableCell align="center">투약일시</TableCell>
-                        <TableCell align="center">투약량</TableCell>
-                        <TableCell align="center">투약단위</TableCell>
-                        <TableCell align="center">간호사 ID</TableCell>
-                        <TableCell align="center">상태</TableCell>
-                      </TableRow>
-                    </TableHead>
+      <CardContent sx={{ p: 2.5 }}>
+        {loading && <CircularProgress />}
+        {error && <Alert severity="error">{error}</Alert>}
 
-                    <TableBody>
-                      {paginatedRows.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={8} align="center">
-                            투약 기록 데이터가 없습니다.
-                          </TableCell>
-                        </TableRow>
-                      )}
+        {!loading && !error && (
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: "grey.200",
+              overflow: "hidden",
+            }}
+          >
+            <TableContainer>
+              <Table size="small" stickyHeader sx={{ minWidth: 1100 }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell align="center">번호</TableCell>
+                    <TableCell align="center">투약기록 ID</TableCell>
+                    <TableCell align="center">오더항목 ID</TableCell>
+                    <TableCell align="center">투약일시</TableCell>
+                    <TableCell align="center">투약량</TableCell>
+                    <TableCell align="center">투약단위</TableCell>
+                    <TableCell align="center">간호사 ID</TableCell>
+                    <TableCell align="center">상태</TableCell>
+                  </TableRow>
+                </TableHead>
 
-                      {paginatedRows.map((row, index) => (
-                        <TableRow key={String(row.medicationId)} hover>
-                          <TableCell align="center">
-                            {currentPage * rowsPerPage + index + 1}
-                          </TableCell>
-                          <TableCell align="center">{safeValue(row.medicationId)}</TableCell>
-                          <TableCell align="center">{safeValue(row.orderItemId)}</TableCell>
-                          <TableCell align="center">{formatDateTime(row.administeredAt)}</TableCell>
-                          <TableCell align="center">{safeValue(row.doseNumber)}</TableCell>
-                          <TableCell align="center">{safeValue(row.doseUnit)}</TableCell>
-                          <TableCell align="center">{safeValue(row.nurseId)}</TableCell>
-                          <TableCell align="center">
-                            <Chip
-                              label={safeValue(row.status)}
-                              color={getStatusColor(row.status)}
-                              size="small"
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                <TableBody>
+                  {paginatedRows.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} align="center">
+                        투약 기록 데이터가 없습니다.
+                      </TableCell>
+                    </TableRow>
+                  )}
 
-                <TablePagination
-                  component="div"
-                  count={rows.length}
-                  page={currentPage}
-                  onPageChange={handleChangePage}
-                  rowsPerPage={rowsPerPage}
-                  onRowsPerPageChange={handleChangeRowsPerPage}
-                  rowsPerPageOptions={[10, 20, 50]}
-                  labelRowsPerPage="페이지당 행 수"
-                  labelDisplayedRows={({ from, to, count }) =>
-                    `${from}-${to} / 총 ${count}`
-                  }
-                />
-              </Paper>
-            )}
-          </CardContent>
-        </Card>
+                  {paginatedRows.map((row, index) => (
+                    <TableRow key={String(row.medicationId)} hover>
+                      <TableCell align="center">
+                        {currentPage * rowsPerPage + index + 1}
+                      </TableCell>
+                      <TableCell align="center">{safeValue(row.medicationId)}</TableCell>
+                      <TableCell align="center">{safeValue(row.orderItemId)}</TableCell>
+                      <TableCell align="center">{formatDateTime(row.administeredAt)}</TableCell>
+                      <TableCell align="center">{safeValue(row.doseNumber)}</TableCell>
+                      <TableCell align="center">{safeValue(row.doseUnit)}</TableCell>
+                      <TableCell align="center">{safeValue(row.nurseId)}</TableCell>
+                      <TableCell align="center">
+                        <Chip
+                          label={safeValue(row.status)}
+                          color={getStatusColor(row.status)}
+                          size="small"
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            <TablePagination
+              component="div"
+              count={rows.length}
+              page={currentPage}
+              onPageChange={handleChangePage}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              rowsPerPageOptions={[10, 20, 50]}
+              labelRowsPerPage="페이지당 행 수"
+              labelDisplayedRows={({ from, to, count }) =>
+                `${from}-${to} / 총 ${count}`
+              }
+            />
+          </Paper>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function MedicationRecordList() {
+  return (
+    <MainLayout>
+      <Box sx={{ px: 3, py: 3, maxWidth: 1600, mx: "auto" }}>
+        <MedicationRecordListSection />
       </Box>
     </MainLayout>
   );

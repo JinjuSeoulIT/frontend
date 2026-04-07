@@ -110,6 +110,15 @@ export interface BillDetail {
   billItems: BillItem[];
 }
 
+// 청구 이력
+export interface BillHistory {
+  occurredAt: string;
+  historyType: string;
+  title: string;
+  description: string;
+  amount: number;
+}
+
 // 결제 수단 표시
 export const PAYMENT_METHOD_OPTIONS: {
   value: PaymentMethod;
@@ -129,6 +138,21 @@ export const fetchBillDetailApi = async (
 
   if (!res.data.success) {
     throw new Error(res.data.message || "청구 상세 조회 실패");
+  }
+
+  return res.data.result;
+};
+
+// 청구 이력 조회
+export const fetchBillHistoryApi = async (
+  billId: number
+): Promise<BillHistory[]> => {
+  const res = await api.get<ApiResponse<BillHistory[]>>(
+    `/api/billing/bills/${billId}/history`
+  );
+
+  if (!res.data.success) {
+    throw new Error(res.data.message || "청구 이력 조회 실패");
   }
 
   return res.data.result;

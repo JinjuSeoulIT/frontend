@@ -12,7 +12,10 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import type { TestExecution } from "@/features/medical_support/testExecution/testExecutionType";
+import {
+  TEST_EXECUTION_TYPE_OPTIONS,
+  type TestExecution,
+} from "@/features/medical_support/testExecution/testExecutionType";
 
 type TestExecutionFormData = {
   testExecutionId: string;
@@ -22,7 +25,7 @@ type TestExecutionFormData = {
   retryNo: string;
   startedAt: string;
   completedAt: string;
-  performerId: string;
+  // performerId: string;
   updatedAt: string;
 };
 
@@ -46,17 +49,9 @@ export const toTestExecutionFormData = (
   retryNo: value?.retryNo === 0 ? "0" : value?.retryNo ? String(value.retryNo) : "",
   startedAt: toDateTimeInputValue(value?.startedAt),
   completedAt: toDateTimeInputValue(value?.completedAt),
-  performerId: value?.performerId ? String(value.performerId) : "",
+  // : value?.performerId performerId? String(value.performerId) : "",
   updatedAt: toDateTimeInputValue(value?.updatedAt),
 });
-
-const executionTypeOptions = [
-  "SPECIMEN",
-  "IMAGING",
-  "PATHOLOGY",
-  "ENDOSCOPY",
-  "PHYSIOLOGICAL",
-] as const;
 
 const progressStatusOptions = [
   "WAITING",
@@ -64,6 +59,16 @@ const progressStatusOptions = [
   "COMPLETED",
   "CANCELLED",
 ] as const;
+
+const progressStatusOptionLabels: Record<
+  (typeof progressStatusOptions)[number],
+  string
+> = {
+  WAITING: "대기중",
+  IN_PROGRESS: "검사중",
+  COMPLETED: "검사완료",
+  CANCELLED: "취소",
+};
 
 const toDateTimeInputValue = (value?: string | null) => {
   const normalized = value?.trim();
@@ -94,7 +99,7 @@ export const toTestExecutionPayload = (
   retryNo: toNullableNumber(form.retryNo),
   startedAt: toNullableDateTime(form.startedAt),
   completedAt: toNullableDateTime(form.completedAt),
-  performerId: toNullableNumber(form.performerId),
+  // performerId: toNullableNumber(form.performerId),
   updatedAt: toNullableDateTime(form.updatedAt),
 });
 
@@ -187,7 +192,7 @@ export default function TestExecutionForm({
                     disabled={isEditMode}
                   >
                     <MenuItem value="">선택</MenuItem>
-                    {executionTypeOptions.map((option) => (
+                    {TEST_EXECUTION_TYPE_OPTIONS.map((option) => (
                       <MenuItem key={option} value={option}>
                         {option}
                       </MenuItem>
@@ -206,7 +211,7 @@ export default function TestExecutionForm({
                     <MenuItem value="">선택</MenuItem>
                     {progressStatusOptions.map((option) => (
                       <MenuItem key={option} value={option}>
-                        {option}
+                        {progressStatusOptionLabels[option]}
                       </MenuItem>
                     ))}
                   </TextField>
@@ -225,7 +230,7 @@ export default function TestExecutionForm({
               </Typography>
 
               <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}>
+                {/* <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     label="수행자 ID"
                     value={form.performerId}
@@ -233,7 +238,7 @@ export default function TestExecutionForm({
                     size="small"
                     fullWidth
                   />
-                </Grid>
+                </Grid> */}
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     label="재시도횟수"

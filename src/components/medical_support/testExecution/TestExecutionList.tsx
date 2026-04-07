@@ -27,6 +27,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { TestExecutionActions } from "@/features/medical_support/testExecution/testExecutionSlice";
 import type { RootState } from "@/store/rootReducer";
 import type { AppDispatch } from "@/store/store";
+import TestExecutionSearch from "./TestExecutionSearch";
 
 // const DONE_STATUSES = ["COMPLETED", "DONE", "FINISHED", "SUCCESS"];
 // const ACTIVE_STATUSES = ["IN_PROGRESS", "INPROGRESS", "RUNNING", "PROCESSING"];
@@ -56,6 +57,17 @@ const formatDateTime = (value?: string | null) => {
 
 const normalizeStatus = (value?: string | null) =>
   value?.trim().toUpperCase() ?? "";
+
+const formatProgressStatusLabel = (status?: string | null) => {
+  const normalized = normalizeStatus(status);
+
+  if (normalized === "WAITING") return "대기중";
+  if (normalized === "IN_PROGRESS") return "검사중";
+  if (normalized === "COMPLETED") return "검사완료";
+  if (normalized === "CANCELLED") return "취소";
+
+  return safeValue(status);
+};
 
 // const getStatusColor = (
 //   status?: string | null
@@ -268,6 +280,10 @@ export default function TestExecutionList() {
         <Divider />
 
         <CardContent sx={{ p: 2.5 }}>
+          <Box sx={{ mb: 2 }}>
+            <TestExecutionSearch />
+          </Box>
+
           {loading && (
             <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
               <CircularProgress size={28} />
@@ -354,7 +370,7 @@ export default function TestExecutionList() {
                             size="small"
                           /> */}
                           <Chip
-                            label={safeValue(item.progressStatus)}
+                            label={formatProgressStatusLabel(item.progressStatus)}
                             color={getStatusColor(item.progressStatus)}
                             size="small"
                             sx={getStatusSx(item.progressStatus)}

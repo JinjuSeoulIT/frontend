@@ -1,6 +1,14 @@
 "use client";
 
-import { CircularProgress, Box, Button, Stack, TextField, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  MenuItem,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
@@ -14,9 +22,10 @@ type SpecimenEditForm = {
   specimenType: string;
   specimenStatus: string;
   collectedAt: string;
-  collectedById: string;
+  performerId: string;
   collectionSite: string;
   recollectionYn: string;
+  progressStatus: string;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -30,9 +39,10 @@ const toSpecimenFormData = (
   specimenType: item?.specimenType ?? "",
   specimenStatus: item?.specimenStatus ?? "",
   collectedAt: item?.collectedAt ?? "",
-  collectedById: item?.collectedById ?? "",
+  performerId: item?.performerId ?? "",
   collectionSite: item?.collectionSite ?? "",
   recollectionYn: item?.recollectionYn ?? "",
+  progressStatus: item?.progressStatus ?? "",
   status: item?.status ?? "",
   createdAt: item?.createdAt ?? "",
   updatedAt: item?.updatedAt ?? "",
@@ -73,9 +83,10 @@ export default function SpecimenEdit() {
       specimenType: selected.specimenType ?? "",
       specimenStatus: selected.specimenStatus ?? "",
       collectedAt: selected.collectedAt ?? "",
-      collectedById: String(selected.collectedById ?? ""),
+      performerId: String(selected.performerId ?? ""),
       collectionSite: selected.collectionSite ?? "",
       recollectionYn: selected.recollectionYn ?? "",
+      progressStatus: selected.progressStatus ?? "",
       status: selected.status ?? "",
       createdAt: selected.createdAt ?? "",
       updatedAt: selected.updatedAt ?? "",
@@ -133,9 +144,9 @@ export default function SpecimenEdit() {
             fullWidth
           />
           <TextField
-            label="채취담당아이디"
-            value={form.collectedById}
-            onChange={(e) => setDraftForm({ ...form, collectedById: e.target.value })}
+            label="담당자아이디"
+            value={form.performerId}
+            onChange={(e) => setDraftForm({ ...form, performerId: e.target.value })}
             fullWidth
           />
           <TextField
@@ -152,12 +163,27 @@ export default function SpecimenEdit() {
             fullWidth
           />
           <TextField
-            label="상태"
+            select
+            label="진행상태"
+            value={form.progressStatus}
+            onChange={(e) => setDraftForm({ ...form, progressStatus: e.target.value })}
+            fullWidth
+          >
+            <MenuItem value="WAITING">대기중</MenuItem>
+            <MenuItem value="IN_PROGRESS">검사중</MenuItem>
+            <MenuItem value="COMPLETED">검사완료</MenuItem>
+          </TextField>
+          <TextField
+            select
+            label="활성 여부"
             value={form.status}
             onChange={(e) => setDraftForm({ ...form, status: e.target.value })}
-            helperText="ACTIVE 또는 INACTIVE"
+            helperText="활성 여부는 활성화 또는 비활성화입니다."
             fullWidth
-          />
+          >
+            <MenuItem value="ACTIVE">활성화</MenuItem>
+            <MenuItem value="INACTIVE">비활성화</MenuItem>
+          </TextField>
           <TextField label="생성일시" value={form.createdAt} disabled fullWidth />
           <TextField label="수정일시" value={form.updatedAt} disabled fullWidth />
 
@@ -182,9 +208,10 @@ export default function SpecimenEdit() {
                       specimenType: form.specimenType,
                       specimenStatus: form.specimenStatus,
                       collectedAt: form.collectedAt,
-                      collectedById: form.collectedById,
+                      performerId: form.performerId,
                       collectionSite: form.collectionSite,
                       recollectionYn: form.recollectionYn,
+                      progressStatus: form.progressStatus,
                       status: form.status,
                     },
                   })

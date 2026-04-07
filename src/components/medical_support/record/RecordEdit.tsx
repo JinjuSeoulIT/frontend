@@ -40,8 +40,8 @@ const RecordEdit = () => {
 
     return {
       recordId: selected.recordId ?? "",
+      receptionId: selected.receptionId ?? null,
       nursingId: selected.nursingId ?? "",
-      visitId: selected.visitId ?? "",
       recordedAt: selected.recordedAt ?? "",
       systolicBp: selected.systolicBp ?? "",
       diastolicBp: selected.diastolicBp ?? "",
@@ -53,6 +53,7 @@ const RecordEdit = () => {
       painScore: selected.painScore ?? "",
       consciousnessLevel: selected.consciousnessLevel ?? "",
       initialAssessment: selected.initialAssessment ?? "",
+      pastMedicalHistory: selected.pastMedicalHistory ?? "",
       status: selected.status ?? "",
       createdAt: selected.createdAt ?? "",
       updatedAt: selected.updatedAt ?? "",

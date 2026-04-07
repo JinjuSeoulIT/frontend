@@ -1,10 +1,13 @@
-﻿import { call, put, takeLatest } from "redux-saga/effects";
+import { call, put, takeLatest } from "redux-saga/effects";
 import type { SagaIterator } from "redux-saga";
 import { PayloadAction } from "@reduxjs/toolkit";
 
 import { RecActions as actions } from "./recordSlice";
 import * as api from "../../../lib/medical_support/recordApi";
-import type { RecordFormType } from "@/features/medical_support/record/recordTypes";
+import type {
+  RecordFormType,
+  RecordSearchPayload,
+} from "@/features/medical_support/record/recordTypes";
 
 const getErrorMessage = (err: unknown, fallback: string) => {
   if (err instanceof Error && err.message) {
@@ -95,12 +98,7 @@ function* toggleRecordStatusSaga(
 }
 
 function* searchRecordsSaga(
-  action: PayloadAction<{
-    searchType: string;
-    searchValue?: string;
-    startDate?: string;
-    endDate?: string;
-  }>
+  action: PayloadAction<RecordSearchPayload>
 ): SagaIterator {
   try {
     const records: RecordFormType[] = yield call(
@@ -109,7 +107,6 @@ function* searchRecordsSaga(
     );
 
     yield put(actions.searchRecordsSuccess(records));
-
   } catch (err: unknown) {
     yield put(
       actions.searchRecordsFailure(getErrorMessage(err, "Failed to search records"))

@@ -14,34 +14,18 @@ const Dashboard = () => {
         "linear-gradient(135deg, rgba(23, 162, 142, 0.22), rgba(23, 162, 142, 0))",
     },
     {
-      key: "testexecution",
-      label: "검사 수행",
-      desc: "검사 수행 관리",
-      path: "/medical_support/testExecution/list",
-      tone:
-        "linear-gradient(135deg, rgba(23, 162, 142, 0.22), rgba(23, 162, 142, 0))",
-    },
-    {
       key: "exam",
       label: "검사",
-      desc: "검사 항목 관리",
+      desc: "검사 관리",
       path: "/medical_support/exam",
       tone:
         "linear-gradient(135deg, rgba(23, 162, 142, 0.22), rgba(23, 162, 142, 0))",
     },
     {
-      key: "medicationrecord",
-      label: "투약 기록",
-      desc: "투약 기록 관리",
-      path: "/medical_support/medicationRecord/list",
-      tone:
-        "linear-gradient(135deg, rgba(23, 162, 142, 0.22), rgba(23, 162, 142, 0))",
-    },
-    {
-      key: "treatmentresult",
-      label: "처치 결과",
-      desc: "처치 결과 관리",
-      path: "/medical_support/treatmentResult/list",
+      key: "medicationTreatment",
+      label: "처치 결과 및 투약 기록",
+      desc: "처치 결과 및 투약 기록 관리",
+      path: "/medical_support/medicationTreatment",
       tone:
         "linear-gradient(135deg, rgba(23, 162, 142, 0.22), rgba(23, 162, 142, 0))",
     },

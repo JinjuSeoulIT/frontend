@@ -748,6 +748,9 @@ export default function ClinicalPage() {
           <ClinicalChartCenter
             selectedPatient={selectedPatient}
             visitId={currentClinicalId}
+            currentVisitStartedAt={
+              activeVisitClinical?.clinicalAt ?? activeVisitClinical?.createdAt ?? null
+            }
             vitals={vitals}
             assessment={assessment}
             vitalsLoading={vitalsLoading}

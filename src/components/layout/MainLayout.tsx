@@ -1,12 +1,18 @@
 "use client";
 
 import * as React from "react";
-import {
-  Box,
- 
-} from "@mui/material";
+import { Box } from "@mui/material";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
+import { usePathname } from "next/navigation";
+import { getMeApi } from "@/lib/auth/authApi";
+import { clearSession, getAccessToken, getSessionUser, saveSessionUserOnly } from "@/lib/auth/session";
+
+const redirectToLogin = () => {
+  if (typeof window === "undefined") return;
+  const nextPath = `${window.location.pathname}${window.location.search}`;
+  window.location.replace(`/login?next=${encodeURIComponent(nextPath)}`);
+};
 
 export default function MainLayout({
   children,
@@ -15,12 +21,60 @@ export default function MainLayout({
   children: React.ReactNode;
   showSidebar?: boolean;
 }) {
+  const pathname = usePathname();
   const SIDEBAR_OPEN_W = 240;
   const SIDEBAR_COLLAPSED_W = 72;
   const NAV_H = { xs: 64, md: 76 };
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = React.useState(false);
+  const [authReady, setAuthReady] = React.useState(false);
   const sidebarWidth = isSidebarCollapsed ? SIDEBAR_COLLAPSED_W : SIDEBAR_OPEN_W;
+
+  React.useEffect(() => {
+    let mounted = true;
+
+    const bootstrap = async () => {
+      const currentPath = pathname || "/";
+      if (currentPath.startsWith("/login")) {
+        if (mounted) setAuthReady(true);
+        return;
+      }
+
+      const token = getAccessToken();
+      if (!token) {
+        clearSession();
+        redirectToLogin();
+        return;
+      }
+
+      const user = getSessionUser();
+      if (user) {
+        if (mounted) setAuthReady(true);
+        return;
+      }
+
+      try {
+        const me = await getMeApi();
+        if (!mounted) return;
+        saveSessionUserOnly(me, { passwordChangeRequired: false });
+        setAuthReady(true);
+      } catch {
+        clearSession();
+        redirectToLogin();
+      }
+    };
+
+    setAuthReady(false);
+    void bootstrap();
+
+    return () => {
+      mounted = false;
+    };
+  }, [pathname]);
+
+  if (!authReady) {
+    return null;
+  }
 
   return (
     <Box

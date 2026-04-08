@@ -1,8 +1,10 @@
-﻿export type SessionUser = {
-  staffId: number;
+export type SessionUser = {
+  userId: string;
   username: string;
   fullName: string;
   role: string;
+  departmentId: string | null;
+  departmentName: string | null;
 };
 
 const TOKEN_KEY = "his.accessToken";
@@ -12,6 +14,7 @@ const FORCE_PASSWORD_COOKIE_KEY = "his_force_password_change";
 const DEV_BYPASS_COOKIE_KEY = "his_dev_bypass";
 const CSRF_COOKIE_KEY = "XSRF-TOKEN";
 const AUTH_COOKIE_KEY = "his_access_token";
+const SESSION_CHANGED_EVENT = "his:session-changed";
 
 const readStored = (key: string): string | null => {
   const sessionValue = sessionStorage.getItem(key);
@@ -44,6 +47,43 @@ const clearCookie = (name: string) => {
   document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax`;
 };
 
+const emitSessionChanged = () => {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(SESSION_CHANGED_EVENT));
+};
+
+export const getSessionChangedEventName = () => SESSION_CHANGED_EVENT;
+
+const normalizeSessionUser = (
+  value: Partial<SessionUser> & { staffId?: number | string }
+): SessionUser | null => {
+  const userId =
+    typeof value.userId === "string" && value.userId.trim().length > 0
+      ? value.userId.trim()
+      : value.staffId != null
+      ? String(value.staffId)
+      : "";
+
+  if (!userId || !value.username || !value.fullName || !value.role) {
+    return null;
+  }
+
+  return {
+    userId,
+    username: value.username,
+    fullName: value.fullName,
+    role: value.role,
+    departmentId:
+      typeof value.departmentId === "string" && value.departmentId.trim().length > 0
+        ? value.departmentId.trim()
+        : null,
+    departmentName:
+      typeof value.departmentName === "string" && value.departmentName.trim().length > 0
+        ? value.departmentName.trim()
+        : null,
+  };
+};
+
 export const getAccessToken = (): string | null => {
   if (typeof window === "undefined") return null;
   return readStored(TOKEN_KEY);
@@ -53,11 +93,19 @@ export const saveAccessToken = (token: string, persist = false) => {
   if (typeof window === "undefined") return;
   if (!token) {
     removeStored(TOKEN_KEY);
+<<<<<<< HEAD
     clearCookie(AUTH_COOKIE_KEY);
     return;
   }
   writeStored(TOKEN_KEY, token, persist);
   writeCookie(AUTH_COOKIE_KEY, token);
+=======
+    emitSessionChanged();
+    return;
+  }
+  writeStored(TOKEN_KEY, token, persist);
+  emitSessionChanged();
+>>>>>>> 904cc25eb7ce2c8dc8a5d219fff6bc78bb3b2a2b
 };
 
 export const getSessionUser = (): SessionUser | null => {
@@ -66,7 +114,7 @@ export const getSessionUser = (): SessionUser | null => {
   if (!raw) return null;
 
   try {
-    return JSON.parse(raw) as SessionUser;
+    return normalizeSessionUser(JSON.parse(raw));
   } catch {
     return null;
   }
@@ -89,6 +137,7 @@ export const saveSession = (
   options?: { passwordChangeRequired?: boolean; persist?: boolean; tokenMaxAgeSeconds?: number }
 ) => {
   if (typeof window === "undefined") return;
+
   const persist = Boolean(options?.persist);
   if (token) {
     writeStored(TOKEN_KEY, token, persist);
@@ -103,10 +152,13 @@ export const saveSession = (
     removeStored(TOKEN_KEY);
     clearCookie(AUTH_COOKIE_KEY);
   }
+
   writeStored(USER_KEY, JSON.stringify(user), persist);
-  setPasswordChangeRequired(Boolean(options?.passwordChangeRequired), persist);
+  setPasswordChangeRequired(false, persist);
+  emitSessionChanged();
 };
 
+<<<<<<< HEAD
 const getExistingPersistPreference = () => {
   if (typeof window === "undefined") return false;
   return localStorage.getItem(TOKEN_KEY) !== null || localStorage.getItem(USER_KEY) !== null;
@@ -121,6 +173,13 @@ export const saveSessionUserOnly = (
   const persist = options?.persist ?? getExistingPersistPreference();
   writeStored(USER_KEY, JSON.stringify(user), persist);
   setPasswordChangeRequired(Boolean(options?.passwordChangeRequired), persist);
+=======
+export const saveSessionUserOnly = (
+  user: SessionUser,
+  options?: { passwordChangeRequired?: boolean }
+) => {
+  saveSession("", user, options);
+>>>>>>> 904cc25eb7ce2c8dc8a5d219fff6bc78bb3b2a2b
 };
 
 export const setDevBypassCookie = (enabled: boolean) => {
@@ -146,6 +205,7 @@ export const clearSession = () => {
   clearCookie(DEV_BYPASS_COOKIE_KEY);
   clearCookie(AUTH_COOKIE_KEY);
   clearCookie(CSRF_COOKIE_KEY);
+  emitSessionChanged();
 };
 
 export const getCookieValue = (name: string): string | null => {

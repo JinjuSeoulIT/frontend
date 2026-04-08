@@ -24,6 +24,9 @@ const getSafeNextPath = (value: string | null): string => {
   if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/login")) {
     return "/";
   }
+  if (value.includes("forcePasswordChange=1") || value.startsWith("/my_account/password")) {
+    return "/";
+  }
   return value;
 };
 
@@ -31,7 +34,7 @@ const toLoginErrorMessage = (error: unknown) => {
   const message = error instanceof Error ? error.message : "";
 
   if (message.includes("AUTH_PENDING_APPROVAL")) {
-    return "가입 승인 대기 상태입니다. 관리자 승인 후 로그인할 수 있습니다.";
+    return "가입 승인 대기 상태입니다. 관리자 확인 후 로그인할 수 있습니다.";
   }
   if (message.includes("AUTH_INACTIVE_ACCOUNT")) {
     return "비활성 계정입니다. 관리자에게 문의해주세요.";
@@ -48,7 +51,6 @@ export const dispatchLogin = async ({
   rememberLoginKey,
 }: DispatchLoginParams): Promise<LoginDispatchResult> => {
   try {
-    //
     const result = await loginApi({ username, password });
 
     if (rememberUsername) {
@@ -59,16 +61,13 @@ export const dispatchLogin = async ({
 
     window.localStorage.setItem(rememberLoginKey, rememberLogin ? "1" : "0");
 
-    saveSession(
-      result.accessToken
-      ,result.user
-      , 
-      {
-      passwordChangeRequired: result.passwordChangeRequired,
+    saveSession(result.accessToken, result.user, {
+      passwordChangeRequired: false,
       persist: rememberLogin,
       tokenMaxAgeSeconds: rememberLogin ? result.expiresIn : undefined,
     });
 
+<<<<<<< HEAD
     // 비번 1111 로 발급되는데, 기본 비번(1111)로 초기화된 사용자는 비밀번호 변경페이지로 이동시키기 위함.
     if (result.passwordChangeRequired) {
       return {
@@ -120,10 +119,11 @@ export const dispatchBasicFormLogin = async ({username,password}): Promise<Login
       return { type: "success", redirectTo: "/my_account?forcePasswordChange=1" };
     }
 
+=======
+>>>>>>> 904cc25eb7ce2c8dc8a5d219fff6bc78bb3b2a2b
     const params = new URLSearchParams(window.location.search);
     return { type: "success", redirectTo: getSafeNextPath(params.get("next")) };
   } catch (error) {
     return { type: "error", message: toLoginErrorMessage(error) };
   }
 };
-*/

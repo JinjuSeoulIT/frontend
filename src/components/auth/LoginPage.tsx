@@ -109,10 +109,12 @@ export default function LoginPage() {
     setDevBypassCookie(true);
     saveSessionUserOnly(
       {
-        staffId: 0,
+        userId: "0",
         username: "dev.admin",
         fullName: "개발용 관리자",
         role: "ADMIN",
+        departmentId: null,
+        departmentName: null,
       },
       { passwordChangeRequired: false }
     );
@@ -204,12 +206,12 @@ export default function LoginPage() {
 
             {DEV_BYPASS_ENABLED ? (
               <Button variant="outlined" onClick={handleDevBypassLogin} sx={{ py: 1, fontWeight: 700 }}>
-                개발용: 인증 없이 화면 보기
+                개발용 인증 없이 화면 보기
               </Button>
             ) : null}
 
             <Typography sx={{ fontSize: 13, color: "#64748b", textAlign: "center" }}>
-              아이디 발급, 비밀번호 초기화, 가입 승인 관련 문의는 관리자에게 전달합니다.
+              아이디 발급, 비밀번호 초기화, 가입 승인 관련 문의는 관리자에게 전달됩니다.
             </Typography>
           </Stack>
         </CardContent>

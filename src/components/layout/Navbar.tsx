@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   AppBar,
@@ -11,12 +11,29 @@ import {
 import MedicalServicesOutlinedIcon from "@mui/icons-material/MedicalServicesOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import * as React from "react";
 import { logoutApi } from "@/lib/auth/authApi";
-import { clearSession } from "@/lib/auth/session";
+import {
+  clearSession,
+  getSessionChangedEventName,
+  getSessionUser,
+  type SessionUser,
+} from "@/lib/auth/session";
 
 export default function Navbar() {
-  const router = useRouter();
+  const [sessionUser, setSessionUser] = React.useState<SessionUser | null>(null);
+
+  React.useEffect(() => {
+    const syncSessionUser = () => {
+      setSessionUser(getSessionUser());
+    };
+
+    syncSessionUser();
+
+    const eventName = getSessionChangedEventName();
+    window.addEventListener(eventName, syncSessionUser);
+    return () => window.removeEventListener(eventName, syncSessionUser);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -25,8 +42,7 @@ export default function Navbar() {
       // 서버 로그아웃 실패 시에도 로컬 세션은 정리
     } finally {
       clearSession();
-      router.push("/login");
-      router.refresh();
+      window.location.replace("/login");
     }
   };
 
@@ -89,11 +105,13 @@ export default function Navbar() {
           <Stack direction="row" spacing={1} alignItems="center">
             <PersonOutlineOutlinedIcon sx={{ color: "#dbe8ff" }} />
             <Typography sx={{ color: "#e8f1ff", fontSize: 14, fontWeight: 600 }}>
-              관리자
+              {sessionUser?.fullName || sessionUser?.username || "내 계정"}
             </Typography>
-            <Typography sx={{ color: "#cbd9f5", fontSize: 12 }}>
-              운영팀
-            </Typography>
+            {sessionUser?.departmentName ? (
+              <Typography sx={{ color: "#cbd9f5", fontSize: 12 }}>
+                {sessionUser.departmentName}
+              </Typography>
+            ) : null}
           </Stack>
 
           <Button

@@ -1,4 +1,4 @@
-﻿import axios from "axios";
+import axios from "axios";
 import type { ApiResponse } from "@/features/patients/patientTypes";
 import { applyAuthInterceptors } from "@/lib/auth/apiInterceptors";
 import { AUTH_API_BASE_URL, AUTH_SERVER_ORIGIN } from "@/lib/common/env";
@@ -30,10 +30,12 @@ type EmailVerifyRequest = {
 };
 
 export type AuthUser = {
-  staffId: number;
+  userId: string;
   username: string;
   fullName: string;
   role: string;
+  departmentId: string | null;
+  departmentName: string | null;
 };
 
 export type LoginResult = {

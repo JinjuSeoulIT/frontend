@@ -601,12 +601,12 @@ export default function ClinicalPage() {
       window.alert("접수 환자를 먼저 선택해 주세요.");
       return;
     }
-    if (creatingClinicalRef.current) return;
-    creatingClinicalRef.current = true;
+    if (creatingClinicalRef.current) return;  //중복 실행 차단-->if(조건):조건이 true면 실행, return:함수 즉시 종료. 즉, "이미 실행 중이면 여기서 끝내"
+    creatingClinicalRef.current = true; // 
     setCreatingClinical(true);
-    startVisitPatientIdRef.current = selectedReception.patientId;
-    dispatch(clinicalActions.startVisitRequest({ receptionId: selectedReception.receptionId }));
-  }, [selectedReception, dispatch]);
+    startVisitPatientIdRef.current = selectedReception.patientId; //지금 선택된 환자 ID 저장해둔다.
+    dispatch(clinicalActions.startVisitRequest({ receptionId: selectedReception.receptionId }));  // 진료시작을 하려면 해당 접수환자가 누군지 알아야 하니까 접수ID를 파라미터로 보낸다.
+  }, [selectedReception, dispatch]); 
 
   const openVitalDialog = React.useCallback(
     (mode: "new" | "edit") => {
@@ -848,6 +848,10 @@ export default function ClinicalPage() {
         variant={orderDialogVariant}
         onClose={() => setOrderDialogOpen(false)}
         visitId={currentClinicalId}
+        contextPatientName={
+          selectedReception?.patientName?.trim() ?? selectedPatient?.name?.trim() ?? null
+        }
+        contextDepartmentName={selectedReception?.departmentName?.trim() ?? null}
         onCreated={async () => {
           if (currentClinicalId != null) await loadOrders(currentClinicalId);
         }}

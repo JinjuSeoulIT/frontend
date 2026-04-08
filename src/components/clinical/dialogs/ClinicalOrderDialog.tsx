@@ -20,7 +20,18 @@ import {
   createClinicalOrderApi,
   type LabOrderType,
 } from "@/lib/clinical/clinicalOrderApi";
-import { searchDrugsForVisit } from "@/lib/clinical/drugSearchApi";
+import {
+  createVisitMedicationRecordApi,
+  createVisitTreatmentResultApi,
+} from "@/lib/clinical/visitMedicationTreatmentApi";
+import {
+  drugSearchParamsFromQuery,
+  searchDrugsForVisit,
+} from "@/lib/clinical/drugSearchApi";
+import {
+  inferMedicationDoseProfile,
+  parsePositiveDoseAmount,
+} from "@/lib/clinical/medicationDoseProfile";
 import { searchProceduresForVisit } from "@/lib/clinical/procedureSearchApi";
 import { ORDER_TYPE_LABELS } from "../clinicalDocumentation";
 
@@ -76,15 +87,26 @@ type Props = {
   onClose: () => void;
   visitId: number | null;
   onCreated: () => void | Promise<void>;
+  contextPatientName?: string | null;
+  contextDepartmentName?: string | null;
 };
 
-export function ClinicalOrderDialog({ open, variant, onClose, visitId, onCreated }: Props) {
+export function ClinicalOrderDialog({
+  open,
+  variant,
+  onClose,
+  visitId,
+  onCreated,
+  contextPatientName,
+  contextDepartmentName,
+}: Props) {
   const [newOrderType, setNewOrderType] = React.useState<LabOrderType>(() => defaultOrderType(variant));
   const [newOrderName, setNewOrderName] = React.useState("");
   const [treatmentPick, setTreatmentPick] = React.useState<TreatmentSuggestOption | null>(null);
   const [creating, setCreating] = React.useState(false);
   const [treatmentOptions, setTreatmentOptions] = React.useState<TreatmentSuggestOption[]>([]);
   const [treatmentSuggestLoading, setTreatmentSuggestLoading] = React.useState(false);
+  const [medicationDoseText, setMedicationDoseText] = React.useState("1");
   const suggestTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const suggestAbortRef = React.useRef<AbortController | null>(null);
 
@@ -103,11 +125,15 @@ export function ClinicalOrderDialog({ open, variant, onClose, visitId, onCreated
       setTreatmentPick(null);
       setTreatmentOptions([]);
       setTreatmentSuggestLoading(false);
+      setMedicationDoseText("1");
     }
   }, [open, variant]);
 
   React.useEffect(() => {
     setTreatmentPick(null);
+    if (newOrderType === "MEDICATION") {
+      setMedicationDoseText("1");
+    }
   }, [newOrderType]);
 
   React.useEffect(() => {
@@ -142,7 +168,7 @@ export function ClinicalOrderDialog({ open, variant, onClose, visitId, onCreated
             setTreatmentOptions(toProcedureOptions(data.items ?? []));
           } else {
             const data = await searchDrugsForVisit(visitId, {
-              itemName: q,
+              ...drugSearchParamsFromQuery(q),
               pageNo: 1,
               numOfRows: 30,
               signal: ac.signal,
@@ -242,6 +268,23 @@ export function ClinicalOrderDialog({ open, variant, onClose, visitId, onCreated
               placeholder={namePlaceholder}
             />
           )}
+          {variant === "treatment" && newOrderType === "MEDICATION" ? (
+            <TextField
+              fullWidth
+              size="small"
+              label="용량"
+              value={medicationDoseText}
+              onChange={(e) => setMedicationDoseText(e.target.value)}
+              placeholder="예: 1, 0.5, 2.5"
+              inputProps={{ inputMode: "decimal" }}
+              helperText={(() => {
+                const label =
+                  (treatmentPick?.orderName ?? "").trim() || newOrderName.trim();
+                const p = inferMedicationDoseProfile(label);
+                return `품명(저장): ${label.slice(0, 80)}${label.length > 80 ? "…" : ""} · 단위(자동): ${p.doseUnit}`;
+              })()}
+            />
+          ) : null}
         </Stack>
       </DialogContent>
       <DialogActions>
@@ -249,9 +292,23 @@ export function ClinicalOrderDialog({ open, variant, onClose, visitId, onCreated
         <Button
           variant="contained"
           sx={{ bgcolor: "var(--brand)" }}
-          disabled={!newOrderName.trim() || creating || visitId == null}
+          disabled={
+            !newOrderName.trim() ||
+            creating ||
+            visitId == null ||
+            (variant === "treatment" &&
+              newOrderType === "MEDICATION" &&
+              parsePositiveDoseAmount(medicationDoseText) == null)
+          }
           onClick={async () => {
             if (visitId == null || !newOrderName.trim()) return;
+            if (
+              variant === "treatment" &&
+              newOrderType === "MEDICATION" &&
+              parsePositiveDoseAmount(medicationDoseText) == null
+            ) {
+              return;
+            }
             setCreating(true);
             try {
               await createClinicalOrderApi(visitId, {
@@ -259,6 +316,40 @@ export function ClinicalOrderDialog({ open, variant, onClose, visitId, onCreated
                 orderCode: variant === "treatment" ? treatmentPick?.key ?? null : null,
                 orderName: newOrderName.trim(),
               });
+              if (variant === "treatment") {
+                const code = treatmentPick?.key?.trim() || undefined;
+                try {
+                  if (newOrderType === "MEDICATION") {
+                    const medicationName =
+                      (treatmentPick?.orderName ?? "").trim() || newOrderName.trim();
+                    const prof = inferMedicationDoseProfile(medicationName);
+                    const doseAmt = parsePositiveDoseAmount(medicationDoseText)!;
+                    await createVisitMedicationRecordApi(visitId, {
+                      doseNumber: doseAmt,
+                      doseUnit: prof.doseUnit,
+                      doseKind: medicationName.slice(0, 100),
+                      nursingId: code,
+                      status: "REQUESTED",
+                      patientName: contextPatientName?.trim() || undefined,
+                      departmentName: contextDepartmentName?.trim() || undefined,
+                    });
+                  } else if (newOrderType === "PROCEDURE") {
+                    await createVisitTreatmentResultApi(visitId, {
+                      detail: newOrderName.trim(),
+                      nursingId: code,
+                      status: "REQUESTED",
+                      patientName: contextPatientName?.trim() || undefined,
+                      departmentName: contextDepartmentName?.trim() || undefined,
+                    });
+                  }
+                } catch (syncErr) {
+                  window.alert(
+                    `오더는 등록되었으나 투약·처치 기록(진료 DB·진료지원 연동) 반영에 실패했습니다.\n${
+                      syncErr instanceof Error ? syncErr.message : String(syncErr)
+                    }`
+                  );
+                }
+              }
               await onCreated();
               onClose();
               setNewOrderName("");

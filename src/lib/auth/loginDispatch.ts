@@ -58,15 +58,11 @@ export const dispatchLogin = async ({
       ,result.user
       , 
       {
-      passwordChangeRequired: result.passwordChangeRequired,
+      passwordChangeRequired: false,
       persist: rememberLogin,
     });
 
     // 비번 1111 로 발급되는데, 기본 비번(1111)로 초기화된 사용자는 비밀번호 변경페이지로 이동시키기 위함.
-    if (result.passwordChangeRequired) {
-      return { type: "success", redirectTo: "/my_account?forcePasswordChange=1" };
-    }
-
     //window.location.search 는 URL요청에 같이 전달되는 파라미터가 저장되어있음.
     const params = new URLSearchParams(window.location.search);
 

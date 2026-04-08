@@ -67,62 +67,15 @@ export const dispatchLogin = async ({
       tokenMaxAgeSeconds: rememberLogin ? result.expiresIn : undefined,
     });
 
-<<<<<<< HEAD
-    // 비번 1111 로 발급되는데, 기본 비번(1111)로 초기화된 사용자는 비밀번호 변경페이지로 이동시키기 위함.
-    if (result.passwordChangeRequired) {
-      return {
-        type: "success",
-        redirectTo: "/my_account?forcePasswordChange=1",
-        accessToken: result.accessToken,
-        expiresIn: result.expiresIn,
-        passwordChangeRequired: true,
-      };
-    }
-
-    //window.location.search 는 URL요청에 같이 전달되는 파라미터가 저장되어있음.
     const params = new URLSearchParams(window.location.search);
 
-    // 계속 가려던 경로의 정보로 이동하기 위함.
     return {
       type: "success",
       redirectTo: getSafeNextPath(params.get("next")),
       accessToken: result.accessToken,
       expiresIn: result.expiresIn,
-      passwordChangeRequired: false,
-    };
-  }
-   catch (error) 
-   {
-    // 3가지 오류사항에 대한 메시지 틔어주고 끝.
-    return { type: "error", message: toLoginErrorMessage(error) };
-  }
-};
-
-/*
-기본 폼 로그인(필수값만 사용) 예시:
-
-
-
-export const dispatchBasicFormLogin = async ({username,password}): Promise<LoginDispatchResult> => {
-  try {
-    const result = await loginApi({ username, password });
-
-    // 기본 저장 정책: 로그인 유지 OFF (세션 스토리지 저장)
-    saveSession(result.accessToken, result.user, 
-    {
       passwordChangeRequired: result.passwordChangeRequired,
-      persist: false,
-    });
-
-    if (result.passwordChangeRequired) 
-    {
-      return { type: "success", redirectTo: "/my_account?forcePasswordChange=1" };
-    }
-
-=======
->>>>>>> 904cc25eb7ce2c8dc8a5d219fff6bc78bb3b2a2b
-    const params = new URLSearchParams(window.location.search);
-    return { type: "success", redirectTo: getSafeNextPath(params.get("next")) };
+    };
   } catch (error) {
     return { type: "error", message: toLoginErrorMessage(error) };
   }

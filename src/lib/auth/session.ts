@@ -93,19 +93,13 @@ export const saveAccessToken = (token: string, persist = false) => {
   if (typeof window === "undefined") return;
   if (!token) {
     removeStored(TOKEN_KEY);
-<<<<<<< HEAD
     clearCookie(AUTH_COOKIE_KEY);
-    return;
-  }
-  writeStored(TOKEN_KEY, token, persist);
-  writeCookie(AUTH_COOKIE_KEY, token);
-=======
     emitSessionChanged();
     return;
   }
   writeStored(TOKEN_KEY, token, persist);
+  writeCookie(AUTH_COOKIE_KEY, token);
   emitSessionChanged();
->>>>>>> 904cc25eb7ce2c8dc8a5d219fff6bc78bb3b2a2b
 };
 
 export const getSessionUser = (): SessionUser | null => {
@@ -158,7 +152,6 @@ export const saveSession = (
   emitSessionChanged();
 };
 
-<<<<<<< HEAD
 const getExistingPersistPreference = () => {
   if (typeof window === "undefined") return false;
   return localStorage.getItem(TOKEN_KEY) !== null || localStorage.getItem(USER_KEY) !== null;
@@ -173,13 +166,7 @@ export const saveSessionUserOnly = (
   const persist = options?.persist ?? getExistingPersistPreference();
   writeStored(USER_KEY, JSON.stringify(user), persist);
   setPasswordChangeRequired(Boolean(options?.passwordChangeRequired), persist);
-=======
-export const saveSessionUserOnly = (
-  user: SessionUser,
-  options?: { passwordChangeRequired?: boolean }
-) => {
-  saveSession("", user, options);
->>>>>>> 904cc25eb7ce2c8dc8a5d219fff6bc78bb3b2a2b
+  emitSessionChanged();
 };
 
 export const setDevBypassCookie = (enabled: boolean) => {

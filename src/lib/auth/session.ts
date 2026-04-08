@@ -138,7 +138,7 @@ export const saveSession = (
   }
 
   writeStored(USER_KEY, JSON.stringify(user), persist);
-  setPasswordChangeRequired(Boolean(options?.passwordChangeRequired), persist);
+  setPasswordChangeRequired(false, persist);
   emitSessionChanged();
 };
 

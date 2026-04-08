@@ -18,6 +18,9 @@ const getSafeNextPath = (value: string | null): string => {
   if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/login")) {
     return "/";
   }
+  if (value.includes("forcePasswordChange=1") || value.startsWith("/my_account/password")) {
+    return "/";
+  }
   return value;
 };
 

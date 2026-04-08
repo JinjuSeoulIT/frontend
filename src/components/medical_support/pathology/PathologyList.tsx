@@ -1,9 +1,22 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
 import MainLayout from "@/components/layout/MainLayout";
+import ExamDetailDialog, {
+  type ExamDetailSection,
+} from "@/components/medical_support/common/ExamDetailDialog";
+import {
+  formatActiveStatus,
+  formatDateTime,
+  formatProgressStatus,
+  formatYn,
+  getActiveStatusColor,
+  getActiveStatusSx,
+  getProgressStatusColor,
+  normalizeProgressStatus,
+  safeValue,
+} from "@/components/medical_support/common/ExamDisplay";
 import {
   Alert,
   Box,
@@ -24,89 +37,20 @@ import {
   Typography,
 } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
-import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { PathologyActions } from "@/features/medical_support/pathology/pathologySlice";
 import type { PathologyExam } from "@/features/medical_support/pathology/pathologyType";
 import type { RootState, AppDispatch } from "@/store/store";
-
-const formatDateTime = (value?: string | null) => {
-  if (!value) return "-";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).format(date);
-};
-
-const safeValue = (value?: string | number | null) => {
-  if (value === null || value === undefined) return "-";
-  const text = String(value).trim();
-  return text ? text : "-";
-};
-
-const formatYn = (value?: string | null) => {
-  const normalized = value?.trim().toUpperCase();
-
-  if (normalized === "Y") return "예";
-  if (normalized === "N") return "아니오";
-
-  return safeValue(value);
-};
-
-const formatStatus = (value?: string | null) => {
-  const normalized = value?.trim().toUpperCase();
-
-  if (normalized === "ACTIVE") return "활성화";
-  if (normalized === "INACTIVE") return "비활성화";
-
-  return safeValue(value);
-};
-
-const getStatusColor = (
-  value?: string | null
-): "default" | "success" => {
-  const normalized = value?.trim().toUpperCase();
-
-  if (normalized === "ACTIVE") return "success";
-  return "default";
-};
-
-const getStatusSx = (value?: string | null) => {
-  const normalized = value?.trim().toUpperCase();
-
-  if (normalized === "ACTIVE") {
-    return {
-      fontWeight: 600,
-    };
-  }
-
-  return {
-    backgroundColor: "#eeeeee",
-    color: "#757575",
-    fontWeight: 500,
-  };
-};
 
 export default function PathologyList() {
   const dispatch = useDispatch<AppDispatch>();
 
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = React.useState<PathologyExam | null>(
+    null
+  );
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = React.useState(false);
 
   const { list: items, loading, error } = useSelector(
     (state: RootState) => state.pathologies
@@ -116,17 +60,27 @@ export default function PathologyList() {
     dispatch(PathologyActions.fetchPathologiesRequest());
   }, [dispatch]);
 
-  const activeCount = React.useMemo(
+  const waitingCount = React.useMemo(
     () =>
-      items.filter((item) => item.status?.trim().toUpperCase() === "ACTIVE")
-        .length,
+      items.filter(
+        (item) => normalizeProgressStatus(item.progressStatus) === "WAITING"
+      ).length,
     [items]
   );
 
-  const inactiveCount = React.useMemo(
+  const inProgressCount = React.useMemo(
     () =>
-      items.filter((item) => item.status?.trim().toUpperCase() === "INACTIVE")
-        .length,
+      items.filter(
+        (item) => normalizeProgressStatus(item.progressStatus) === "IN_PROGRESS"
+      ).length,
+    [items]
+  );
+
+  const completedCount = React.useMemo(
+    () =>
+      items.filter(
+        (item) => normalizeProgressStatus(item.progressStatus) === "COMPLETED"
+      ).length,
     [items]
   );
 
@@ -142,14 +96,68 @@ export default function PathologyList() {
     [currentPage, items, rowsPerPage]
   );
 
-  const selected = React.useMemo(
-    () =>
-      items.find((item) => String(item.pathologyExamId) === String(selectedId)) ??
-      null,
-    [items, selectedId]
-  );
+  const detailSections = React.useMemo<ExamDetailSection[]>(() => {
+    if (!selectedItem) return [];
 
-  const activeSelected = selected ?? paginatedItems[0] ?? items[0] ?? null;
+    return [
+      {
+        title: "기본 정보",
+        fields: [
+          {
+            label: "병리검사아이디",
+            value: safeValue(selectedItem.pathologyExamId),
+          },
+          {
+            label: "검사수행아이디",
+            value: safeValue(selectedItem.testExecutionId),
+          },
+          {
+            label: "담당자아이디",
+            value: safeValue(selectedItem.performerId),
+          },
+          {
+            label: "진행상태",
+            value: (
+              <Chip
+                label={formatProgressStatus(selectedItem.progressStatus)}
+                color={getProgressStatusColor(selectedItem.progressStatus)}
+                size="small"
+              />
+            ),
+          },
+          {
+            label: "활성 여부",
+            value: (
+              <Chip
+                label={formatActiveStatus(selectedItem.status)}
+                color={getActiveStatusColor(selectedItem.status)}
+                size="small"
+                sx={getActiveStatusSx(selectedItem.status)}
+              />
+            ),
+          },
+        ],
+      },
+      {
+        title: "검사 상세 정보",
+        fields: [
+          { label: "조직상태", value: safeValue(selectedItem.tissueStatus) },
+          { label: "채취방법", value: safeValue(selectedItem.collectionMethod) },
+          { label: "조직부위", value: safeValue(selectedItem.tissueSite) },
+          { label: "조직종류", value: safeValue(selectedItem.tissueType) },
+          { label: "채취일시", value: formatDateTime(selectedItem.collectedAt) },
+          { label: "재검여부", value: formatYn(selectedItem.reexamYn) },
+        ],
+      },
+      {
+        title: "이력 정보",
+        fields: [
+          { label: "생성일시", value: formatDateTime(selectedItem.createdAt) },
+          { label: "수정일시", value: formatDateTime(selectedItem.updatedAt) },
+        ],
+      },
+    ];
+  }, [selectedItem]);
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
@@ -162,8 +170,14 @@ export default function PathologyList() {
     setPage(0);
   };
 
-  const handleSelect = (item: PathologyExam) => {
-    setSelectedId(String(item.pathologyExamId));
+  const handleOpenDetail = (item: PathologyExam) => {
+    setSelectedItem(item);
+    setIsDetailDialogOpen(true);
+  };
+
+  const handleCloseDetail = () => {
+    setIsDetailDialogOpen(false);
+    setSelectedItem(null);
   };
 
   return (
@@ -179,7 +193,11 @@ export default function PathologyList() {
           }}
         >
           <CardContent sx={{ p: 3 }}>
-            <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems="center">
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              spacing={2}
+              alignItems="center"
+            >
               <Stack spacing={0.5} sx={{ flexGrow: 1 }}>
                 <Typography sx={{ fontSize: 22, fontWeight: 900 }}>
                   병리 검사 워크스테이션
@@ -205,276 +223,160 @@ export default function PathologyList() {
 
         <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
           <Chip label={`전체 ${items.length}`} color="primary" />
-          <Chip label={`활성화 ${activeCount}`} color="success" variant="outlined" />
-          <Chip label={`비활성화 ${inactiveCount}`} variant="outlined" />
+          <Chip label={`대기 ${waitingCount}`} color="warning" variant="outlined" />
+          <Chip
+            label={`진행 중 ${inProgressCount}`}
+            color="info"
+            variant="outlined"
+          />
+          <Chip
+            label={`완료 ${completedCount}`}
+            color="success"
+            variant="outlined"
+          />
           {loading && <Chip label="불러오는 중" variant="outlined" />}
           {error && <Chip label={`오류: ${error}`} color="error" />}
         </Stack>
 
-        <Box
-          sx={{
-            display: "grid",
-            gap: 2,
-            gridTemplateColumns: { xs: "1fr", lg: "2.4fr 1fr" },
-            alignItems: "stretch",
-          }}
-        >
-          <Card sx={{ borderRadius: 3, border: "1px solid var(--line)" }}>
-            <CardContent sx={{ p: 2 }}>
-              <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <ScienceOutlinedIcon sx={{ color: "var(--brand)" }} />
-                  <Typography fontWeight={800}>병리 검사 목록</Typography>
-                </Stack>
-                <Chip label={`표시 ${items.length}`} size="small" />
+        <Card sx={{ borderRadius: 3, border: "1px solid var(--line)" }}>
+          <CardContent sx={{ p: 2 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              justifyContent="space-between"
+            >
+              <Stack direction="row" spacing={1} alignItems="center">
+                <ScienceOutlinedIcon sx={{ color: "var(--brand)" }} />
+                <Typography fontWeight={800}>병리 검사 목록</Typography>
               </Stack>
+              <Chip label={`표시 ${items.length}`} size="small" />
+            </Stack>
 
-              {loading && (
-                <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
-                  <CircularProgress size={28} />
-                </Box>
-              )}
+            {loading && (
+              <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
+                <CircularProgress size={28} />
+              </Box>
+            )}
 
-              {error && (
-                <Alert severity="error" sx={{ mt: 2 }}>
-                  {error}
-                </Alert>
-              )}
+            {error && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {error}
+              </Alert>
+            )}
 
-              {!loading && !error && (
-                <Paper
-                  elevation={0}
-                  sx={{
-                    mt: 2,
-                    borderRadius: 2,
-                    border: "1px solid var(--line)",
-                    overflow: "hidden",
-                  }}
-                >
-                  <TableContainer sx={{ overflowX: "auto" }}>
-                    <Table
-                      size="small"
-                      stickyHeader
-                      sx={{
-                        minWidth: 1200,
-                        "& .MuiTableCell-root": {
-                          px: 1,
-                          py: 1,
-                          fontSize: 13,
-                          whiteSpace: "nowrap",
-                        },
-                      }}
-                    >
-                      <TableHead>
+            {!loading && !error && (
+              <Paper
+                elevation={0}
+                sx={{
+                  mt: 2,
+                  borderRadius: 2,
+                  border: "1px solid var(--line)",
+                  overflow: "hidden",
+                }}
+              >
+                <TableContainer>
+                  <Table
+                    size="small"
+                    stickyHeader
+                    sx={{
+                      minWidth: 820,
+                      "& .MuiTableCell-root": {
+                        px: 1,
+                        py: 1,
+                        fontSize: 13,
+                        whiteSpace: "nowrap",
+                      },
+                    }}
+                  >
+                    <TableHead>
+                      <TableRow>
+                        <TableCell align="center">번호</TableCell>
+                        <TableCell align="center">병리검사아이디</TableCell>
+                        <TableCell align="center">조직종류</TableCell>
+                        <TableCell align="center">조직부위</TableCell>
+                        <TableCell align="center">채취일시</TableCell>
+                        <TableCell align="center">재검여부</TableCell>
+                        <TableCell align="center">진행상태</TableCell>
+                      </TableRow>
+                    </TableHead>
+
+                    <TableBody>
+                      {paginatedItems.length === 0 && (
                         <TableRow>
-                          <TableCell align="center">번호</TableCell>
-                          <TableCell align="center">병리검사아이디</TableCell>
-                          <TableCell align="center">검사수행아이디</TableCell>
-                          <TableCell align="center">검체상태</TableCell>
-                          <TableCell align="center">채취방법</TableCell>
-                          <TableCell align="center">조직부위</TableCell>
-                          <TableCell align="center">검체종류</TableCell>
-                          <TableCell align="center">채취일시</TableCell>
-                          <TableCell align="center">채취담당아이디</TableCell>
-                          <TableCell align="center">재검여부</TableCell>
-                          <TableCell align="center">상태</TableCell>
-                          <TableCell align="center">생성일시</TableCell>
-                          <TableCell align="center">수정일시</TableCell>
+                          <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
+                            병리 검사 데이터가 없습니다.
+                          </TableCell>
                         </TableRow>
-                      </TableHead>
+                      )}
 
-                      <TableBody>
-                        {paginatedItems.length === 0 && (
-                          <TableRow>
-                            <TableCell colSpan={13} align="center" sx={{ py: 5 }}>
-                              병리 검사 데이터가 없습니다.
-                            </TableCell>
-                          </TableRow>
-                        )}
+                      {paginatedItems.map((item, index) => (
+                        <TableRow
+                          key={String(item.pathologyExamId)}
+                          hover
+                          onClick={() => handleOpenDetail(item)}
+                          sx={{
+                            cursor: "pointer",
+                            "&:hover": { backgroundColor: "#f9fbff" },
+                          }}
+                        >
+                          <TableCell align="center">
+                            {currentPage * rowsPerPage + index + 1}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(item.pathologyExamId)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(item.tissueType)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(item.tissueSite)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {formatDateTime(item.collectedAt)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {formatYn(item.reexamYn)}
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              label={formatProgressStatus(item.progressStatus)}
+                              color={getProgressStatusColor(item.progressStatus)}
+                              size="small"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
 
-                        {paginatedItems.map((item, index) => (
-                          <TableRow
-                            key={String(item.pathologyExamId)}
-                            hover
-                            onClick={() => handleSelect(item)}
-                            sx={{
-                              cursor: "pointer",
-                              "&:hover": { backgroundColor: "#f9fbff" },
-                              backgroundColor:
-                                String(activeSelected?.pathologyExamId) ===
-                                String(item.pathologyExamId)
-                                  ? "rgba(11, 91, 143, 0.08)"
-                                  : "transparent",
-                            }}
-                          >
-                            <TableCell align="center">
-                              {currentPage * rowsPerPage + index + 1}
-                            </TableCell>
-                            <TableCell align="center">{safeValue(item.pathologyExamId)}</TableCell>
-                            <TableCell align="center">{safeValue(item.testExecutionId)}</TableCell>
-                            <TableCell align="center">{safeValue(item.tissueStatus)}</TableCell>
-                            <TableCell align="center">{safeValue(item.collectionMethod)}</TableCell>
-                            <TableCell align="center">{safeValue(item.tissueSite)}</TableCell>
-                            <TableCell align="center">{safeValue(item.tissueType)}</TableCell>
-                            <TableCell align="center">{formatDateTime(item.collectedAt)}</TableCell>
-                            <TableCell align="center">{safeValue(item.collectedById)}</TableCell>
-                            <TableCell align="center">{formatYn(item.reexamYn)}</TableCell>
-                            <TableCell align="center">
-                              <Chip
-                                label={formatStatus(item.status)}
-                                color={getStatusColor(item.status)}
-                                size="small"
-                                sx={getStatusSx(item.status)}
-                              />
-                            </TableCell>
-                            <TableCell align="center">{formatDateTime(item.createdAt)}</TableCell>
-                            <TableCell align="center">{formatDateTime(item.updatedAt)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                <TablePagination
+                  component="div"
+                  count={items.length}
+                  page={currentPage}
+                  onPageChange={handleChangePage}
+                  rowsPerPage={rowsPerPage}
+                  onRowsPerPageChange={handleChangeRowsPerPage}
+                  rowsPerPageOptions={[10, 20, 50]}
+                  labelRowsPerPage="페이지당 행 수"
+                  labelDisplayedRows={({ from, to, count }) =>
+                    `${from}-${to} / 총 ${count}`
+                  }
+                />
+              </Paper>
+            )}
+          </CardContent>
+        </Card>
 
-                  <TablePagination
-                    component="div"
-                    count={items.length}
-                    page={currentPage}
-                    onPageChange={handleChangePage}
-                    rowsPerPage={rowsPerPage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
-                    rowsPerPageOptions={[10, 20, 50]}
-                    labelRowsPerPage="페이지당 행 수"
-                    labelDisplayedRows={({ from, to, count }) =>
-                      `${from}-${to} / 총 ${count}`
-                    }
-                  />
-                </Paper>
-              )}
-            </CardContent>
-          </Card>
-
-          <Stack spacing={2}>
-            <Card sx={{ borderRadius: 3, border: "1px solid var(--line)" }}>
-              <CardContent sx={{ p: 2.5 }}>
-                <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <ScienceOutlinedIcon sx={{ color: "var(--brand-strong)" }} />
-                    <Typography fontWeight={800}>선택 병리 검사</Typography>
-                  </Stack>
-
-                  {activeSelected && (
-                    <Stack direction="row" spacing={1}>
-                      <Chip
-                        label={formatStatus(activeSelected.status)}
-                        size="small"
-                        color={getStatusColor(activeSelected.status)}
-                        sx={getStatusSx(activeSelected.status)}
-                      />
-                      <Button
-                        component={Link}
-                        href={`/medical_support/pathology/edit/${activeSelected.pathologyExamId}`}
-                        variant="outlined"
-                        size="small"
-                        startIcon={<EditOutlinedIcon />}
-                      >
-                        수정
-                      </Button>
-                    </Stack>
-                  )}
-                </Stack>
-
-                <Box sx={{ mt: 2, p: 2, borderRadius: 2, bgcolor: "rgba(255,255,255,0.7)" }}>
-                  <Row label="병리검사아이디" value={safeValue(activeSelected?.pathologyExamId)} />
-                  <Row label="검사수행아이디" value={safeValue(activeSelected?.testExecutionId)} />
-                  <Row label="검체상태" value={safeValue(activeSelected?.tissueStatus)} />
-                  <Row label="채취방법" value={safeValue(activeSelected?.collectionMethod)} />
-                  <Row label="조직부위" value={safeValue(activeSelected?.tissueSite)} />
-                  <Row label="검체종류" value={safeValue(activeSelected?.tissueType)} />
-                  <Row label="채취일시" value={formatDateTime(activeSelected?.collectedAt)} />
-                  <Row label="채취담당아이디" value={safeValue(activeSelected?.collectedById)} />
-                  <Row label="재검여부" value={formatYn(activeSelected?.reexamYn)} />
-                  <Row label="상태" value={formatStatus(activeSelected?.status)} />
-                  <Row label="생성일시" value={formatDateTime(activeSelected?.createdAt)} />
-                  <Row label="수정일시" value={formatDateTime(activeSelected?.updatedAt)} />
-                </Box>
-              </CardContent>
-            </Card>
-
-            <Card sx={{ borderRadius: 3, border: "1px solid var(--line)" }}>
-              <CardContent sx={{ p: 2.5 }}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <FactCheckOutlinedIcon sx={{ color: "var(--accent)" }} />
-                  <Typography fontWeight={800}>상태 요약</Typography>
-                </Stack>
-                <Stack spacing={1.25} sx={{ mt: 2 }}>
-                  <SummaryRow label="전체 항목" value={items.length} />
-                  <SummaryRow label="활성화 항목" value={activeCount} />
-                  <SummaryRow label="비활성화 항목" value={inactiveCount} />
-                </Stack>
-              </CardContent>
-            </Card>
-
-            <Card sx={{ borderRadius: 3, border: "1px solid var(--line)" }}>
-              <CardContent sx={{ p: 2.5 }}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <HelpOutlineOutlinedIcon sx={{ color: "var(--brand)" }} />
-                  <Typography fontWeight={800}>점검 가이드</Typography>
-                </Stack>
-                <Stack spacing={1} sx={{ mt: 2 }}>
-                  {[
-                    "좌측 목록: 병리 검사 항목 조회",
-                    "행 클릭: 우측 상세 정보 갱신",
-                    "수정 버튼: 병리 검사 수정 화면으로 이동",
-                  ].map((text) => (
-                    <Box
-                      key={text}
-                      sx={{
-                        p: 1.25,
-                        borderRadius: 2,
-                        border: "1px solid var(--line)",
-                        bgcolor: "rgba(255,255,255,0.7)",
-                      }}
-                    >
-                      <Typography sx={{ fontSize: 12, color: "var(--muted)" }}>
-                        {text}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Stack>
-              </CardContent>
-            </Card>
-          </Stack>
-        </Box>
+        <ExamDetailDialog
+          open={isDetailDialogOpen}
+          title="병리 검사 상세"
+          sections={detailSections}
+          editHref={`/medical_support/pathology/edit/${selectedItem?.pathologyExamId ?? ""}`}
+          onClose={handleCloseDetail}
+        />
       </Stack>
     </MainLayout>
-  );
-}
-
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <Stack direction="row" justifyContent="space-between" spacing={2}>
-      <Typography sx={{ color: "text.secondary", fontSize: 13 }}>{label}</Typography>
-      <Typography sx={{ fontWeight: 700, fontSize: 13, textAlign: "right" }}>
-        {value}
-      </Typography>
-    </Stack>
-  );
-}
-
-function SummaryRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <Box
-      sx={{
-        p: 1.25,
-        borderRadius: 2,
-        border: "1px solid var(--line)",
-        display: "flex",
-        justifyContent: "space-between",
-        bgcolor: "rgba(255,255,255,0.7)",
-      }}
-    >
-      <Typography>{label}</Typography>
-      <Typography fontWeight={800}>{value}</Typography>
-    </Box>
   );
 }

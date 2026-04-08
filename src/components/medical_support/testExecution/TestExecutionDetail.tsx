@@ -47,6 +47,17 @@ const safeValue = (value?: string | number | null) => {
 const normalizeStatus = (value?: string | null) =>
   value?.trim().toUpperCase() ?? "";
 
+const formatProgressStatusLabel = (status?: string | null) => {
+  const normalized = normalizeStatus(status);
+
+  if (normalized === "WAITING") return "대기중";
+  if (normalized === "IN_PROGRESS") return "검사중";
+  if (normalized === "COMPLETED") return "검사완료";
+  if (normalized === "CANCELLED") return "취소";
+
+  return safeValue(status);
+};
+
 const getStatusColor = (
   status?: string | null
 ): "default" | "info" | "warning" | "success" => {
@@ -216,7 +227,7 @@ export default function TestExecutionDetail() {
                       진행상태
                     </Typography>
                     <Chip
-                      label={safeValue(item.progressStatus)}
+                      label={formatProgressStatusLabel(item.progressStatus)}
                       color={getStatusColor(item.progressStatus)}
                       size="small"
                     />
@@ -239,9 +250,9 @@ export default function TestExecutionDetail() {
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem label="재시도횟수" value={safeValue(item.retryNo)} />
                 </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
+                {/* <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem label="수행자 ID" value={safeValue(item.performerId)} />
-                </Grid>
+                </Grid> */}
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem label="시작일시" value={formatDateTime(item.startedAt)} />
                 </Grid>

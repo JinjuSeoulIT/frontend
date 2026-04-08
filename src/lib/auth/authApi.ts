@@ -30,10 +30,12 @@ type EmailVerifyRequest = {
 };
 
 export type AuthUser = {
-  staffId: number;
+  userId: string;
   username: string;
   fullName: string;
   role: string;
+  departmentId: string | null;
+  departmentName: string | null;
 };
 
 export type LoginResult = {

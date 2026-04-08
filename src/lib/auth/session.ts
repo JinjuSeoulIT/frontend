@@ -1,8 +1,10 @@
-﻿export type SessionUser = {
-  staffId: number;
+export type SessionUser = {
+  userId: string;
   username: string;
   fullName: string;
   role: string;
+  departmentId: string | null;
+  departmentName: string | null;
 };
 
 const TOKEN_KEY = "his.accessToken";
@@ -12,6 +14,7 @@ const FORCE_PASSWORD_COOKIE_KEY = "his_force_password_change";
 const DEV_BYPASS_COOKIE_KEY = "his_dev_bypass";
 const CSRF_COOKIE_KEY = "XSRF-TOKEN";
 const AUTH_COOKIE_KEY = "his_access_token";
+const SESSION_CHANGED_EVENT = "his:session-changed";
 
 const readStored = (key: string): string | null => {
   const sessionValue = sessionStorage.getItem(key);
@@ -44,6 +47,43 @@ const clearCookie = (name: string) => {
   document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax`;
 };
 
+const emitSessionChanged = () => {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(SESSION_CHANGED_EVENT));
+};
+
+export const getSessionChangedEventName = () => SESSION_CHANGED_EVENT;
+
+const normalizeSessionUser = (
+  value: Partial<SessionUser> & { staffId?: number | string }
+): SessionUser | null => {
+  const userId =
+    typeof value.userId === "string" && value.userId.trim().length > 0
+      ? value.userId.trim()
+      : value.staffId != null
+      ? String(value.staffId)
+      : "";
+
+  if (!userId || !value.username || !value.fullName || !value.role) {
+    return null;
+  }
+
+  return {
+    userId,
+    username: value.username,
+    fullName: value.fullName,
+    role: value.role,
+    departmentId:
+      typeof value.departmentId === "string" && value.departmentId.trim().length > 0
+        ? value.departmentId.trim()
+        : null,
+    departmentName:
+      typeof value.departmentName === "string" && value.departmentName.trim().length > 0
+        ? value.departmentName.trim()
+        : null,
+  };
+};
+
 export const getAccessToken = (): string | null => {
   if (typeof window === "undefined") return null;
   return readStored(TOKEN_KEY);
@@ -53,9 +93,11 @@ export const saveAccessToken = (token: string, persist = false) => {
   if (typeof window === "undefined") return;
   if (!token) {
     removeStored(TOKEN_KEY);
+    emitSessionChanged();
     return;
   }
   writeStored(TOKEN_KEY, token, persist);
+  emitSessionChanged();
 };
 
 export const getSessionUser = (): SessionUser | null => {
@@ -64,7 +106,7 @@ export const getSessionUser = (): SessionUser | null => {
   if (!raw) return null;
 
   try {
-    return JSON.parse(raw) as SessionUser;
+    return normalizeSessionUser(JSON.parse(raw));
   } catch {
     return null;
   }
@@ -87,17 +129,23 @@ export const saveSession = (
   options?: { passwordChangeRequired?: boolean; persist?: boolean }
 ) => {
   if (typeof window === "undefined") return;
+
   const persist = Boolean(options?.persist);
   if (token) {
     writeStored(TOKEN_KEY, token, persist);
   } else {
     removeStored(TOKEN_KEY);
   }
+
   writeStored(USER_KEY, JSON.stringify(user), persist);
   setPasswordChangeRequired(Boolean(options?.passwordChangeRequired), persist);
+  emitSessionChanged();
 };
 
-export const saveSessionUserOnly = (user: SessionUser, options?: { passwordChangeRequired?: boolean }) => {
+export const saveSessionUserOnly = (
+  user: SessionUser,
+  options?: { passwordChangeRequired?: boolean }
+) => {
   saveSession("", user, options);
 };
 
@@ -124,6 +172,7 @@ export const clearSession = () => {
   clearCookie(DEV_BYPASS_COOKIE_KEY);
   clearCookie(AUTH_COOKIE_KEY);
   clearCookie(CSRF_COOKIE_KEY);
+  emitSessionChanged();
 };
 
 export const getCookieValue = (name: string): string | null => {

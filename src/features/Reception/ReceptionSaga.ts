@@ -1,6 +1,7 @@
 import { call, put, takeLatest } from "redux-saga/effects";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { receptionActions as actions } from "./ReceptionSlice";
+//ReceptionSlice.ts에서 만든 액션생성함수 묶음을 가져옴
 import type { Reception, ReceptionForm, ReceptionSearchPayload } from "./ReceptionTypes";
 import * as api from "../../lib/reception/receptionApi";
 

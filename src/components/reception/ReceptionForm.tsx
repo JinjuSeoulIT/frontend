@@ -130,7 +130,7 @@ export default function ReceptionForm({
     const selectedDepartmentId = form.departmentId.trim();
     if (!selectedDepartmentId) return doctors;
     return doctors.filter(
-      (doctor) => (doctor.departmentId ?? "") === selectedDepartmentId
+      (doctor) => String(doctor.departmentId ?? "") === String(selectedDepartmentId)
     );
   }, [doctors, form.departmentId]);
  // 진료과를 선택하면 자동으로 진료과에 맞는 의사가 선택됨

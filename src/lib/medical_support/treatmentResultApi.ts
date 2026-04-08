@@ -22,10 +22,10 @@ export const fetchTreatmentResultsApi = async (): Promise<TreatmentResult[]> => 
 };
 
 export const fetchTreatmentResultApi = async (
-  procedureResultId: string | number
+  treatmentResultId: string
 ): Promise<TreatmentResult> => {
   const res = await api.get<ApiResponse<TreatmentResult>>(
-    `/api/treatmentResult/${procedureResultId}`
+    `/api/treatmentResult/${treatmentResultId}`
   );
 
   if (!res.data.success) {
@@ -51,11 +51,11 @@ export const createTreatmentResultApi = async (
 };
 
 export const updateTreatmentResultApi = async (
-  procedureResultId: string | number,
+  treatmentResultId: string,
   payload: TreatmentResultUpdatePayload
 ): Promise<TreatmentResult> => {
   const res = await api.put<ApiResponse<TreatmentResult>>(
-    `/api/treatmentResult/${procedureResultId}`,
+    `/api/treatmentResult/${treatmentResultId}`,
     payload
   );
 

@@ -22,93 +22,47 @@ import {
   Typography,
 } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import { safeValue } from "@/components/medical_support/common/ExamDisplay";
+import TreatmentResultDetailDialog from "@/components/medical_support/treatmentResult/TreatmentResultDetailDialog";
+import {
+  formatTreatmentResultStatus,
+  getTreatmentResultStatusColor,
+  getTreatmentResultStatusSx,
+  normalizeTreatmentResultStatus,
+} from "@/components/medical_support/treatmentResult/treatmentResultDisplay";
 import { TreatmentResultActions } from "@/features/medical_support/treatmentResult/treatmentResultSlice";
+import type { TreatmentResult } from "@/features/medical_support/treatmentResult/treatmentResultType";
 import type { RootState, AppDispatch } from "@/store/store";
 
-const DONE_STATUSES = ["COMPLETED"];
+const REQUESTED_STATUSES = ["REQUESTED"];
 const ACTIVE_STATUSES = ["IN_PROGRESS"];
+const DONE_STATUSES = ["COMPLETED"];
 
-const formatDateTime = (value?: string | null) => {
+const summarizeDetail = (value?: string | null) => {
   if (!value) return "-";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).format(date);
-};
-
-const normalizeStatus = (value?: string | null) =>
-  value?.trim().toUpperCase() ?? "";
-
-const getStatusColor = (
-  status?: string | null
-): "default" | "info" | "success" => {
-  const normalized = normalizeStatus(status);
-
-  if (DONE_STATUSES.includes(normalized)) return "success";
-  if (ACTIVE_STATUSES.includes(normalized)) return "info";
-
-  return "default";
-};
-
-const getStatusSx = (status?: string | null) => {
-  const normalized = normalizeStatus(status);
-
-  if (normalized === "WAITING") {
-    return {
-      backgroundColor: "#616161",
-      color: "#ffffff",
-      fontWeight: 600,
-    };
-  }
-
-  if (normalized === "CANCELLED") {
-    return {
-      backgroundColor: "#eeeeee",
-      color: "#757575",
-      fontWeight: 500,
-    };
-  }
-
-  return {
-    fontWeight: 600,
-  };
-};
-
-const safeValue = (value?: string | number | null) => {
-  if (value === null || value === undefined) return "-";
-  const text = String(value).trim();
-  return text ? text : "-";
+  const trimmed = value.trim();
+  if (!trimmed) return "-";
+  return trimmed;
 };
 
 export function TreatmentResultListSection() {
   const dispatch = useDispatch<AppDispatch>();
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = React.useState(false);
+  const [selectedRow, setSelectedRow] = React.useState<TreatmentResult | null>(null);
 
-  const { list: rows, loading, error } = useSelector(
-    (state: RootState) => state.treatmentResults
-  );
+  const { list: rows, selected, loading, detailLoading, error, detailError } =
+    useSelector((state: RootState) => state.treatmentResults);
 
   React.useEffect(() => {
     dispatch(TreatmentResultActions.fetchTreatmentResultsRequest());
   }, [dispatch]);
 
-  const completedCount = React.useMemo(
+  const requestedCount = React.useMemo(
     () =>
       rows.filter((item) =>
-        DONE_STATUSES.includes(normalizeStatus(item.status))
+        REQUESTED_STATUSES.includes(normalizeTreatmentResultStatus(item.status))
       ).length,
     [rows]
   );
@@ -116,7 +70,15 @@ export function TreatmentResultListSection() {
   const inProgressCount = React.useMemo(
     () =>
       rows.filter((item) =>
-        ACTIVE_STATUSES.includes(normalizeStatus(item.status))
+        ACTIVE_STATUSES.includes(normalizeTreatmentResultStatus(item.status))
+      ).length,
+    [rows]
+  );
+
+  const completedCount = React.useMemo(
+    () =>
+      rows.filter((item) =>
+        DONE_STATUSES.includes(normalizeTreatmentResultStatus(item.status))
       ).length,
     [rows]
   );
@@ -133,6 +95,18 @@ export function TreatmentResultListSection() {
     [currentPage, rows, rowsPerPage]
   );
 
+  const detailItem = React.useMemo(() => {
+    if (!selectedRow) return selected;
+    if (
+      selected?.treatmentResultId &&
+      selectedRow.treatmentResultId &&
+      String(selected.treatmentResultId) === String(selectedRow.treatmentResultId)
+    ) {
+      return { ...selectedRow, ...selected };
+    }
+    return selectedRow;
+  }, [selected, selectedRow]);
+
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
@@ -144,140 +118,204 @@ export function TreatmentResultListSection() {
     setPage(0);
   };
 
+  const handleOpenDetail = (row: TreatmentResult) => {
+    setSelectedRow(row);
+    setIsDetailDialogOpen(true);
+
+    if (row.treatmentResultId) {
+      dispatch(
+        TreatmentResultActions.fetchTreatmentResultRequest(
+          String(row.treatmentResultId)
+        )
+      );
+    }
+  };
+
+  const handleCloseDetail = () => {
+    setIsDetailDialogOpen(false);
+    setSelectedRow(null);
+    dispatch(TreatmentResultActions.clearTreatmentResultSelection());
+  };
+
   return (
-    <Card
-      elevation={2}
-      sx={{
-        borderRadius: 3,
-        overflow: "hidden",
-        border: "1px solid",
-        borderColor: "grey.200",
-        backgroundColor: "#fff",
-      }}
-    >
-      <Box sx={{ px: 3, py: 2.5, backgroundColor: "#fafafa" }}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: { xs: "flex-start", lg: "center" },
-            gap: 2,
-            flexWrap: "wrap",
-          }}
-        >
-          <Box sx={{ minWidth: 240, flex: "1 1 280px" }}>
-            <Typography variant="h6" fontWeight={700}>
-              처치 결과 목록
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              처치 결과 정보를 조회할 수 있습니다.
-            </Typography>
-          </Box>
-
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-            <Chip label={`총 ${rows.length}건`} size="small" />
-            <Chip
-              label={`진행 중 ${inProgressCount}건`}
-              size="small"
-              color="info"
-              variant="outlined"
-            />
-            <Chip
-              label={`완료 ${completedCount}건`}
-              size="small"
-              color="success"
-              variant="outlined"
-            />
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<RefreshIcon />}
-              onClick={() =>
-                dispatch(TreatmentResultActions.fetchTreatmentResultsRequest())
-              }
-            >
-              새로고침
-            </Button>
-          </Box>
-        </Box>
-      </Box>
-
-      <CardContent sx={{ p: 2.5 }}>
-        {loading && <CircularProgress />}
-        {error && <Alert severity="error">{error}</Alert>}
-
-        {!loading && !error && (
-          <Paper
-            elevation={0}
+    <>
+      <Card
+        elevation={2}
+        sx={{
+          borderRadius: 3,
+          overflow: "hidden",
+          border: "1px solid",
+          borderColor: "grey.200",
+          backgroundColor: "#fff",
+        }}
+      >
+        <Box sx={{ px: 3, py: 2.5, backgroundColor: "#fafafa" }}>
+          <Box
             sx={{
-              borderRadius: 2,
-              border: "1px solid",
-              borderColor: "grey.200",
-              overflow: "hidden",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: { xs: "flex-start", lg: "center" },
+              gap: 2,
+              flexWrap: "wrap",
             }}
           >
-            <TableContainer>
-              <Table size="small" stickyHeader sx={{ minWidth: 900 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell align="center">번호</TableCell>
-                    <TableCell align="center">처치결과 ID</TableCell>
-                    <TableCell align="center">상태</TableCell>
-                    <TableCell align="center">시행일시</TableCell>
-                    <TableCell align="center">시행자 ID</TableCell>
-                    <TableCell align="center">처치내용</TableCell>
-                  </TableRow>
-                </TableHead>
+            <Box sx={{ minWidth: 240, flex: "1 1 280px" }}>
+              <Typography variant="h6" fontWeight={700}>
+                처치 결과 목록
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                처치 결과를 목록과 상세로 나누어 확인할 수 있습니다.
+              </Typography>
+            </Box>
 
-                <TableBody>
-                  {paginatedRows.length === 0 && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+              <Chip label={`총 ${rows.length}건`} size="small" />
+              <Chip
+                label={`요청 ${requestedCount}건`}
+                size="small"
+                color="warning"
+                variant="outlined"
+              />
+              <Chip
+                label={`진행 중 ${inProgressCount}건`}
+                size="small"
+                color="info"
+                variant="outlined"
+              />
+              <Chip
+                label={`완료 ${completedCount}건`}
+                size="small"
+                color="success"
+                variant="outlined"
+              />
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<RefreshIcon />}
+                onClick={() =>
+                  dispatch(TreatmentResultActions.fetchTreatmentResultsRequest())
+                }
+              >
+                새로고침
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+
+        <CardContent sx={{ p: 2.5 }}>
+          {loading && <CircularProgress />}
+          {error && <Alert severity="error">{error}</Alert>}
+
+          {!loading && !error && (
+            <Paper
+              elevation={0}
+              sx={{
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: "grey.200",
+                overflow: "hidden",
+              }}
+            >
+              <TableContainer>
+                <Table size="small" stickyHeader sx={{ minWidth: 980 }}>
+                  <TableHead>
                     <TableRow>
-                      <TableCell colSpan={6} align="center">
-                        처치 결과 데이터가 없습니다.
-                      </TableCell>
+                      <TableCell align="center">번호</TableCell>
+                      <TableCell align="center">처치결과 ID</TableCell>
+                      <TableCell align="center">환자명</TableCell>
+                      <TableCell align="center">진료과명</TableCell>
+                      <TableCell align="center">상태</TableCell>
+                      <TableCell align="left">처치내용</TableCell>
                     </TableRow>
-                  )}
+                  </TableHead>
 
-                  {paginatedRows.map((row, index) => (
-                    <TableRow key={String(row.procedureResultId)} hover>
-                      <TableCell align="center">
-                        {currentPage * rowsPerPage + index + 1}
-                      </TableCell>
-                      <TableCell align="center">{safeValue(row.procedureResultId)}</TableCell>
-                      <TableCell align="center">
-                        <Chip
-                          label={safeValue(row.status)}
-                          color={getStatusColor(row.status)}
-                          size="small"
-                          sx={getStatusSx(row.status)}
-                        />
-                      </TableCell>
-                      <TableCell align="center">{formatDateTime(row.performedAt)}</TableCell>
-                      <TableCell align="center">{safeValue(row.performerId)}</TableCell>
-                      <TableCell align="center">{safeValue(row.detail)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  <TableBody>
+                    {paginatedRows.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} align="center">
+                          처치 결과 데이터가 없습니다.
+                        </TableCell>
+                      </TableRow>
+                    )}
 
-            <TablePagination
-              component="div"
-              count={rows.length}
-              page={currentPage}
-              onPageChange={handleChangePage}
-              rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
-              rowsPerPageOptions={[10, 20, 50]}
-              labelRowsPerPage="페이지당 행 수"
-              labelDisplayedRows={({ from, to, count }) =>
-                `${from}-${to} / 총 ${count}`
-              }
-            />
-          </Paper>
-        )}
-      </CardContent>
-    </Card>
+                    {paginatedRows.map((row, index) => (
+                      <TableRow
+                        key={
+                          row.treatmentResultId
+                            ? String(row.treatmentResultId)
+                            : `${row.procedureResultId ?? "treatment"}-${index}`
+                        }
+                        hover
+                        onClick={() => handleOpenDetail(row)}
+                        sx={{
+                          cursor: "pointer",
+                          "&:hover": { backgroundColor: "#f9fbff" },
+                          "& td": { py: 1.25 },
+                        }}
+                      >
+                        <TableCell align="center">
+                          {currentPage * rowsPerPage + index + 1}
+                        </TableCell>
+                        <TableCell align="center">
+                          {safeValue(row.treatmentResultId)}
+                        </TableCell>
+                        <TableCell align="center">
+                          {safeValue(row.patientName)}
+                        </TableCell>
+                        <TableCell align="center">
+                          {safeValue(row.departmentName)}
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip
+                            label={formatTreatmentResultStatus(row.status)}
+                            color={getTreatmentResultStatusColor(row.status)}
+                            size="small"
+                            sx={getTreatmentResultStatusSx(row.status)}
+                          />
+                        </TableCell>
+                        <TableCell
+                          align="left"
+                          sx={{
+                            maxWidth: 280,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {summarizeDetail(row.detail)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
+              <TablePagination
+                component="div"
+                count={rows.length}
+                page={currentPage}
+                onPageChange={handleChangePage}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                rowsPerPageOptions={[10, 20, 50]}
+                labelRowsPerPage="페이지당 행 수"
+                labelDisplayedRows={({ from, to, count }) =>
+                  `${from}-${to} / 총 ${count}`
+                }
+              />
+            </Paper>
+          )}
+        </CardContent>
+      </Card>
+
+      <TreatmentResultDetailDialog
+        open={isDetailDialogOpen}
+        item={detailItem}
+        loading={detailLoading}
+        error={detailError}
+        onClose={handleCloseDetail}
+      />
+    </>
   );
 }
 

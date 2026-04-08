@@ -22,10 +22,10 @@ export const fetchMedicationRecordsApi = async (): Promise<MedicationRecord[]> =
 };
 
 export const fetchMedicationRecordApi = async (
-  medicationId: string | number
+  medicationRecordId: string | number
 ): Promise<MedicationRecord> => {
   const res = await api.get<ApiResponse<MedicationRecord>>(
-    `/api/medicationRecord/${medicationId}`
+    `/api/medicationRecord/${medicationRecordId}`
   );
 
   if (!res.data.success) {
@@ -51,11 +51,11 @@ export const createMedicationRecordApi = async (
 };
 
 export const updateMedicationRecordApi = async (
-  medicationId: string | number,
+  medicationRecordId: string | number,
   payload: MedicationRecordUpdatePayload
 ): Promise<MedicationRecord> => {
   const res = await api.put<ApiResponse<MedicationRecord>>(
-    `/api/medicationRecord/${medicationId}`,
+    `/api/medicationRecord/${medicationRecordId}`,
     payload
   );
 

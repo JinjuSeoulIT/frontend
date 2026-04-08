@@ -29,9 +29,6 @@ import type { RootState } from "@/store/rootReducer";
 import type { AppDispatch } from "@/store/store";
 import TestExecutionSearch from "./TestExecutionSearch";
 
-// const DONE_STATUSES = ["COMPLETED", "DONE", "FINISHED", "SUCCESS"];
-// const ACTIVE_STATUSES = ["IN_PROGRESS", "INPROGRESS", "RUNNING", "PROCESSING"];
-
 const DONE_STATUSES = ["COMPLETED"];
 const ACTIVE_STATUSES = ["IN_PROGRESS"];
 
@@ -55,6 +52,13 @@ const formatDateTime = (value?: string | null) => {
   }).format(date);
 };
 
+const safeValue = (value?: string | number | null) => {
+  if (value === null || value === undefined) return "-";
+
+  const text = String(value).trim();
+  return text ? text : "-";
+};
+
 const normalizeStatus = (value?: string | null) =>
   value?.trim().toUpperCase() ?? "";
 
@@ -68,20 +72,6 @@ const formatProgressStatusLabel = (status?: string | null) => {
 
   return safeValue(status);
 };
-
-// const getStatusColor = (
-//   status?: string | null
-// ): "default" | "info" | "warning" | "success" => {
-//   const normalized = normalizeStatus(status);
-
-//   if (DONE_STATUSES.includes(normalized)) return "success";
-//   if (ACTIVE_STATUSES.includes(normalized)) return "info";
-//   if (["PENDING", "WAITING", "RETRY", "RETRYING"].includes(normalized)) {
-//     return "warning";
-//   }
-
-//   return "default";
-// };
 
 const getStatusColor = (
   status?: string | null
@@ -97,45 +87,35 @@ const getStatusColor = (
 const getStatusSx = (status?: string | null) => {
   const normalized = normalizeStatus(status);
 
-if (normalized === "WAITING") {
+  if (normalized === "WAITING") {
+    return {
+      backgroundColor: "#616161",
+      color: "#ffffff",
+      fontWeight: 600,
+    };
+  }
+
+  if (normalized === "CANCELLED") {
+    return {
+      backgroundColor: "#eeeeee",
+      color: "#757575",
+      fontWeight: 500,
+    };
+  }
+
   return {
-    backgroundColor: "#616161",
-    color: "#ffffff",
     fontWeight: 600,
   };
-}
-
-if (normalized === "CANCELLED") {
-  return {
-    backgroundColor: "#eeeeee",
-    color: "#757575",
-    fontWeight: 500,
-  };
-}
-
-  return {
-    fontWeight: 600,
-  };
-};
-
-const safeValue = (value?: string | number | null) => {
-  if (value === null || value === undefined) return "-";
-
-  const text = String(value).trim();
-  return text ? text : "-";
 };
 
 const TABLE_HEADERS = [
   "번호",
-  "검사수행 ID",
-  "오더항목 ID",
+  "환자명",
+  "진료과",
   "검사유형",
   "진행상태",
-  // "재시도횟수",
-  "시작일시",
-  "완료일시",
-  // "수행자 ID",
-  // "수정일시",
+  "생성일시",
+  "검사수행 ID",
 ];
 
 export default function TestExecutionList() {
@@ -151,7 +131,6 @@ export default function TestExecutionList() {
   useEffect(() => {
     dispatch(TestExecutionActions.fetchTestExecutionsRequest(undefined));
   }, [dispatch]);
-
 
   const completedCount = useMemo(
     () =>
@@ -219,7 +198,8 @@ export default function TestExecutionList() {
                 검사 수행 목록
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              검사 수행하는 목록을 조회하고 상세 페이지로 이동할 수 있습니다.
+                검사실 담당자가 환자, 진료과, 상태를 빠르게 확인할 수 있는
+                운영용 목록입니다.
               </Typography>
             </Box>
 
@@ -243,36 +223,13 @@ export default function TestExecutionList() {
                 variant="outlined"
                 size="small"
                 startIcon={<RefreshIcon />}
-                onClick={() => dispatch(TestExecutionActions.fetchTestExecutionsRequest(undefined))}
+                onClick={() =>
+                  dispatch(TestExecutionActions.fetchTestExecutionsRequest(undefined))
+                }
                 disabled={loading}
               >
                 새로고침
               </Button>
-              {/* <Button
-                component={Link}
-                href="/medical_support/testExecution/create"
-                variant="contained"
-                size="small"
-                startIcon={<AddIcon />}
-                sx={{
-                  whiteSpace: "nowrap",
-                  borderRadius: 2,
-                  px: 1.75,
-                  height: 36,
-                  flexShrink: 0,
-                  color: "#fff7f0",
-                  background:
-                    "linear-gradient(135deg, #f08c3a 0%, #db5f2c 100%)",
-                  boxShadow: "0 8px 18px rgba(219, 95, 44, 0.22)",
-                  "&:hover": {
-                    background:
-                      "linear-gradient(135deg, #e07c2f 0%, #c74f23 100%)",
-                    boxShadow: "0 10px 22px rgba(199, 79, 35, 0.28)",
-                  },
-                }}
-              >
-                검사 수행 등록
-              </Button> */}
             </Box>
           </Box>
         </Box>
@@ -307,7 +264,7 @@ export default function TestExecutionList() {
               }}
             >
               <TableContainer>
-                <Table size="small" stickyHeader sx={{ minWidth: 1200 }}>
+                <Table size="small" stickyHeader sx={{ minWidth: 980 }}>
                   <TableHead>
                     <TableRow>
                       {TABLE_HEADERS.map((label) => (
@@ -330,7 +287,11 @@ export default function TestExecutionList() {
                   <TableBody>
                     {items.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={10} align="center" sx={{ py: 5 }}>
+                        <TableCell
+                          colSpan={TABLE_HEADERS.length}
+                          align="center"
+                          sx={{ py: 5 }}
+                        >
                           검사 수행 데이터가 없습니다.
                         </TableCell>
                       </TableRow>
@@ -355,40 +316,28 @@ export default function TestExecutionList() {
                           {currentPage * rowsPerPage + index + 1}
                         </TableCell>
                         <TableCell align="center">
-                          {safeValue(item.testExecutionId)}
+                          {safeValue(item.patientName)}
                         </TableCell>
                         <TableCell align="center">
-                          {safeValue(item.orderItemId)}
+                          {safeValue(item.departmentName)}
                         </TableCell>
                         <TableCell align="center">
                           {safeValue(item.executionType)}
                         </TableCell>
                         <TableCell align="center">
-                          {/* <Chip
-                            label={safeValue(item.progressStatus)}
-                            color={getStatusColor(item.progressStatus)}
-                            size="small"
-                          /> */}
                           <Chip
                             label={formatProgressStatusLabel(item.progressStatus)}
                             color={getStatusColor(item.progressStatus)}
                             size="small"
                             sx={getStatusSx(item.progressStatus)}
-                            />
-                        </TableCell>
-                        {/* <TableCell align="center">{safeValue(item.retryNo)}</TableCell> */}
-                        <TableCell align="center">
-                          {formatDateTime(item.startedAt)}
+                          />
                         </TableCell>
                         <TableCell align="center">
-                          {formatDateTime(item.completedAt)}
-                        </TableCell>
-                        {/* <TableCell align="center">
-                          {safeValue(item.performerId)}
+                          {formatDateTime(item.createdAt)}
                         </TableCell>
                         <TableCell align="center">
-                          {formatDateTime(item.updatedAt)}
-                        </TableCell> */}
+                          {safeValue(item.testExecutionId)}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -402,7 +351,7 @@ export default function TestExecutionList() {
                 onPageChange={handleChangePage}
                 rowsPerPage={rowsPerPage}
                 onRowsPerPageChange={handleChangeRowsPerPage}
-                rowsPerPageOptions={[10, 20, 50]}
+                rowsPerPageOptions={[5, 10, 25]}
                 labelRowsPerPage="페이지당 행 수"
                 labelDisplayedRows={({ from, to, count }) =>
                   `${from}-${to} / 총 ${count}`
@@ -412,7 +361,6 @@ export default function TestExecutionList() {
           )}
         </CardContent>
       </Card>
-      
     </Box>
   );
 }

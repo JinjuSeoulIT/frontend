@@ -20,7 +20,7 @@ type MenuResponse = {
 };
 
 const api = axios.create({
-  baseURL: MENU_API_BASE_URL,
+  baseURL: "http://192.168.1.67:5555",
 });
 applyAuthInterceptors(api, { redirectOn401: false });
 

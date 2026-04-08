@@ -20,13 +20,15 @@ import {
 type TestExecutionFormData = {
   testExecutionId: string;
   orderItemId: string;
+  patientName: string;
+  departmentName: string;
   executionType: string;
   progressStatus: string;
   retryNo: string;
+  createdAt: string;
+  updatedAt: string;
   startedAt: string;
   completedAt: string;
-  // performerId: string;
-  updatedAt: string;
 };
 
 export type { TestExecutionFormData };
@@ -38,20 +40,6 @@ type Props = {
   onSubmit: () => void;
   loading?: boolean;
 };
-
-export const toTestExecutionFormData = (
-  value?: Partial<TestExecution> | null
-): TestExecutionFormData => ({
-  testExecutionId: value?.testExecutionId ? String(value.testExecutionId) : "",
-  orderItemId: value?.orderItemId ? String(value.orderItemId) : "",
-  executionType: value?.executionType ?? "",
-  progressStatus: value?.progressStatus ?? "",
-  retryNo: value?.retryNo === 0 ? "0" : value?.retryNo ? String(value.retryNo) : "",
-  startedAt: toDateTimeInputValue(value?.startedAt),
-  completedAt: toDateTimeInputValue(value?.completedAt),
-  // : value?.performerId performerId? String(value.performerId) : "",
-  updatedAt: toDateTimeInputValue(value?.updatedAt),
-});
 
 const progressStatusOptions = [
   "WAITING",
@@ -70,17 +58,46 @@ const progressStatusOptionLabels: Record<
   CANCELLED: "취소",
 };
 
+const toTextValue = (value?: string | null) => value?.trim() ?? "";
+
 const toDateTimeInputValue = (value?: string | null) => {
   const normalized = value?.trim();
   if (!normalized) return "";
   return normalized.replace(" ", "T").slice(0, 16);
 };
 
+const formatReadOnlyDateTime = (value: string) => {
+  const normalized = value.trim();
+  if (!normalized) return "-";
+
+  const date = new Date(normalized);
+
+  if (Number.isNaN(date.getTime())) {
+    return normalized.replace("T", " ");
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(date);
+};
+
 const toNullableNumber = (value: string) => {
   const normalized = value.trim();
   if (!normalized) return null;
+
   const parsed = Number(normalized);
   return Number.isNaN(parsed) ? null : parsed;
+};
+
+const toNullableText = (value: string) => {
+  const normalized = value.trim();
+  return normalized || null;
 };
 
 const toNullableDateTime = (value: string) => {
@@ -89,18 +106,36 @@ const toNullableDateTime = (value: string) => {
   return normalized.length === 16 ? `${normalized}:00` : normalized;
 };
 
+export const toTestExecutionFormData = (
+  value?: Partial<TestExecution> | null
+): TestExecutionFormData => ({
+  testExecutionId: value?.testExecutionId ? String(value.testExecutionId) : "",
+  orderItemId: value?.orderItemId ? String(value.orderItemId) : "",
+  patientName: toTextValue(value?.patientName),
+  departmentName: toTextValue(value?.departmentName),
+  executionType: value?.executionType ?? "",
+  progressStatus: value?.progressStatus ?? "",
+  retryNo: value?.retryNo === 0 ? "0" : value?.retryNo ? String(value.retryNo) : "",
+  createdAt: toDateTimeInputValue(value?.createdAt),
+  updatedAt: toDateTimeInputValue(value?.updatedAt),
+  startedAt: toDateTimeInputValue(value?.startedAt),
+  completedAt: toDateTimeInputValue(value?.completedAt),
+});
+
 export const toTestExecutionPayload = (
   form: TestExecutionFormData
 ): TestExecution => ({
   testExecutionId: form.testExecutionId.trim() || "",
   orderItemId: toNullableNumber(form.orderItemId),
+  patientName: toNullableText(form.patientName),
+  departmentName: toNullableText(form.departmentName),
   executionType: form.executionType.trim() || null,
   progressStatus: form.progressStatus.trim() || null,
   retryNo: toNullableNumber(form.retryNo),
+  createdAt: toNullableDateTime(form.createdAt),
+  updatedAt: toNullableDateTime(form.updatedAt),
   startedAt: toNullableDateTime(form.startedAt),
   completedAt: toNullableDateTime(form.completedAt),
-  // performerId: toNullableNumber(form.performerId),
-  updatedAt: toNullableDateTime(form.updatedAt),
 });
 
 export default function TestExecutionForm({
@@ -111,6 +146,9 @@ export default function TestExecutionForm({
   loading = false,
 }: Props) {
   const isEditMode = mode === "edit";
+  const readOnlyTextFieldProps = {
+    InputProps: { readOnly: true },
+  } as const;
 
   const handleChange =
     (field: keyof TestExecutionFormData) =>
@@ -138,7 +176,7 @@ export default function TestExecutionForm({
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             {isEditMode
-              ? "검사 수행 정보를 수정하고 저장할 수 있습니다."
+              ? "검사 수행의 식별 정보와 이력은 확인만 하고, 필요한 상태 값만 수정합니다."
               : "검사 수행 정보를 입력하고 등록할 수 있습니다."}
           </Typography>
         </Box>
@@ -152,7 +190,7 @@ export default function TestExecutionForm({
                 기본 정보
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                검사 수행 식별 정보와 진행 상태를 입력합니다.
+                공통 식별 정보와 업무 식별 정보를 확인합니다.
               </Typography>
 
               <Grid container spacing={2}>
@@ -163,11 +201,11 @@ export default function TestExecutionForm({
                     onChange={handleChange("testExecutionId")}
                     size="small"
                     fullWidth
-                    disabled={isEditMode}
+                    {...(isEditMode ? readOnlyTextFieldProps : {})}
                     helperText={
                       isEditMode
                         ? "수정 화면에서는 검사수행 ID를 변경하지 않습니다."
-                        : "신규 등록 시 자동 생성이라면 비워둘 수 있습니다."
+                        : "자동 생성이면 비워둘 수 있습니다."
                     }
                   />
                 </Grid>
@@ -178,9 +216,34 @@ export default function TestExecutionForm({
                     onChange={handleChange("orderItemId")}
                     size="small"
                     fullWidth
-                    disabled={isEditMode}
+                    {...(isEditMode ? readOnlyTextFieldProps : {})}
                   />
                 </Grid>
+
+                {isEditMode && (
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TextField
+                      label="환자명"
+                      value={form.patientName}
+                      size="small"
+                      fullWidth
+                      {...readOnlyTextFieldProps}
+                    />
+                  </Grid>
+                )}
+
+                {isEditMode && (
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TextField
+                      label="진료과"
+                      value={form.departmentName}
+                      size="small"
+                      fullWidth
+                      {...readOnlyTextFieldProps}
+                    />
+                  </Grid>
+                )}
+
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     select
@@ -223,22 +286,14 @@ export default function TestExecutionForm({
 
             <Box>
               <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>
-                수행 정보
+                처리 및 이력 정보
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                수행자, 재시도 횟수, 시작 및 완료 일시를 입력합니다.
+                진행상태와 재시도 횟수는 조정할 수 있고, 나머지 이력 컬럼은
+                읽기 전용으로 보여줍니다.
               </Typography>
 
               <Grid container spacing={2}>
-                {/* <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    label="수행자 ID"
-                    value={form.performerId}
-                    onChange={handleChange("performerId")}
-                    size="small"
-                    fullWidth
-                  />
-                </Grid> */}
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     label="재시도횟수"
@@ -249,40 +304,31 @@ export default function TestExecutionForm({
                     inputProps={{ inputMode: "numeric", min: 0 }}
                   />
                 </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    label="시작일시"
-                    type="datetime-local"
-                    value={form.startedAt}
-                    onChange={handleChange("startedAt")}
-                    size="small"
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    label="완료일시"
-                    type="datetime-local"
-                    value={form.completedAt}
-                    onChange={handleChange("completedAt")}
-                    size="small"
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    label="수정일시"
-                    type="datetime-local"
-                    value={form.updatedAt}
-                    onChange={handleChange("updatedAt")}
-                    size="small"
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    helperText="보통 수정 화면에서만 확인 또는 조정합니다."
-                  />
-                </Grid>
+
+                {isEditMode && (
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TextField
+                      label="생성일시"
+                      value={formatReadOnlyDateTime(form.createdAt)}
+                      size="small"
+                      fullWidth
+                      {...readOnlyTextFieldProps}
+                    />
+                  </Grid>
+                )}
+
+                {isEditMode && (
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TextField
+                      label="수정일시"
+                      value={formatReadOnlyDateTime(form.updatedAt)}
+                      size="small"
+                      fullWidth
+                      {...readOnlyTextFieldProps}
+                      helperText="감사 이력 컬럼으로 수정 화면에서는 읽기 전용입니다."
+                    />
+                  </Grid>
+                )}
               </Grid>
             </Box>
 

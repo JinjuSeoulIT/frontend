@@ -2,7 +2,13 @@ import { loginApi } from "@/lib/auth/authApi";
 import { saveSession } from "@/lib/auth/session";
 
 export type LoginDispatchResult =
-  | { type: "success"; redirectTo: string }
+  | {
+      type: "success";
+      redirectTo: string;
+      accessToken: string;
+      expiresIn: number;
+      passwordChangeRequired: boolean;
+    }
   | { type: "error"; message: string };
 
 type DispatchLoginParams = {
@@ -60,18 +66,31 @@ export const dispatchLogin = async ({
       {
       passwordChangeRequired: result.passwordChangeRequired,
       persist: rememberLogin,
+      tokenMaxAgeSeconds: rememberLogin ? result.expiresIn : undefined,
     });
 
     // 비번 1111 로 발급되는데, 기본 비번(1111)로 초기화된 사용자는 비밀번호 변경페이지로 이동시키기 위함.
     if (result.passwordChangeRequired) {
-      return { type: "success", redirectTo: "/my_account?forcePasswordChange=1" };
+      return {
+        type: "success",
+        redirectTo: "/my_account?forcePasswordChange=1",
+        accessToken: result.accessToken,
+        expiresIn: result.expiresIn,
+        passwordChangeRequired: true,
+      };
     }
 
     //window.location.search 는 URL요청에 같이 전달되는 파라미터가 저장되어있음.
     const params = new URLSearchParams(window.location.search);
 
     // 계속 가려던 경로의 정보로 이동하기 위함.
-    return { type: "success", redirectTo: getSafeNextPath(params.get("next")) };
+    return {
+      type: "success",
+      redirectTo: getSafeNextPath(params.get("next")),
+      accessToken: result.accessToken,
+      expiresIn: result.expiresIn,
+      passwordChangeRequired: false,
+    };
   }
    catch (error) 
    {

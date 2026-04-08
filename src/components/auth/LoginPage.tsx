@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Box, Button, Card, CardContent, Checkbox, FormControlLabel, Stack, TextField, Typography } from "@mui/material";
-import { getMeApi } from "@/lib/auth/authApi";
+import { getMeApi, syncAuthSessionCookieApi } from "@/lib/auth/authApi";
 import { dispatchLogin } from "@/lib/auth/loginDispatch";
 import { clearSession, saveAccessToken, saveSessionUserOnly, setDevBypassCookie } from "@/lib/auth/session";
 import { DEV_BYPASS_ENABLED } from "@/lib/common/env";
@@ -58,6 +58,10 @@ export default function LoginPage() {
         if (!mounted) return;
 
         saveSessionUserOnly(me, { passwordChangeRequired: false });
+        await syncAuthSessionCookieApi({
+          accessToken: token,
+          passwordChangeRequired: false,
+        });
         router.push(getSafeNextPath(params.get("next")));
       } catch {
         if (!mounted) return;
@@ -91,6 +95,11 @@ export default function LoginPage() {
       return;
     }
 
+    await syncAuthSessionCookieApi({
+      accessToken: result.accessToken,
+      passwordChangeRequired: result.passwordChangeRequired,
+      maxAgeSeconds: rememberLogin ? result.expiresIn : undefined,
+    });
     router.push(result.redirectTo);
     setLoading(false);
   };

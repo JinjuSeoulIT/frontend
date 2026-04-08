@@ -29,6 +29,12 @@ type EmailVerifyRequest = {
   code: string;
 };
 
+type SyncAuthSessionCookieRequest = {
+  accessToken: string;
+  passwordChangeRequired: boolean;
+  maxAgeSeconds?: number;
+};
+
 export type AuthUser = {
   staffId: number;
   username: string;
@@ -45,7 +51,8 @@ export type LoginResult = {
 };
 
 const api = axios.create({
-  baseURL: AUTH_API_BASE_URL,
+  // In the browser we go through Next rewrites so auth cookies are issued for the app origin.
+  baseURL: typeof window === "undefined" ? AUTH_API_BASE_URL : "",
 });
 
 applyAuthInterceptors(api, {
@@ -83,6 +90,21 @@ export const getMeApi = async (): Promise<AuthUser> => {
 
 export const logoutApi = async (): Promise<void> => {
   await api.post("/api/auth/logout");
+};
+
+export const syncAuthSessionCookieApi = async (payload: SyncAuthSessionCookieRequest): Promise<void> => {
+  const res = await fetch("/api/session/auth", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "same-origin",
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    throw new Error("인증 쿠키 동기화에 실패했습니다.");
+  }
 };
 
 export const getOAuthLoginUrl = (provider: "google" | "naver") => {

@@ -53,9 +53,11 @@ export const saveAccessToken = (token: string, persist = false) => {
   if (typeof window === "undefined") return;
   if (!token) {
     removeStored(TOKEN_KEY);
+    clearCookie(AUTH_COOKIE_KEY);
     return;
   }
   writeStored(TOKEN_KEY, token, persist);
+  writeCookie(AUTH_COOKIE_KEY, token);
 };
 
 export const getSessionUser = (): SessionUser | null => {
@@ -84,21 +86,41 @@ export const isPasswordChangeRequired = (): boolean => {
 export const saveSession = (
   token: string,
   user: SessionUser,
-  options?: { passwordChangeRequired?: boolean; persist?: boolean }
+  options?: { passwordChangeRequired?: boolean; persist?: boolean; tokenMaxAgeSeconds?: number }
 ) => {
   if (typeof window === "undefined") return;
   const persist = Boolean(options?.persist);
   if (token) {
     writeStored(TOKEN_KEY, token, persist);
+    writeCookie(
+      AUTH_COOKIE_KEY,
+      token,
+      persist && typeof options?.tokenMaxAgeSeconds === "number"
+        ? { maxAge: options.tokenMaxAgeSeconds }
+        : undefined
+    );
   } else {
     removeStored(TOKEN_KEY);
+    clearCookie(AUTH_COOKIE_KEY);
   }
   writeStored(USER_KEY, JSON.stringify(user), persist);
   setPasswordChangeRequired(Boolean(options?.passwordChangeRequired), persist);
 };
 
-export const saveSessionUserOnly = (user: SessionUser, options?: { passwordChangeRequired?: boolean }) => {
-  saveSession("", user, options);
+const getExistingPersistPreference = () => {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(TOKEN_KEY) !== null || localStorage.getItem(USER_KEY) !== null;
+};
+
+export const saveSessionUserOnly = (
+  user: SessionUser,
+  options?: { passwordChangeRequired?: boolean; persist?: boolean }
+) => {
+  if (typeof window === "undefined") return;
+
+  const persist = options?.persist ?? getExistingPersistPreference();
+  writeStored(USER_KEY, JSON.stringify(user), persist);
+  setPasswordChangeRequired(Boolean(options?.passwordChangeRequired), persist);
 };
 
 export const setDevBypassCookie = (enabled: boolean) => {

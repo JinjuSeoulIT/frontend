@@ -100,10 +100,12 @@ export default function LoginPage() {
     setDevBypassCookie(true);
     saveSessionUserOnly(
       {
-        staffId: 0,
+        userId: "0",
         username: "dev.admin",
         fullName: "개발용 관리자",
         role: "ADMIN",
+        departmentId: null,
+        departmentName: null,
       },
       { passwordChangeRequired: false }
     );

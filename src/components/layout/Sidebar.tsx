@@ -75,7 +75,7 @@ const legacyPathMap: Record<string, string> = {
   "/display": "/clinical",
 
   // staff/admin legacy -> current routes
-  "/staff/setting": "/staff/dept",
+  "/staff/setting": "/staff/members",
 
   // board placeholders
   "/board": "/admin",
@@ -122,6 +122,7 @@ export default function Sidebar({
 
   const [menus, setMenus] = React.useState<MenuNode[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [menuLoadError, setMenuLoadError] = React.useState(false);
   const [openMap, setOpenMap] = React.useState<Record<number, boolean>>({});
 
   React.useEffect(() => {
@@ -130,9 +131,15 @@ export default function Sidebar({
     const load = async () => {
       try {
         setLoading(true);
+        setMenuLoadError(false);
         const data = await fetchMenusApi();
         if (mounted) {
           setMenus(data);
+        }
+      } catch {
+        if (mounted) {
+          setMenuLoadError(true);
+          setMenus([]);
         }
       } finally {
         if (mounted) {
@@ -418,6 +425,22 @@ export default function Sidebar({
         {loading ? (
           <Box sx={{ p: 2, display: "flex", justifyContent: "center" }}>
             <CircularProgress size={24} />
+          </Box>
+        ) : menuLoadError ? (
+          <Box sx={{ px: collapsed ? 0 : 1, py: 1.5 }}>
+            {!collapsed && (
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                메뉴를 불러오지 못했습니다.
+              </Typography>
+            )}
+          </Box>
+        ) : menus.length === 0 ? (
+          <Box sx={{ px: collapsed ? 0 : 1, py: 1.5 }}>
+            {!collapsed && (
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                표시할 메뉴가 없습니다.
+              </Typography>
+            )}
           </Box>
         ) : (
           <List disablePadding>

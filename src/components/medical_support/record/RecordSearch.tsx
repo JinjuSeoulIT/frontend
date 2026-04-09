@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import type { DepartmentOption } from "@/features/Reservations/ReservationTypes";
 import type {
+  RecordDateSearchType,
   RecordSearchPayload,
   RecordSearchType,
   RecordTextSearchType,
@@ -23,6 +24,7 @@ import type { AppDispatch } from "@/store/store";
 import { useDispatch } from "react-redux";
 
 const DEFAULT_SEARCH_TYPE: RecordSearchType = "nurseName";
+const DATE_SEARCH_TYPE: RecordDateSearchType = "createdAt";
 
 const SEARCH_TYPE_OPTIONS: Array<{
   value: RecordSearchType;
@@ -31,7 +33,7 @@ const SEARCH_TYPE_OPTIONS: Array<{
   { value: "nurseName", label: "간호사명" },
   { value: "patientName", label: "환자명" },
   { value: "departmentName", label: "진료과" },
-  // { value: "recordedAt", label: "기록일시" }, // 사용 안함
+  { value: DATE_SEARCH_TYPE, label: "생성일시" },
 ];
 
 const TEXT_SEARCH_LABELS: Record<RecordTextSearchType, string> = {
@@ -53,14 +55,11 @@ export default function RecordSearch() {
     useState<RecordSearchType>(DEFAULT_SEARCH_TYPE);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [departmentName, setDepartmentName] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
   const [departmentError, setDepartmentError] = useState<string | null>(null);
-
-  // recordedAt 검색 안 써서 주석처리
-  // const [startDate, setStartDate] = useState("");
-  // const [endDate, setEndDate] = useState("");
-
   const [searchError, setSearchError] = useState("");
 
   const departmentOptions = useMemo(() => {
@@ -113,8 +112,8 @@ export default function RecordSearch() {
     setSearchType(nextSearchType);
     setSearchKeyword("");
     setDepartmentName("");
-    // setStartDate("");
-    // setEndDate("");
+    setStartDate("");
+    setEndDate("");
     setSearchError("");
     setDepartmentError(null);
   };
@@ -122,11 +121,14 @@ export default function RecordSearch() {
   const handleSearch = () => {
     setSearchError("");
 
-    // 기록일시 검색 막음
-    /*
-    if (searchType === "recordedAt") {
+    if (searchType === DATE_SEARCH_TYPE) {
       if (!startDate || !endDate) {
         setSearchError("시작일과 종료일을 모두 입력해주세요.");
+        return;
+      }
+
+      if (startDate > endDate) {
+        setSearchError("시작일은 종료일보다 늦을 수 없습니다.");
         return;
       }
 
@@ -139,7 +141,6 @@ export default function RecordSearch() {
       dispatch(RecActions.searchRecordsRequest(payload));
       return;
     }
-    */
 
     if (searchType === "departmentName") {
       if (departmentsLoading) {
@@ -213,16 +214,32 @@ export default function RecordSearch() {
         </Select>
       </FormControl>
 
-      {/* 기록일시 UI 제거
-      {searchType === "recordedAt" ? (
+      {searchType === DATE_SEARCH_TYPE ? (
         <>
-          <TextField ... />
-          <TextField ... />
+          <TextField
+            size="small"
+            type="date"
+            label="시작일"
+            value={startDate}
+            onChange={(event) => {
+              setStartDate(event.target.value);
+              setSearchError("");
+            }}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            size="small"
+            type="date"
+            label="종료일"
+            value={endDate}
+            onChange={(event) => {
+              setEndDate(event.target.value);
+              setSearchError("");
+            }}
+            InputLabelProps={{ shrink: true }}
+          />
         </>
-      ) :
-      */}
-
-      {searchType === "departmentName" ? (
+      ) : searchType === "departmentName" ? (
         <FormControl size="small" sx={{ minWidth: 180 }}>
           <InputLabel id="record-search-department-label">
             {TEXT_SEARCH_LABELS.departmentName}
@@ -287,7 +304,8 @@ export default function RecordSearch() {
 
       {searchType === "departmentName" && departmentError && (
         <Alert severity="warning" sx={{ width: "100%" }}>
-          진료과 목록을 불러오지 못했습니다. 다른 검색 기준은 계속 사용할 수 있습니다.
+          진료과 목록을 불러오지 못했습니다. 다른 검색 기준은 계속 사용할 수
+          있습니다.
         </Alert>
       )}
 

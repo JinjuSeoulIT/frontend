@@ -74,6 +74,7 @@ export default function TestExecutionEdit() {
           })
         );
       }}
+      onCancel={() => router.push("/medical_support/testExecution/list")}
       loading={loading}
     />
   );

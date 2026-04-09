@@ -7,7 +7,6 @@ import type {
   SearchStaffPayload,
   staffCreateRequest,
   staffIdnNumber,
-  staffIdNumber,
   staffResponse,
 } from "./BasiclnfoType";
 import {
@@ -57,7 +56,7 @@ function* searchStaffListSaga(action: PayloadAction<SearchStaffPayload>): SagaIt
     }else{
     yield put(searchStaffListFailure(response.message));
     }
-    } catch (error: unknown) {
+    } catch {
 
     yield put(searchStaffListFailure( "공통조회 검색 실패 500"));
     }
@@ -79,7 +78,7 @@ function* StaffListSaga(): SagaIterator {
    
 
     }   
-    } catch (error: unknown) {
+    } catch {
     yield put(StafflistFailure( "직원 목록 조회 실패"));
     }
     }
@@ -87,15 +86,15 @@ function* StaffListSaga(): SagaIterator {
 
 
     
-function* detailStaffSaga(action: PayloadAction<string>): SagaIterator {
+function* detailStaffSaga(action: PayloadAction<number>): SagaIterator {
   try {
-    const res: ApiResponse<staffResponse> = yield call(DetailStaffApi, action.payload);
+    const res: ApiResponse<staffResponse> = yield call(() => DetailStaffApi(action.payload));
     if (res.success) {
       yield put(DetailStaffSuccess(res.data));
     } else {
       yield put(DetailStaffFailure(res.message));
     }
-  } catch (error: unknown) {
+  } catch {
     yield put(DetailStaffFailure( "직원 상세 조회 실패"));
   }
 }
@@ -108,7 +107,7 @@ function* createStaffSaga(action: PayloadAction<staffCreateRequest>): SagaIterat
     } else {
       yield put(createStaffFail(res.message));
     }
-  } catch (error: unknown) {
+  } catch {
     yield put(createStaffFail( "직원 생성 실패"));
   }
 }
@@ -122,22 +121,22 @@ function* updateStaffSaga(action: PayloadAction<staffIdnNumber>): SagaIterator {
     } else {
       yield put(updateStaffFailure(res.message));
     }
-  } catch (error: unknown) {
+  } catch {
     yield put(updateStaffFailure( "직원 수정 실패"));
   }
 }
 
 //삭제
-function* deleteStaffSaga(action: PayloadAction<staffIdNumber>): SagaIterator {
+function* deleteStaffSaga(action: PayloadAction<number>): SagaIterator {
   try {
-    const res: ApiResponse<void> = yield call(deleteStaffApi, action.payload.staffId);
+    const res: ApiResponse<void> = yield call(deleteStaffApi, action.payload);
     console.log(res);
     if (res.success) {
       yield put(deleteStaffSuccess());
     } else {
       yield put(deleteStaffFailure(res.message));
     }
-  } catch (error: unknown) {
+  } catch {
     yield put(deleteStaffFailure( "직원 삭제 실패"));
   }
 }

@@ -69,20 +69,20 @@ function* createTreatmentResultSaga(
 
 function* updateTreatmentResultSaga(
   action: PayloadAction<{
-    procedureResultId: string;
+    treatmentResultId: string;
     form: TreatmentResultUpdatePayload;
   }>
 ): SagaIterator {
   try {
-    const { procedureResultId, form } = action.payload;
+    const { treatmentResultId, form } = action.payload;
     const item: TreatmentResult = yield call(
       api.updateTreatmentResultApi,
-      procedureResultId,
+      treatmentResultId,
       form
     );
     yield put(actions.updateTreatmentResultSuccess(item));
     yield put(actions.fetchTreatmentResultsRequest());
-    yield put(actions.fetchTreatmentResultRequest(procedureResultId));
+    yield put(actions.fetchTreatmentResultRequest(treatmentResultId));
   } catch (err: unknown) {
     yield put(
       actions.updateTreatmentResultFailure(

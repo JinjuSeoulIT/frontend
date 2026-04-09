@@ -18,12 +18,13 @@ const NurseUpdate = ({ staffId }: NurseIdNumber) => {
     
     useEffect(() => {
     if (!staffId) return;
-    dispatch(DetailNurseRequest( staffId ));
+    dispatch(DetailNurseRequest({ staffId }));
   }, [dispatch, staffId]);
 
 
     useEffect(() => {
     if (!nurseDetail) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm({
       staffId: nurseDetail.staffId ?? staffId,
       licenseNo: nurseDetail.licenseNo ?? "",

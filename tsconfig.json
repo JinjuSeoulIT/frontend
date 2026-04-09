@@ -30,5 +30,10 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "src/components/unused/**/*",
+    "src/components/staff/doctorDashboard/MedicalSpecialty/**/*",
+    "src/lib/admin/staffApi.ts"
+  ]
 }

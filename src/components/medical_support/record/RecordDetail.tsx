@@ -215,6 +215,12 @@ export default function RecordDetail() {
             </Box>
 
             <Stack direction="row" spacing={1} flexWrap="wrap">
+              <Link href="/medical_support/record/list">
+                <Button variant="outlined" size="small">
+                  취소
+                </Button>
+              </Link>
+
               <Link href={`/medical_support/record/edit/${recordId}`}>
                 <Button variant="outlined" size="small">
                   수정

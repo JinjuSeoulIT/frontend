@@ -57,7 +57,7 @@ async function fetchSupportRecordList(): Promise<RecordFormType[] | null> {
 }
 
 function visitIdMatches(record: RecordFormType, clinicalVisitId: number): boolean {
-  const v = record.visitId;
+  const v = (record as RecordFormType & { visitId?: string | number | null }).visitId;
   if (v == null) return false;
   const s = String(v).trim();
   if (!s) return false;

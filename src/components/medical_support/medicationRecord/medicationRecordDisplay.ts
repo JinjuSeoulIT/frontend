@@ -50,7 +50,9 @@ export const formatMedicationDose = (
   doseUnit?: string | null
 ) => {
   const numberText =
-    doseNumber === null || doseNumber === undefined || String(doseNumber).trim() === ""
+    doseNumber === null ||
+    doseNumber === undefined ||
+    String(doseNumber).trim() === ""
       ? ""
       : String(doseNumber).trim();
   const unitText = doseUnit?.trim() ?? "";
@@ -61,3 +63,12 @@ export const formatMedicationDose = (
 
   return `${numberText} ${unitText}`;
 };
+
+export const MEDICATION_RECORD_STATUS_OPTIONS = [
+  { value: "REQUESTED", label: "요청" },
+  { value: "IN_PROGRESS", label: "진행 중" },
+  { value: "COMPLETED", label: "완료" },
+  { value: "ACTIVE", label: "활성" },
+  { value: "INACTIVE", label: "비활성" },
+  { value: "CANCELLED", label: "취소" },
+] as const;

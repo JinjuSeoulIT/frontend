@@ -223,7 +223,7 @@ export function TreatmentResultListSection() {
                       <TableCell align="center">번호</TableCell>
                       <TableCell align="center">처치결과 ID</TableCell>
                       <TableCell align="center">환자명</TableCell>
-                      <TableCell align="center">진료과명</TableCell>
+                      <TableCell align="center">진료과</TableCell>
                       <TableCell align="center">상태</TableCell>
                       <TableCell align="left">처치내용</TableCell>
                     </TableRow>

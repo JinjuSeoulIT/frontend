@@ -167,7 +167,9 @@ export function MedicationRecordListSection() {
               </Typography>
             </Box>
 
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+            <Box
+              sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}
+            >
               <Chip label={`총 ${rows.length}건`} size="small" />
               <Chip
                 label={`요청 ${requestedCount}건`}
@@ -222,7 +224,7 @@ export function MedicationRecordListSection() {
                       <TableCell align="center">번호</TableCell>
                       <TableCell align="center">투약기록 ID</TableCell>
                       <TableCell align="center">환자명</TableCell>
-                      <TableCell align="center">진료과명</TableCell>
+                      <TableCell align="center">진료과</TableCell>
                       <TableCell align="center">투약일시</TableCell>
                       <TableCell align="center">투약량</TableCell>
                       <TableCell align="center">투약종류</TableCell>
@@ -262,9 +264,7 @@ export function MedicationRecordListSection() {
                         <TableCell align="center">
                           {safeValue(row.medicationRecordId)}
                         </TableCell>
-                        <TableCell align="center">
-                          {safeValue(row.patientName)}
-                        </TableCell>
+                        <TableCell align="center">{safeValue(row.patientName)}</TableCell>
                         <TableCell align="center">
                           {safeValue(row.departmentName)}
                         </TableCell>
@@ -274,9 +274,7 @@ export function MedicationRecordListSection() {
                         <TableCell align="center">
                           {formatMedicationDose(row.doseNumber, row.doseUnit)}
                         </TableCell>
-                        <TableCell align="center">
-                          {safeValue(row.doseKind)}
-                        </TableCell>
+                        <TableCell align="center">{safeValue(row.doseKind)}</TableCell>
                         <TableCell align="center">
                           <Chip
                             label={formatMedicationRecordStatus(row.status)}

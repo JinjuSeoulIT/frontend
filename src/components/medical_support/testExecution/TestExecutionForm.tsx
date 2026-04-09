@@ -38,6 +38,7 @@ type Props = {
   form: TestExecutionFormData;
   onChange: (form: TestExecutionFormData) => void;
   onSubmit: () => void;
+  onCancel?: () => void;
   loading?: boolean;
 };
 
@@ -143,6 +144,7 @@ export default function TestExecutionForm({
   form,
   onChange,
   onSubmit,
+  onCancel,
   loading = false,
 }: Props) {
   const isEditMode = mode === "edit";
@@ -332,9 +334,14 @@ export default function TestExecutionForm({
               </Grid>
             </Box>
 
-            <Stack direction="row" justifyContent="flex-end" sx={{ pt: 1 }}>
+            <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ pt: 1 }}>
+              {isEditMode && onCancel ? (
+                <Button variant="outlined" onClick={onCancel}>
+                  취소
+                </Button>
+              ) : null}
               <Button variant="contained" onClick={onSubmit} disabled={loading}>
-                {loading ? "처리 중..." : isEditMode ? "수정 저장" : "등록"}
+                {loading ? "처리 중..." : isEditMode ? "수정" : "등록"}
               </Button>
             </Stack>
           </Stack>

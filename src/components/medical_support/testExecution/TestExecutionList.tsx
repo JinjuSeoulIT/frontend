@@ -27,7 +27,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { TestExecutionActions } from "@/features/medical_support/testExecution/testExecutionSlice";
 import type { RootState } from "@/store/rootReducer";
 import type { AppDispatch } from "@/store/store";
-import TestExecutionSearch from "./TestExecutionSearch";
+import TestExecutionSearch, {
+  type TestExecutionSearchCriteria,
+} from "./TestExecutionSearch";
 
 const DONE_STATUSES = ["COMPLETED"];
 const ACTIVE_STATUSES = ["IN_PROGRESS"];
@@ -118,11 +120,47 @@ const TABLE_HEADERS = [
   "검사수행 ID",
 ];
 
+const INITIAL_SEARCH_CRITERIA: TestExecutionSearchCriteria = {
+  searchType: "executionType",
+  searchValue: "",
+  startDate: "",
+  endDate: "",
+};
+
+const normalizeText = (value?: string | number | null) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase();
+
+const getDateOnlyValue = (value?: string | null) => {
+  const normalized = value?.trim();
+  if (!normalized) return "";
+
+  const directMatch = normalized.match(/^\d{4}-\d{2}-\d{2}/);
+  if (directMatch) {
+    return directMatch[0];
+  }
+
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
 export default function TestExecutionList() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchCriteria, setSearchCriteria] = useState<TestExecutionSearchCriteria>(
+    INITIAL_SEARCH_CRITERIA
+  );
 
   const { list: items, loading, error } = useSelector(
     (state: RootState) => state.testexecutions
@@ -132,32 +170,74 @@ export default function TestExecutionList() {
     dispatch(TestExecutionActions.fetchTestExecutionsRequest(undefined));
   }, [dispatch]);
 
+  const filteredItems = useMemo(
+    () =>
+      items.filter((item) => {
+        if (searchCriteria.searchType === "createdAt") {
+          if (!searchCriteria.startDate && !searchCriteria.endDate) {
+            return true;
+          }
+
+          const createdDate = getDateOnlyValue(item.createdAt);
+          if (!createdDate) {
+            return false;
+          }
+
+          return (
+            createdDate >= searchCriteria.startDate &&
+            createdDate <= searchCriteria.endDate
+          );
+        }
+
+        const normalizedValue = searchCriteria.searchValue.trim();
+        if (!normalizedValue) {
+          return true;
+        }
+
+        if (searchCriteria.searchType === "executionType") {
+          return (
+            String(item.executionType ?? "").trim().toUpperCase() ===
+            normalizedValue
+          );
+        }
+
+        if (searchCriteria.searchType === "progressStatus") {
+          return normalizeStatus(item.progressStatus) === normalizedValue;
+        }
+
+        return normalizeText(item.patientName).includes(
+          normalizedValue.toLowerCase()
+        );
+      }),
+    [items, searchCriteria]
+  );
+
   const completedCount = useMemo(
     () =>
-      items.filter((item) =>
+      filteredItems.filter((item) =>
         DONE_STATUSES.includes(normalizeStatus(item.progressStatus))
       ).length,
-    [items]
+    [filteredItems]
   );
 
   const inProgressCount = useMemo(
     () =>
-      items.filter((item) =>
+      filteredItems.filter((item) =>
         ACTIVE_STATUSES.includes(normalizeStatus(item.progressStatus))
       ).length,
-    [items]
+    [filteredItems]
   );
 
-  const maxPage = Math.max(0, Math.ceil(items.length / rowsPerPage) - 1);
+  const maxPage = Math.max(0, Math.ceil(filteredItems.length / rowsPerPage) - 1);
   const currentPage = Math.min(page, maxPage);
 
   const paginatedItems = useMemo(
     () =>
-      items.slice(
+      filteredItems.slice(
         currentPage * rowsPerPage,
         currentPage * rowsPerPage + rowsPerPage
       ),
-    [currentPage, items, rowsPerPage]
+    [currentPage, filteredItems, rowsPerPage]
   );
 
   const handleChangePage = (_event: unknown, newPage: number) => {
@@ -206,7 +286,7 @@ export default function TestExecutionList() {
             <Box
               sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}
             >
-              <Chip label={`총 ${items.length}건`} size="small" />
+              <Chip label={`총 ${filteredItems.length}건`} size="small" />
               <Chip
                 label={`진행 중 ${inProgressCount}건`}
                 size="small"
@@ -238,7 +318,17 @@ export default function TestExecutionList() {
 
         <CardContent sx={{ p: 2.5 }}>
           <Box sx={{ mb: 2 }}>
-            <TestExecutionSearch />
+            <TestExecutionSearch
+              loading={loading}
+              onSearch={(criteria) => {
+                setSearchCriteria(criteria);
+                setPage(0);
+              }}
+              onReset={() => {
+                setSearchCriteria(INITIAL_SEARCH_CRITERIA);
+                setPage(0);
+              }}
+            />
           </Box>
 
           {loading && (
@@ -285,14 +375,14 @@ export default function TestExecutionList() {
                   </TableHead>
 
                   <TableBody>
-                    {items.length === 0 && (
+                    {filteredItems.length === 0 && (
                       <TableRow>
                         <TableCell
                           colSpan={TABLE_HEADERS.length}
                           align="center"
                           sx={{ py: 5 }}
                         >
-                          검사 수행 데이터가 없습니다.
+                          검색 조건에 맞는 검사 수행 데이터가 없습니다.
                         </TableCell>
                       </TableRow>
                     )}
@@ -346,7 +436,7 @@ export default function TestExecutionList() {
 
               <TablePagination
                 component="div"
-                count={items.length}
+                count={filteredItems.length}
                 page={currentPage}
                 onPageChange={handleChangePage}
                 rowsPerPage={rowsPerPage}

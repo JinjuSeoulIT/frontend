@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import {
   Alert,
   Box,
@@ -15,7 +17,10 @@ import {
   Typography,
 } from "@mui/material";
 import type { MedicationRecord } from "@/features/medical_support/medicationRecord/medicationRecordType";
-import { formatDateTime, safeValue } from "@/components/medical_support/common/ExamDisplay";
+import {
+  formatDateTime,
+  safeValue,
+} from "@/components/medical_support/common/ExamDisplay";
 import {
   formatMedicationDose,
   formatMedicationRecordStatus,
@@ -44,7 +49,9 @@ function DetailField({ label, value }: DetailFieldProps) {
       </Typography>
       <Box sx={{ mt: 0.5 }}>
         {typeof value === "string" || typeof value === "number" ? (
-          <Typography sx={{ fontWeight: 600, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+          <Typography
+            sx={{ fontWeight: 600, whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+          >
             {value}
           </Typography>
         ) : (
@@ -62,6 +69,10 @@ export default function MedicationRecordDetailDialog({
   error,
   onClose,
 }: MedicationRecordDetailDialogProps) {
+  const editHref = item?.medicationRecordId
+    ? `/medical_support/medicationRecord/edit/${item.medicationRecordId}`
+    : "";
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>투약 기록 상세</DialogTitle>
@@ -150,16 +161,10 @@ export default function MedicationRecordDetailDialog({
                     },
                   }}
                 >
+                  <DetailField label="환자명" value={safeValue(item.patientName)} />
+                  <DetailField label="환자 ID" value={safeValue(item.patientId)} />
                   <DetailField
-                    label="환자명"
-                    value={safeValue(item.patientName)}
-                  />
-                  <DetailField
-                    label="환자 ID"
-                    value={safeValue(item.patientId)}
-                  />
-                  <DetailField
-                    label="진료과명"
+                    label="진료과"
                     value={safeValue(item.departmentName)}
                   />
                 </Box>
@@ -177,6 +182,20 @@ export default function MedicationRecordDetailDialog({
 
       <DialogActions>
         <Button onClick={onClose}>닫기</Button>
+        {editHref ? (
+          <Button
+            component={Link}
+            href={editHref}
+            variant="contained"
+            startIcon={<EditOutlinedIcon />}
+          >
+            수정
+          </Button>
+        ) : (
+          <Button variant="contained" startIcon={<EditOutlinedIcon />} disabled>
+            수정
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   );

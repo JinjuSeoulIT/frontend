@@ -152,7 +152,7 @@ export default function TreatmentResultDetailDialog({
                     value={safeValue(item.patientId)}
                   />
                   <DetailField
-                    label="진료과명"
+                    label="진료과"
                     value={safeValue(item.departmentName)}
                   />
                 </Box>

@@ -150,23 +150,19 @@ export default function TreatmentResultEdit() {
           <TextField
             label="환자명"
             value={form.patientName}
-            onChange={(e) =>
-              setDraftForm({ ...form, patientName: e.target.value })
-            }
+            disabled
             fullWidth
           />
           <TextField
             label="환자 ID"
             value={form.patientId}
-            onChange={(e) => setDraftForm({ ...form, patientId: e.target.value })}
+            disabled
             fullWidth
           />
           <TextField
-            label="진료과명"
+            label="진료과"
             value={form.departmentName}
-            onChange={(e) =>
-              setDraftForm({ ...form, departmentName: e.target.value })
-            }
+            disabled
             fullWidth
           />
           <TextField

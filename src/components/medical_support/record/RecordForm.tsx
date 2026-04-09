@@ -20,6 +20,7 @@ interface Props {
   form: RecordFormType;
   onChange: (form: RecordFormType) => void;
   onSubmit: () => void;
+  onCancel?: () => void;
   loading: boolean;
 }
 
@@ -30,6 +31,7 @@ const RecordForm: React.FC<Props> = ({
   form,
   onChange,
   onSubmit,
+  onCancel,
   loading,
 }) => {
   const [errors, setErrors] = useState<RecordFormErrors>({});
@@ -554,8 +556,13 @@ const RecordForm: React.FC<Props> = ({
               justifyContent="flex-end"
               sx={{ pt: 1 }}
             >
+              {isEditMode && onCancel ? (
+                <Button variant="outlined" onClick={onCancel}>
+                  취소
+                </Button>
+              ) : null}
               <Button variant="contained" onClick={handleSubmit} disabled={loading}>
-                {loading ? "저장 중..." : isEditMode ? "수정 완료" : "등록"}
+                {loading ? "저장 중..." : isEditMode ? "수정" : "등록"}
               </Button>
             </Stack>
           </Stack>

@@ -12,7 +12,9 @@ const api = axios.create({
 });
 
 export const fetchMedicationRecordsApi = async (): Promise<MedicationRecord[]> => {
-  const res = await api.get<ApiResponse<MedicationRecord[]>>("/api/medicationRecord");
+  const res = await api.get<ApiResponse<MedicationRecord[]>>(
+    "/api/medicationRecord"
+  );
 
   if (!res.data.success) {
     throw new Error(res.data.message || "투약 기록 목록 조회에 실패했습니다.");

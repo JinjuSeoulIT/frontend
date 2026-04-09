@@ -69,20 +69,20 @@ function* createMedicationRecordSaga(
 
 function* updateMedicationRecordSaga(
   action: PayloadAction<{
-    medicationId: string;
+    medicationRecordId: string;
     form: MedicationRecordUpdatePayload;
   }>
 ): SagaIterator {
   try {
-    const { medicationId, form } = action.payload;
+    const { medicationRecordId, form } = action.payload;
     const item: MedicationRecord = yield call(
       api.updateMedicationRecordApi,
-      medicationId,
+      medicationRecordId,
       form
     );
     yield put(actions.updateMedicationRecordSuccess(item));
     yield put(actions.fetchMedicationRecordsRequest());
-    yield put(actions.fetchMedicationRecordRequest(medicationId));
+    yield put(actions.fetchMedicationRecordRequest(medicationRecordId));
   } catch (err: unknown) {
     yield put(
       actions.updateMedicationRecordFailure(

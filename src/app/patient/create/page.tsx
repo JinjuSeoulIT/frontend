@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 
-export default function NewPatientRedirectPage() {
+function NewPatientRedirectPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -14,4 +14,12 @@ export default function NewPatientRedirectPage() {
   }, [router, searchParams]);
 
   return null;
+}
+
+export default function NewPatientRedirectPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewPatientRedirectPageContent />
+    </Suspense>
+  );
 }

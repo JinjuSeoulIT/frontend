@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function TossFailPage() {
+function TossFailPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -188,5 +188,13 @@ export default function TossFailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TossFailPage() {
+  return (
+    <Suspense fallback={null}>
+      <TossFailPageContent />
+    </Suspense>
   );
 }

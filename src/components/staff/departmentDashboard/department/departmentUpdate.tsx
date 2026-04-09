@@ -32,7 +32,7 @@ const DepartmentUpdate = ({ deptId }: DepartmentNumber) => {
 
   useEffect(() => {
     if (!deptId) return;
-    {dispatch(departmentDetailRequest(deptId));}
+    {dispatch(departmentDetailRequest(Number(deptId)));}
     }, [dispatch, deptId]);
 
 
@@ -41,6 +41,7 @@ const DepartmentUpdate = ({ deptId }: DepartmentNumber) => {
   useEffect(() => {
     if (!Departmentdetail || loadedRef.current) return;
      
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         deptId: Departmentdetail.deptId || "",
         deptCode: Departmentdetail.deptCode || "",

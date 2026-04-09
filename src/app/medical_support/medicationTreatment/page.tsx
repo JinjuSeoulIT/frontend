@@ -19,10 +19,7 @@ const MedicationTreatmentPage = () => {
         sx={{
           display: "grid",
           gap: 3,
-          gridTemplateColumns: {
-            xs: "1fr",
-            lg: "repeat(2, minmax(0, 1fr))",
-          },
+          gridTemplateColumns: "1fr",
           alignItems: "start",
         }}
       >

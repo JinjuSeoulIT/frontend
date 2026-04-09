@@ -293,7 +293,7 @@ export default function StaffMembersPage() {
                         setFilters((prev) => ({
                           ...prev,
                           departmentId:
-                            event.target.value === "" ? "" : Number(event.target.value),
+                            String(event.target.value) === "" ? "" : Number(event.target.value),
                         }))
                       }
                     >
@@ -316,7 +316,7 @@ export default function StaffMembersPage() {
                         setFilters((prev) => ({
                           ...prev,
                           locationId:
-                            event.target.value === "" ? "" : Number(event.target.value),
+                            String(event.target.value) === "" ? "" : Number(event.target.value),
                         }))
                       }
                     >

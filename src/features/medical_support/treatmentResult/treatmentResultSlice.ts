@@ -9,7 +9,9 @@ type TreatmentResultState = {
   list: TreatmentResult[];
   selected: TreatmentResult | null;
   loading: boolean;
+  detailLoading: boolean;
   error: string | null;
+  detailError: string | null;
   createSuccess: boolean;
   updateSuccess: boolean;
 };
@@ -18,7 +20,9 @@ const initialState: TreatmentResultState = {
   list: [],
   selected: null,
   loading: false,
+  detailLoading: false,
   error: null,
+  detailError: null,
   createSuccess: false,
   updateSuccess: false,
 };
@@ -46,20 +50,25 @@ const treatmentResultSlice = createSlice({
 
     fetchTreatmentResultRequest: (state, action: PayloadAction<string>) => {
       void action;
-      state.loading = true;
-      state.error = null;
+      state.detailLoading = true;
+      state.detailError = null;
       state.selected = null;
     },
     fetchTreatmentResultSuccess: (
       state,
       action: PayloadAction<TreatmentResult>
     ) => {
-      state.loading = false;
+      state.detailLoading = false;
       state.selected = action.payload;
     },
     fetchTreatmentResultFailure: (state, action: PayloadAction<string>) => {
-      state.loading = false;
-      state.error = action.payload;
+      state.detailLoading = false;
+      state.detailError = action.payload;
+    },
+    clearTreatmentResultSelection: (state) => {
+      state.selected = null;
+      state.detailError = null;
+      state.detailLoading = false;
     },
 
     createTreatmentResultRequest: (
@@ -91,7 +100,7 @@ const treatmentResultSlice = createSlice({
     updateTreatmentResultRequest: (
       state,
       action: PayloadAction<{
-        procedureResultId: string;
+        treatmentResultId: string;
         form: TreatmentResultUpdatePayload;
       }>
     ) => {
@@ -108,8 +117,8 @@ const treatmentResultSlice = createSlice({
       state.updateSuccess = true;
       state.selected = action.payload;
       state.list = state.list.map((item) =>
-        String(item.procedureResultId) ===
-        String(action.payload.procedureResultId)
+        String(item.treatmentResultId) ===
+        String(action.payload.treatmentResultId)
           ? action.payload
           : item
       );

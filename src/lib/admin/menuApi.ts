@@ -10,7 +10,7 @@ type ApiResponse<T> = {
 };
 
 const api = axios.create({
-  baseURL: "http://192.168.1.67:5555",
+  baseURL: MENU_API_BASE_URL,
 });
 applyAuthInterceptors(api, { redirectOn401: false });
 

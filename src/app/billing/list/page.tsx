@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "@/store/store";
 
@@ -27,7 +27,7 @@ import { getBillingStatusLabel } from "@/lib/billing/billingStatus";
 import { fetchPatientsApi } from "@/lib/patient/patientApi";
 import type { Patient } from "@/features/patients/patientTypes";
 
-export default function BillingListPage() {
+function BillingListPageContent() {
   const searchParams = useSearchParams();
   const dispatch = useDispatch<AppDispatch>();
 
@@ -221,5 +221,13 @@ export default function BillingListPage() {
         </TableContainer>
       </Box>
     </MainLayout>
+  );
+}
+
+export default function BillingListPage() {
+  return (
+    <Suspense fallback={null}>
+      <BillingListPageContent />
+    </Suspense>
   );
 }

@@ -28,7 +28,7 @@ import StatusBadge from "../../BasiclnfoDashboard/BasiclnfoStatus";
   
   useEffect(() => {
     if (!staffId) return;
-    dispatch(DetailNurseRequest( staffId ));
+    dispatch(DetailNurseRequest({ staffId }));
     dispatch(resetSuccessEnd());
   }, [dispatch, staffId]);
 

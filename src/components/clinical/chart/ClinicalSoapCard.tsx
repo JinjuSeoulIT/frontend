@@ -43,6 +43,7 @@ import {
 } from "@/lib/clinical/clinicalRecordApi";
 import { searchMasterDiagnosesApi, type MasterDiagnosisItem } from "@/lib/clinical/diagnosisMasterApi";
 import {
+  drugSearchParamsFromQuery,
   searchDrugsForChoseongMatch,
   searchDrugsForVisit,
 } from "@/lib/clinical/drugSearchApi";
@@ -203,12 +204,15 @@ export function ClinicalSoapCard({
     }
     const q = prescriptionNameInput.trim();
     const compactChoseong = q.replace(/\s+/g, "");
+    const digitsOnly = /^\d+$/.test(compactChoseong);
     if (compactChoseong.length < DRUG_SEARCH_MIN_CHARS) {
       setDrugOptions([]);
       setDrugHint(
         compactChoseong.length === 0
           ? null
-          : `제품명 또는 초성 ${DRUG_SEARCH_MIN_CHARS}자 이상 입력 시 식약처 e약은요에서 검색합니다. (예: 타이, ㅌㅇ)`
+          : digitsOnly
+            ? "품목기준코드는 숫자 2자 이상 입력하세요."
+            : `제품명·초성 ${DRUG_SEARCH_MIN_CHARS}자 이상 또는 품목코드(숫자 2자 이상)로 식약처 e약은요 검색합니다. (예: 타이, ㅌㅇ)`
       );
       return;
     }
@@ -259,7 +263,7 @@ export function ClinicalSoapCard({
             }
           } else {
             const result = await searchDrugsForVisit(visitId, {
-              itemName: q,
+              ...drugSearchParamsFromQuery(q),
               numOfRows: DRUG_SEARCH_PAGE_SIZE,
               signal: ac.signal,
             });

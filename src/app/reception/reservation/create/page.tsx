@@ -10,7 +10,7 @@ import { reservationActions } from "@/features/Reservations/ReservationSlice";
 import type { ReservationForm as ReservationFormPayload } from "@/features/Reservations/ReservationTypes";
 import ReservationForm from "@/components/reception/ReservationForm";
 
-export default function NewReservationPage() {
+function NewReservationPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useDispatch<AppDispatch>();
@@ -47,5 +47,13 @@ export default function NewReservationPage() {
         onCancel={() => router.push("/reception/reservation/list")}
       />
     </MainLayout>
+  );
+}
+
+export default function NewReservationPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <NewReservationPageContent />
+    </React.Suspense>
   );
 }

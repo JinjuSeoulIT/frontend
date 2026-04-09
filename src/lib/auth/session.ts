@@ -97,6 +97,7 @@ export const saveAccessToken = (token: string, persist = false) => {
     emitSessionChanged();
     return;
   }
+
   writeStored(TOKEN_KEY, token, persist);
   writeCookie(AUTH_COOKIE_KEY, token);
   emitSessionChanged();

@@ -30,10 +30,11 @@ const DoctorUpdate = ({ staffId }: DoctorIdNumber) => {
   useEffect(() => {
     if (!doctorDetail || loadedRef.current) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm({
       staffId:        doctorDetail.staffId,
       licenseNo:      doctorDetail.licenseNo ?? "",
-      specialtyId:    doctorDetail.specialtyId ?? "",
+      specialtyId:    String(doctorDetail.specialtyId ?? ""),
       doctorFileUrl:  doctorDetail.doctorFileUrl ?? null,
       extNo:          doctorDetail.extNo ?? "",
       profileSummary: doctorDetail.profileSummary ?? "",

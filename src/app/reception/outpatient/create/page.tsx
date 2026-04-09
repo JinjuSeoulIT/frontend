@@ -10,7 +10,7 @@ import { receptionActions } from "@/features/Reception/ReceptionSlice";
 import type { ReceptionForm as ReceptionFormPayload } from "@/features/Reception/ReceptionTypes";
 import ReceptionForm from "@/components/reception/ReceptionForm";
 
-export default function NewReceptionPage() {
+function NewReceptionPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useDispatch<AppDispatch>();
@@ -50,5 +50,13 @@ export default function NewReceptionPage() {
         onCancel={() => router.push("/reception/outpatient/list")}
       />
     </MainLayout>
+  );
+}
+
+export default function NewReceptionPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <NewReceptionPageContent />
+    </React.Suspense>
   );
 }

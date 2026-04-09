@@ -727,8 +727,8 @@ export default function ClinicalPage() {
             display: "grid",
             gridTemplateColumns: {
               xs: "1fr",
-              lg: "minmax(200px, 15rem) minmax(0, 1fr) minmax(176px, 13.5rem)",
-              xl: "minmax(188px, 14rem) minmax(0, 1fr) minmax(168px, 12.5rem)",
+              lg: "minmax(200px, 15rem) minmax(0, 1fr) minmax(228px, 18.5rem)",
+              xl: "minmax(188px, 14rem) minmax(0, 1fr) minmax(248px, 21rem)",
             },
             minHeight: "calc(100vh - 120px)",
             alignItems: "stretch",
@@ -839,6 +839,9 @@ export default function ClinicalPage() {
               setOrderDialogVariant(variant);
               setOrderDialogOpen(true);
             }}
+            contextPatientName={
+              selectedReception?.patientName?.trim() ?? selectedPatient?.name?.trim() ?? null
+            }
           />
         </Box>
       </Stack>

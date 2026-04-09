@@ -8,11 +8,9 @@ type ApiEnvelope<T> = {
 };
 
 export type VisitMedicationRecordCreatePayload = {
-  administeredAt?: string | null;
   doseNumber: number;
   doseUnit: string;
   doseKind?: string | null;
-  nursingId?: string | null;
   status?: string | null;
   patientName?: string | null;
   departmentName?: string | null;
@@ -20,7 +18,6 @@ export type VisitMedicationRecordCreatePayload = {
 
 export type VisitTreatmentResultCreatePayload = {
   detail: string;
-  nursingId?: string | null;
   status?: string | null;
   patientName?: string | null;
   departmentName?: string | null;
@@ -42,12 +39,6 @@ export async function createVisitMedicationRecordApi(
     doseNumber: payload.doseNumber,
     doseUnit: payload.doseUnit,
   };
-  if (payload.administeredAt != null && payload.administeredAt !== "") {
-    body.administeredAt = payload.administeredAt;
-  }
-  if (payload.nursingId != null && payload.nursingId !== "") {
-    body.nursingId = payload.nursingId;
-  }
   if (payload.status != null && payload.status !== "") {
     body.status = payload.status;
   }
@@ -78,9 +69,6 @@ export async function createVisitTreatmentResultApi(
   const body: Record<string, unknown> = {
     detail: payload.detail,
   };
-  if (payload.nursingId != null && payload.nursingId !== "") {
-    body.nursingId = payload.nursingId;
-  }
   if (payload.status != null && payload.status !== "") {
     body.status = payload.status;
   }

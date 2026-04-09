@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  FormHelperText,
   InputLabel,
   MenuItem,
   Select,
@@ -33,6 +34,10 @@ import {
   parsePositiveDoseAmount,
 } from "@/lib/clinical/medicationDoseProfile";
 import { searchProceduresForVisit } from "@/lib/clinical/procedureSearchApi";
+import {
+  fetchExamCodesForOrderType,
+  type ExamCodeOption,
+} from "@/lib/clinical/examCodesFromPatientService";
 import { ORDER_TYPE_LABELS } from "../clinicalDocumentation";
 
 export type ClinicalOrderDialogVariant = "exam" | "treatment";
@@ -107,8 +112,12 @@ export function ClinicalOrderDialog({
   const [treatmentOptions, setTreatmentOptions] = React.useState<TreatmentSuggestOption[]>([]);
   const [treatmentSuggestLoading, setTreatmentSuggestLoading] = React.useState(false);
   const [medicationDoseText, setMedicationDoseText] = React.useState("1");
+  const [examOptions, setExamOptions] = React.useState<ExamCodeOption[]>([]);
+  const [examPick, setExamPick] = React.useState<ExamCodeOption | null>(null);
+  const [examLoading, setExamLoading] = React.useState(false);
   const suggestTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const suggestAbortRef = React.useRef<AbortController | null>(null);
+  const examFetchSeqRef = React.useRef(0);
 
   const allowedTypes = variant === "exam" ? EXAM_ORDER_TYPES : TREATMENT_ORDER_TYPES;
   const typeLabel = variant === "exam" ? "검사 유형" : "치료 유형";
@@ -126,15 +135,44 @@ export function ClinicalOrderDialog({
       setTreatmentOptions([]);
       setTreatmentSuggestLoading(false);
       setMedicationDoseText("1");
+      setExamOptions([]);
+      setExamPick(null);
+      setExamLoading(false);
     }
   }, [open, variant]);
 
   React.useEffect(() => {
     setTreatmentPick(null);
+    if (variant === "exam") {
+      setExamPick(null);
+      setNewOrderName("");
+    }
     if (newOrderType === "MEDICATION") {
       setMedicationDoseText("1");
     }
-  }, [newOrderType]);
+  }, [newOrderType, variant]);
+
+  React.useEffect(() => {
+    if (!open || variant !== "exam") {
+      return;
+    }
+    const seq = ++examFetchSeqRef.current;
+    setExamLoading(true);
+    void fetchExamCodesForOrderType(newOrderType)
+      .then((list) => {
+        if (seq !== examFetchSeqRef.current) return;
+        setExamOptions(list);
+      })
+      .catch((e) => {
+        if (seq !== examFetchSeqRef.current) return;
+        setExamOptions([]);
+        window.alert(e instanceof Error ? e.message : "검사 코드를 불러오지 못했습니다.");
+      })
+      .finally(() => {
+        if (seq !== examFetchSeqRef.current) return;
+        setExamLoading(false);
+      });
+  }, [open, variant, newOrderType]);
 
   React.useEffect(() => {
     if (!open || variant !== "treatment" || visitId == null) {
@@ -259,14 +297,39 @@ export function ClinicalOrderDialog({
               )}
             />
           ) : (
-            <TextField
-              fullWidth
-              size="small"
-              label={nameFieldLabel}
-              value={newOrderName}
-              onChange={(e) => setNewOrderName(e.target.value)}
-              placeholder={namePlaceholder}
-            />
+            <>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <FormControl fullWidth size="small" disabled={visitId == null || examLoading}>
+                  <InputLabel>{nameFieldLabel}</InputLabel>
+                  <Select
+                    label={nameFieldLabel}
+                    value={examPick?.code ?? ""}
+                    onChange={(e) => {
+                      const code = String(e.target.value ?? "");
+                      const op = examOptions.find((x) => x.code === code) ?? null;
+                      setExamPick(op);
+                      setNewOrderName((op?.codeName ?? "").trim());
+                    }}
+                  >
+                    <MenuItem value="">
+                      <em>선택</em>
+                    </MenuItem>
+                    {examOptions.map((o) => (
+                      <MenuItem key={o.code} value={o.code}>
+                        {o.codeName}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                {examLoading ? <CircularProgress size={22} /> : null}
+              </Stack>
+              {!examLoading && visitId != null && examOptions.length === 0 ? (
+                <FormHelperText sx={{ mx: 0 }}>
+                  코드가 없습니다. 관리자 코드 화면의 GROUP_CODE(IMAGING, PATHOLOGY 등)와 검사 유형 매핑을
+                  확인하거나, .env에 NEXT_PUBLIC_EXAM_CODE_GROUP_PHYSIOLOGICAL=PHYSIOLOGY 처럼 지정하세요.
+                </FormHelperText>
+              ) : null}
+            </>
           )}
           {variant === "treatment" && newOrderType === "MEDICATION" ? (
             <TextField
@@ -293,7 +356,7 @@ export function ClinicalOrderDialog({
           variant="contained"
           sx={{ bgcolor: "var(--brand)" }}
           disabled={
-            !newOrderName.trim() ||
+            (variant === "exam" ? examPick == null : !newOrderName.trim()) ||
             creating ||
             visitId == null ||
             (variant === "treatment" &&
@@ -301,7 +364,12 @@ export function ClinicalOrderDialog({
               parsePositiveDoseAmount(medicationDoseText) == null)
           }
           onClick={async () => {
-            if (visitId == null || !newOrderName.trim()) return;
+            if (visitId == null) return;
+            if (variant === "exam") {
+              if (examPick == null || !newOrderName.trim()) return;
+            } else if (!newOrderName.trim()) {
+              return;
+            }
             if (
               variant === "treatment" &&
               newOrderType === "MEDICATION" &&
@@ -313,11 +381,11 @@ export function ClinicalOrderDialog({
             try {
               await createClinicalOrderApi(visitId, {
                 orderType: newOrderType,
-                orderCode: variant === "treatment" ? treatmentPick?.key ?? null : null,
+                orderCode:
+                  variant === "treatment" ? treatmentPick?.key ?? null : examPick?.code ?? null,
                 orderName: newOrderName.trim(),
               });
               if (variant === "treatment") {
-                const code = treatmentPick?.key?.trim() || undefined;
                 try {
                   if (newOrderType === "MEDICATION") {
                     const medicationName =
@@ -328,15 +396,15 @@ export function ClinicalOrderDialog({
                       doseNumber: doseAmt,
                       doseUnit: prof.doseUnit,
                       doseKind: medicationName.slice(0, 100),
-                      nursingId: code,
                       status: "REQUESTED",
                       patientName: contextPatientName?.trim() || undefined,
                       departmentName: contextDepartmentName?.trim() || undefined,
                     });
                   } else if (newOrderType === "PROCEDURE") {
+                    const procedureLabel =
+                      (treatmentPick?.orderName ?? "").trim() || newOrderName.trim();
                     await createVisitTreatmentResultApi(visitId, {
-                      detail: newOrderName.trim(),
-                      nursingId: code,
+                      detail: procedureLabel,
                       status: "REQUESTED",
                       patientName: contextPatientName?.trim() || undefined,
                       departmentName: contextDepartmentName?.trim() || undefined,

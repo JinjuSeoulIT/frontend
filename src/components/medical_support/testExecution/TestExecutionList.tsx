@@ -31,8 +31,8 @@ import TestExecutionSearch, {
   type TestExecutionSearchCriteria,
 } from "./TestExecutionSearch";
 
-const DONE_STATUSES = ["COMPLETED"];
 const ACTIVE_STATUSES = ["IN_PROGRESS"];
+const DEFAULT_VISIBLE_STATUSES = ["WAITING", "IN_PROGRESS"] as const;
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return "-";
@@ -77,10 +77,11 @@ const formatProgressStatusLabel = (status?: string | null) => {
 
 const getStatusColor = (
   status?: string | null
-): "default" | "info" | "success" => {
+): "default" | "info" | "success" | "warning" => {
   const normalized = normalizeStatus(status);
 
-  if (DONE_STATUSES.includes(normalized)) return "success";
+  if (normalized === "WAITING") return "warning";
+  if (normalized === "COMPLETED") return "success";
   if (ACTIVE_STATUSES.includes(normalized)) return "info";
 
   return "default";
@@ -170,52 +171,64 @@ export default function TestExecutionList() {
     dispatch(TestExecutionActions.fetchTestExecutionsRequest(undefined));
   }, [dispatch]);
 
-  const filteredItems = useMemo(
-    () =>
-      items.filter((item) => {
-        if (searchCriteria.searchType === "createdAt") {
-          if (!searchCriteria.startDate && !searchCriteria.endDate) {
-            return true;
-          }
+  const filteredItems = useMemo(() => {
+    const hasExplicitProgressStatusSearch =
+      searchCriteria.searchType === "progressStatus" &&
+      Boolean(searchCriteria.searchValue.trim());
 
-          const createdDate = getDateOnlyValue(item.createdAt);
-          if (!createdDate) {
-            return false;
-          }
+    return items.filter((item) => {
+      const normalizedItemStatus = normalizeStatus(item.progressStatus);
 
-          return (
-            createdDate >= searchCriteria.startDate &&
-            createdDate <= searchCriteria.endDate
-          );
-        }
+      if (
+        !hasExplicitProgressStatusSearch &&
+        !DEFAULT_VISIBLE_STATUSES.includes(
+          normalizedItemStatus as (typeof DEFAULT_VISIBLE_STATUSES)[number]
+        )
+      ) {
+        return false;
+      }
 
-        const normalizedValue = searchCriteria.searchValue.trim();
-        if (!normalizedValue) {
+      if (searchCriteria.searchType === "createdAt") {
+        if (!searchCriteria.startDate && !searchCriteria.endDate) {
           return true;
         }
 
-        if (searchCriteria.searchType === "executionType") {
-          return (
-            String(item.executionType ?? "").trim().toUpperCase() ===
-            normalizedValue
-          );
+        const createdDate = getDateOnlyValue(item.createdAt);
+        if (!createdDate) {
+          return false;
         }
 
-        if (searchCriteria.searchType === "progressStatus") {
-          return normalizeStatus(item.progressStatus) === normalizedValue;
-        }
-
-        return normalizeText(item.patientName).includes(
-          normalizedValue.toLowerCase()
+        return (
+          createdDate >= searchCriteria.startDate &&
+          createdDate <= searchCriteria.endDate
         );
-      }),
-    [items, searchCriteria]
-  );
+      }
 
-  const completedCount = useMemo(
+      const normalizedValue = searchCriteria.searchValue.trim();
+      if (!normalizedValue) {
+        return true;
+      }
+
+      if (searchCriteria.searchType === "executionType") {
+        return (
+          String(item.executionType ?? "").trim().toUpperCase() === normalizedValue
+        );
+      }
+
+      if (searchCriteria.searchType === "progressStatus") {
+        return normalizedItemStatus === normalizedValue;
+      }
+
+      return normalizeText(item.patientName).includes(
+        normalizedValue.toLowerCase()
+      );
+    });
+  }, [items, searchCriteria]);
+
+  const waitingCount = useMemo(
     () =>
-      filteredItems.filter((item) =>
-        DONE_STATUSES.includes(normalizeStatus(item.progressStatus))
+      filteredItems.filter(
+        (item) => normalizeStatus(item.progressStatus) === "WAITING"
       ).length,
     [filteredItems]
   );
@@ -278,8 +291,7 @@ export default function TestExecutionList() {
                 검사 수행 목록
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                검사실 담당자가 환자, 진료과, 상태를 빠르게 확인할 수 있는
-                운영용 목록입니다.
+                검사 시작 전 대기중이거나 검사중인 작업을 확인하는 업무 목록입니다.
               </Typography>
             </Box>
 
@@ -288,15 +300,15 @@ export default function TestExecutionList() {
             >
               <Chip label={`총 ${filteredItems.length}건`} size="small" />
               <Chip
-                label={`진행 중 ${inProgressCount}건`}
+                label={`대기 ${waitingCount}건`}
                 size="small"
-                color="info"
+                color="warning"
                 variant="outlined"
               />
               <Chip
-                label={`완료 ${completedCount}건`}
+                label={`진행 중 ${inProgressCount}건`}
                 size="small"
-                color="success"
+                color="info"
                 variant="outlined"
               />
               <Button

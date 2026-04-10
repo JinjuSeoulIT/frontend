@@ -2,17 +2,10 @@
 
 import * as React from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
-import ExamDetailDialog, {
-  type ExamDetailSection,
-} from "@/components/medical_support/common/ExamDetailDialog";
 import {
-  formatActiveStatus,
-  formatDateTime,
   formatProgressStatus,
-  formatYn,
-  getActiveStatusColor,
-  getActiveStatusSx,
   getProgressStatusColor,
   normalizeProgressStatus,
   safeValue,
@@ -39,18 +32,14 @@ import {
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { SpecimenActions } from "@/features/medical_support/specimen/specimenSlice";
-import type { SpecimenExam } from "@/features/medical_support/specimen/specimenType";
 import type { RootState, AppDispatch } from "@/store/store";
 
 export default function SpecimenList() {
   const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
 
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [selectedItem, setSelectedItem] = React.useState<SpecimenExam | null>(
-    null
-  );
-  const [isDetailDialogOpen, setIsDetailDialogOpen] = React.useState(false);
 
   const { list: items, loading, error } = useSelector(
     (state: RootState) => state.specimens
@@ -60,103 +49,57 @@ export default function SpecimenList() {
     dispatch(SpecimenActions.fetchSpecimensRequest());
   }, [dispatch]);
 
-  const waitingCount = React.useMemo(
+  const visibleItems = React.useMemo(
     () =>
       items.filter(
-        (item) => normalizeProgressStatus(item.progressStatus) === "WAITING"
+        (item) => normalizeProgressStatus(item.progressStatus) !== "CANCELLED"
+      ),
+    [items]
+  );
+
+  const cancelledCount = React.useMemo(
+    () =>
+      items.filter(
+        (item) => normalizeProgressStatus(item.progressStatus) === "CANCELLED"
       ).length,
     [items]
+  );
+
+  const waitingCount = React.useMemo(
+    () =>
+      visibleItems.filter(
+        (item) => normalizeProgressStatus(item.progressStatus) === "WAITING"
+      ).length,
+    [visibleItems]
   );
 
   const inProgressCount = React.useMemo(
     () =>
-      items.filter(
+      visibleItems.filter(
         (item) => normalizeProgressStatus(item.progressStatus) === "IN_PROGRESS"
       ).length,
-    [items]
+    [visibleItems]
   );
 
   const completedCount = React.useMemo(
     () =>
-      items.filter(
+      visibleItems.filter(
         (item) => normalizeProgressStatus(item.progressStatus) === "COMPLETED"
       ).length,
-    [items]
+    [visibleItems]
   );
 
-  const maxPage = Math.max(0, Math.ceil(items.length / rowsPerPage) - 1);
+  const maxPage = Math.max(0, Math.ceil(visibleItems.length / rowsPerPage) - 1);
   const currentPage = Math.min(page, maxPage);
 
   const paginatedItems = React.useMemo(
     () =>
-      items.slice(
+      visibleItems.slice(
         currentPage * rowsPerPage,
         currentPage * rowsPerPage + rowsPerPage
       ),
-    [currentPage, items, rowsPerPage]
+    [currentPage, visibleItems, rowsPerPage]
   );
-
-  const detailSections = React.useMemo<ExamDetailSection[]>(() => {
-    if (!selectedItem) return [];
-
-    return [
-      {
-        title: "기본 정보",
-        fields: [
-          {
-            label: "검체검사아이디",
-            value: safeValue(selectedItem.specimenExamId),
-          },
-          {
-            label: "검사수행아이디",
-            value: safeValue(selectedItem.testExecutionId),
-          },
-          {
-            label: "담당자아이디",
-            value: safeValue(selectedItem.performerId),
-          },
-          {
-            label: "진행상태",
-            value: (
-              <Chip
-                label={formatProgressStatus(selectedItem.progressStatus)}
-                color={getProgressStatusColor(selectedItem.progressStatus)}
-                size="small"
-              />
-            ),
-          },
-          {
-            label: "활성 여부",
-            value: (
-              <Chip
-                label={formatActiveStatus(selectedItem.status)}
-                color={getActiveStatusColor(selectedItem.status)}
-                size="small"
-                sx={getActiveStatusSx(selectedItem.status)}
-              />
-            ),
-          },
-        ],
-      },
-      {
-        title: "검사 상세 정보",
-        fields: [
-          { label: "검체종류", value: safeValue(selectedItem.specimenType) },
-          { label: "검체상태", value: safeValue(selectedItem.specimenStatus) },
-          { label: "채취일시", value: formatDateTime(selectedItem.collectedAt) },
-          { label: "채취부위", value: safeValue(selectedItem.collectionSite) },
-          { label: "재채취여부", value: formatYn(selectedItem.recollectionYn) },
-        ],
-      },
-      {
-        title: "이력 정보",
-        fields: [
-          { label: "생성일시", value: formatDateTime(selectedItem.createdAt) },
-          { label: "수정일시", value: formatDateTime(selectedItem.updatedAt) },
-        ],
-      },
-    ];
-  }, [selectedItem]);
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
@@ -167,16 +110,6 @@ export default function SpecimenList() {
   ) => {
     setRowsPerPage(Number(event.target.value));
     setPage(0);
-  };
-
-  const handleOpenDetail = (item: SpecimenExam) => {
-    setSelectedItem(item);
-    setIsDetailDialogOpen(true);
-  };
-
-  const handleCloseDetail = () => {
-    setIsDetailDialogOpen(false);
-    setSelectedItem(null);
   };
 
   return (
@@ -202,7 +135,7 @@ export default function SpecimenList() {
                   검체 검사 워크스테이션
                 </Typography>
                 <Typography sx={{ color: "var(--muted)" }}>
-                  검체 검사 목록을 조회하고 선택한 항목의 상세 정보를 확인하는 화면입니다.
+                  검체 검사 목록을 조회하고 항목을 선택하면 수정 화면으로 바로 이동합니다.
                 </Typography>
               </Stack>
 
@@ -221,7 +154,7 @@ export default function SpecimenList() {
         </Card>
 
         <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
-          <Chip label={`전체 ${items.length}`} color="primary" />
+          <Chip label={`전체 ${visibleItems.length}`} color="primary" />
           <Chip label={`대기 ${waitingCount}`} color="warning" variant="outlined" />
           <Chip
             label={`진행 중 ${inProgressCount}`}
@@ -231,6 +164,11 @@ export default function SpecimenList() {
           <Chip
             label={`완료 ${completedCount}`}
             color="success"
+            variant="outlined"
+          />
+          <Chip
+            label={`취소 ${cancelledCount}`}
+            color="error"
             variant="outlined"
           />
           {loading && <Chip label="불러오는 중" variant="outlined" />}
@@ -249,7 +187,7 @@ export default function SpecimenList() {
                 <ScienceOutlinedIcon sx={{ color: "var(--brand)" }} />
                 <Typography fontWeight={800}>검체 검사 목록</Typography>
               </Stack>
-              <Chip label={`표시 ${items.length}`} size="small" />
+              <Chip label={`표시 ${visibleItems.length}`} size="small" />
             </Stack>
 
             {loading && (
@@ -275,15 +213,29 @@ export default function SpecimenList() {
                 }}
               >
                 <TableContainer>
-                  <Table size="small" stickyHeader>
+                  <Table
+                    size="small"
+                    stickyHeader
+                    sx={{
+                      minWidth: 980,
+                      "& .MuiTableCell-root": {
+                        px: 1,
+                        py: 1,
+                        fontSize: 13,
+                        whiteSpace: "nowrap",
+                      },
+                    }}
+                  >
                     <TableHead>
                       <TableRow>
                         <TableCell align="center">번호</TableCell>
-                        <TableCell align="center">검체검사아이디</TableCell>
+                        <TableCell align="center">검체검사 ID</TableCell>
+                        <TableCell align="center">환자명</TableCell>
+                        <TableCell align="center">진료과</TableCell>
                         <TableCell align="center">검체종류</TableCell>
                         <TableCell align="center">검체상태</TableCell>
-                        <TableCell align="center">채취일시</TableCell>
-                        <TableCell align="center">재채취여부</TableCell>
+                        <TableCell align="center">검사수행 ID</TableCell>
+                        <TableCell align="center">담당자 ID</TableCell>
                         <TableCell align="center">진행상태</TableCell>
                       </TableRow>
                     </TableHead>
@@ -291,8 +243,8 @@ export default function SpecimenList() {
                     <TableBody>
                       {paginatedItems.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
-                            검체 검사 데이터가 없습니다.
+                          <TableCell colSpan={9} align="center" sx={{ py: 5 }}>
+                            표시할 검체 검사 데이터가 없습니다.
                           </TableCell>
                         </TableRow>
                       )}
@@ -301,10 +253,13 @@ export default function SpecimenList() {
                         <TableRow
                           key={String(item.specimenExamId)}
                           hover
-                          onClick={() => handleOpenDetail(item)}
+                          onClick={() =>
+                            router.push(
+                              `/medical_support/specimen/edit/${item.specimenExamId}`
+                            )
+                          }
                           sx={{
                             cursor: "pointer",
-                            "& td": { py: 1.25, whiteSpace: "nowrap" },
                             "&:hover": { backgroundColor: "#f9fbff" },
                           }}
                         >
@@ -315,16 +270,22 @@ export default function SpecimenList() {
                             {safeValue(item.specimenExamId)}
                           </TableCell>
                           <TableCell align="center">
+                            {safeValue(item.patientName)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(item.departmentName)}
+                          </TableCell>
+                          <TableCell align="center">
                             {safeValue(item.specimenType)}
                           </TableCell>
                           <TableCell align="center">
                             {safeValue(item.specimenStatus)}
                           </TableCell>
                           <TableCell align="center">
-                            {formatDateTime(item.collectedAt)}
+                            {safeValue(item.testExecutionId)}
                           </TableCell>
                           <TableCell align="center">
-                            {formatYn(item.recollectionYn)}
+                            {safeValue(item.performerId)}
                           </TableCell>
                           <TableCell align="center">
                             <Chip
@@ -341,7 +302,7 @@ export default function SpecimenList() {
 
                 <TablePagination
                   component="div"
-                  count={items.length}
+                  count={visibleItems.length}
                   page={currentPage}
                   onPageChange={handleChangePage}
                   rowsPerPage={rowsPerPage}
@@ -356,14 +317,6 @@ export default function SpecimenList() {
             )}
           </CardContent>
         </Card>
-
-        <ExamDetailDialog
-          open={isDetailDialogOpen}
-          title="검체 검사 상세"
-          sections={detailSections}
-          editHref={`/medical_support/specimen/edit/${selectedItem?.specimenExamId ?? ""}`}
-          onClose={handleCloseDetail}
-        />
       </Stack>
     </MainLayout>
   );

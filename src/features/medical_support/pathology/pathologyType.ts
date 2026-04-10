@@ -1,6 +1,13 @@
 export interface PathologyExam {
   pathologyExamId: string | number;
   testExecutionId?: string | number | null;
+  patientId?: string | number | null;
+  patientName?: string | null;
+  departmentName?: string | null;
+  pathologyType?: string | null;
+  specimenId?: string | number | null;
+  resultSummary?: string | null;
+  reportDocId?: string | number | null;
   tissueStatus?: string | null;
   collectionMethod?: string | null;
   tissueSite?: string | null;
@@ -16,6 +23,13 @@ export interface PathologyExam {
 
 export interface PathologyExamCreatePayload {
   testExecutionId?: string | number | null;
+  patientId?: string | number | null;
+  patientName?: string | null;
+  departmentName?: string | null;
+  pathologyType?: string | null;
+  specimenId?: string | number | null;
+  resultSummary?: string | null;
+  reportDocId?: string | number | null;
   tissueStatus?: string | null;
   collectionMethod?: string | null;
   tissueSite?: string | null;
@@ -29,6 +43,13 @@ export interface PathologyExamCreatePayload {
 
 export interface PathologyExamUpdatePayload {
   testExecutionId?: string | number | null;
+  patientId?: string | number | null;
+  patientName?: string | null;
+  departmentName?: string | null;
+  pathologyType?: string | null;
+  specimenId?: string | number | null;
+  resultSummary?: string | null;
+  reportDocId?: string | number | null;
   tissueStatus?: string | null;
   collectionMethod?: string | null;
   tissueSite?: string | null;

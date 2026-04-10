@@ -4,6 +4,9 @@ import {
   Alert,
   Box,
   Button,
+  Card,
+  CardContent,
+  Chip,
   CircularProgress,
   MenuItem,
   Stack,
@@ -23,6 +26,7 @@ type TreatmentResultEditForm = {
   procedureResultId: string;
   status: string;
   nursingId: string;
+  nurseName: string;
   detail: string;
   patientId: string;
   patientName: string;
@@ -36,6 +40,7 @@ const toTreatmentResultFormData = (
   procedureResultId: item?.procedureResultId ?? "",
   status: item?.status ?? "",
   nursingId: item?.nursingId ?? "",
+  nurseName: item?.nurseName ?? "",
   detail: item?.detail ?? "",
   patientId: item?.patientId ?? "",
   patientName: item?.patientName ?? "",
@@ -45,6 +50,80 @@ const toTreatmentResultFormData = (
 const toNullableString = (value: string) => {
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+};
+
+const displayValue = (value?: string | number | null) => {
+  if (value === null || value === undefined) return "-";
+  const text = String(value).trim();
+  return text ? text : "-";
+};
+
+type SummaryItemProps = {
+  label: string;
+  value: React.ReactNode;
+  truncate?: boolean;
+};
+
+function SummaryItem({ label, value, truncate = false }: SummaryItemProps) {
+  return (
+    <Box sx={{ minWidth: 0 }}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: "block", mb: 0.5 }}
+      >
+        {label}
+      </Typography>
+
+      {typeof value === "string" || typeof value === "number" ? (
+        <Typography
+          variant="body2"
+          fontWeight={700}
+          sx={
+            truncate
+              ? {
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }
+              : undefined
+          }
+        >
+          {value}
+        </Typography>
+      ) : (
+        value
+      )}
+    </Box>
+  );
+}
+
+const formatTreatmentResultStatus = (value: string) => {
+  const matched = TREATMENT_RESULT_STATUS_OPTIONS.find(
+    (option) => option.value === value
+  );
+  return matched?.label ?? value ?? "-";
+};
+
+const getTreatmentResultStatusColor = (
+  value: string
+): "default" | "warning" | "info" | "success" | "error" => {
+  switch (value) {
+    case "REQUESTED":
+    case "요청":
+      return "warning";
+    case "IN_PROGRESS":
+    case "진행중":
+      return "info";
+    case "COMPLETED":
+    case "완료":
+      return "success";
+    case "CANCELLED":
+    case "취소":
+      return "error";
+    default:
+      return "default";
+  }
 };
 
 export default function TreatmentResultEdit() {
@@ -58,7 +137,9 @@ export default function TreatmentResultEdit() {
     return value ?? "";
   }, [params]);
 
-  const [draftForm, setDraftForm] = useState<TreatmentResultEditForm | null>(null);
+  const [draftForm, setDraftForm] = useState<TreatmentResultEditForm | null>(
+    null
+  );
 
   const {
     selected,
@@ -71,13 +152,17 @@ export default function TreatmentResultEdit() {
 
   useEffect(() => {
     if (!treatmentResultId) return;
-    dispatch(TreatmentResultActions.fetchTreatmentResultRequest(treatmentResultId));
+    dispatch(
+      TreatmentResultActions.fetchTreatmentResultRequest(treatmentResultId)
+    );
   }, [dispatch, treatmentResultId]);
 
   const form = useMemo(() => {
     if (draftForm) return draftForm;
     if (!selected) return toTreatmentResultFormData();
-    if (String(selected.treatmentResultId ?? "") !== String(treatmentResultId)) {
+    if (
+      String(selected.treatmentResultId ?? "") !== String(treatmentResultId)
+    ) {
       return toTreatmentResultFormData();
     }
 
@@ -86,6 +171,7 @@ export default function TreatmentResultEdit() {
       procedureResultId: selected.procedureResultId ?? "",
       status: selected.status ?? "",
       nursingId: selected.nursingId ?? "",
+      nurseName: selected.nurseName ?? "",
       detail: selected.detail ?? "",
       patientId:
         selected.patientId === null || selected.patientId === undefined
@@ -110,9 +196,13 @@ export default function TreatmentResultEdit() {
 
   return (
     <main style={{ padding: 24 }}>
-      <Box sx={{ maxWidth: 840 }}>
-        <Typography variant="h5" fontWeight={700} sx={{ mb: 3 }}>
+      <Box sx={{ maxWidth: 1120, mx: "auto", pb: 2 }}>
+        <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>
           처치 결과 수정
+        </Typography>
+        <Typography color="text.secondary" sx={{ mb: 3 }}>
+          환자와 처치 결과 맥락은 상단에서 빠르게 확인하고, 수정은 아래에서
+          바로 진행할 수 있게 구성했습니다.
         </Typography>
 
         {detailError ? (
@@ -127,97 +217,290 @@ export default function TreatmentResultEdit() {
           </Alert>
         ) : null}
 
-        <Stack spacing={2}>
-          <TextField
-            label="처치결과 ID"
-            value={form.treatmentResultId}
-            disabled
-            fullWidth
-          />
-          <TextField
-            select
-            label="상태"
-            value={form.status}
-            onChange={(e) => setDraftForm({ ...form, status: e.target.value })}
-            fullWidth
+        <Card
+          elevation={0}
+          sx={{
+            mb: 2,
+            borderRadius: 3,
+            border: "1px solid",
+            borderColor: "grey.200",
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)",
+          }}
+        >
+          <CardContent sx={{ px: { xs: 2, md: 3 }, py: 2.25 }}>
+            <Stack spacing={2}>
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                justifyContent="space-between"
+                alignItems={{ xs: "flex-start", md: "center" }}
+                gap={1.5}
+              >
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography
+                    variant="overline"
+                    color="text.secondary"
+                    sx={{ letterSpacing: 0.8 }}
+                  >
+                    환자 및 결과 요약
+                  </Typography>
+
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    useFlexGap
+                    flexWrap="wrap"
+                    alignItems="center"
+                  >
+                    <Typography variant="h6" fontWeight={800}>
+                      {displayValue(form.patientName)}
+                    </Typography>
+
+                    <Chip
+                      label={`환자 ID ${displayValue(form.patientId)}`}
+                      size="small"
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={displayValue(form.departmentName)}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </Stack>
+                </Box>
+
+                <Chip
+                  label={formatTreatmentResultStatus(form.status)}
+                  color={getTreatmentResultStatusColor(form.status)}
+                />
+              </Stack>
+
+              <Box
+                sx={{
+                  display: "grid",
+                  gap: 1.75,
+                  gridTemplateColumns: {
+                    xs: "1fr 1fr",
+                    lg: "repeat(4, minmax(0, 1fr))",
+                  },
+                }}
+              >
+                <SummaryItem
+                  label="처치결과 ID"
+                  value={displayValue(form.treatmentResultId)}
+                />
+                <SummaryItem
+                  label="처치/시술 ID"
+                  value={displayValue(form.procedureResultId)}
+                />
+                <SummaryItem
+                  label="담당 간호사"
+                  value={displayValue(form.nurseName)}
+                  truncate
+                />
+                <SummaryItem
+                  label="현재 상태"
+                  value={formatTreatmentResultStatus(form.status)}
+                />
+              </Box>
+            </Stack>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            borderRadius: 3,
+            border: "1px solid",
+            borderColor: "grey.200",
+            backgroundColor: "#fff",
+          }}
+        >
+          <Box
+            sx={{
+              px: { xs: 2, md: 3 },
+              py: 2,
+              borderBottom: "1px solid",
+              borderColor: "grey.200",
+              backgroundColor: "#fafafa",
+            }}
           >
-            {TREATMENT_RESULT_STATUS_OPTIONS.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            label="환자명"
-            value={form.patientName}
-            disabled
-            fullWidth
-          />
-          <TextField
-            label="환자 ID"
-            value={form.patientId}
-            disabled
-            fullWidth
-          />
-          <TextField
-            label="진료과"
-            value={form.departmentName}
-            disabled
-            fullWidth
-          />
-          <TextField
-            label="간호사 ID"
-            value={form.nursingId}
-            onChange={(e) =>
-              setDraftForm({ ...form, nursingId: e.target.value })
-            }
-            fullWidth
-          />
-          <TextField
-            label="처치내용"
-            value={form.detail}
-            onChange={(e) => setDraftForm({ ...form, detail: e.target.value })}
-            multiline
-            minRows={4}
-            fullWidth
-          />
+            <Typography variant="subtitle1" fontWeight={700}>
+              수정 항목
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              상태, 담당 간호사 정보, 처치 내용을 한 화면에서 빠르게 수정할 수
+              있습니다.
+            </Typography>
+          </Box>
 
-          <Stack direction="row" spacing={1} justifyContent="flex-end">
-            <Button
-              variant="outlined"
-              onClick={() => router.push("/medical_support/medicationTreatment")}
-            >
-              취소
-            </Button>
-
-            <Button
-              variant="contained"
-              onClick={() => {
-                if (!treatmentResultId) return;
-
-                dispatch(
-                  TreatmentResultActions.updateTreatmentResultRequest({
-                    treatmentResultId,
-                    form: {
-                      status: toNullableString(form.status),
-                      nursingId: toNullableString(form.nursingId),
-                      detail: toNullableString(form.detail),
-                      patientId: form.patientId.trim()
-                        ? Number(form.patientId)
-                        : null,
-                      patientName: toNullableString(form.patientName),
-                      departmentName: toNullableString(form.departmentName),
-                      procedureResultId: toNullableString(form.procedureResultId),
-                    },
-                  })
-                );
+          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 1.75,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                },
               }}
-              disabled={loading || detailLoading}
             >
-              저장
-            </Button>
-          </Stack>
-        </Stack>
+              <TextField
+                select
+                label="상태"
+                size="small"
+                value={form.status}
+                onChange={(e) => setDraftForm({ ...form, status: e.target.value })}
+                fullWidth
+              >
+                {TREATMENT_RESULT_STATUS_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              <TextField
+                label="간호사명"
+                size="small"
+                value={form.nurseName}
+                onChange={(e) =>
+                  setDraftForm({ ...form, nurseName: e.target.value })
+                }
+                fullWidth
+              />
+
+              <TextField
+                label="간호사 ID"
+                size="small"
+                value={form.nursingId}
+                onChange={(e) =>
+                  setDraftForm({ ...form, nursingId: e.target.value })
+                }
+                fullWidth
+              />
+
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  px: 1.5,
+                  py: 1,
+                  borderRadius: 2,
+                  border: "1px dashed",
+                  borderColor: "grey.300",
+                  backgroundColor: "#fcfcfd",
+                }}
+              >
+                <SummaryItem
+                  label="환자 식별"
+                  value={`${displayValue(form.patientName)} / ${displayValue(form.patientId)}`}
+                  truncate
+                />
+              </Box>
+
+              <Box sx={{ gridColumn: { md: "1 / -1" } }}>
+                <TextField
+                  label="처치내용"
+                  size="small"
+                  value={form.detail}
+                  onChange={(e) =>
+                    setDraftForm({ ...form, detail: e.target.value })
+                  }
+                  multiline
+                  minRows={5}
+                  fullWidth
+                />
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Box
+          sx={{
+            position: "sticky",
+            bottom: 16,
+            zIndex: 20,
+            mt: 2,
+          }}
+        >
+          <Card
+            elevation={6}
+            sx={{
+              borderRadius: 3,
+              border: "1px solid",
+              borderColor: "grey.200",
+              backgroundColor: "rgba(255, 255, 255, 0.96)",
+              backdropFilter: "blur(10px)",
+              boxShadow: "0 12px 28px rgba(15, 23, 42, 0.12)",
+            }}
+          >
+            <CardContent
+              sx={{
+                px: { xs: 2, md: 2.5 },
+                py: 1.5,
+                "&:last-child": { pb: 1.5 },
+              }}
+            >
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                justifyContent="space-between"
+                alignItems={{ xs: "stretch", sm: "center" }}
+                gap={1.5}
+              >
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="subtitle2" fontWeight={700}>
+                    변경 사항 저장
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    상태, 담당 간호사, 처치 내용을 확인한 뒤 저장하세요.
+                  </Typography>
+                </Box>
+
+                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                  <Button
+                    variant="outlined"
+                    onClick={() =>
+                      router.push("/medical_support/medicationTreatment")
+                    }
+                  >
+                    취소
+                  </Button>
+
+                  <Button
+                    variant="contained"
+                    onClick={() => {
+                      if (!treatmentResultId) return;
+
+                      dispatch(
+                        TreatmentResultActions.updateTreatmentResultRequest({
+                          treatmentResultId,
+                          form: {
+                            status: toNullableString(form.status),
+                            nursingId: toNullableString(form.nursingId),
+                            nurseName: toNullableString(form.nurseName),
+                            detail: toNullableString(form.detail),
+                            patientId: form.patientId.trim()
+                              ? Number(form.patientId)
+                              : null,
+                            patientName: toNullableString(form.patientName),
+                            departmentName: toNullableString(form.departmentName),
+                            procedureResultId: toNullableString(
+                              form.procedureResultId
+                            ),
+                          },
+                        })
+                      );
+                    }}
+                    disabled={loading || detailLoading}
+                  >
+                    저장
+                  </Button>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Box>
       </Box>
     </main>
   );

@@ -137,8 +137,16 @@ export default function MedicationRecordDetailDialog({
                     value={safeValue(item.doseKind)}
                   />
                   <DetailField
+                    label="간호사명"
+                    value={safeValue(item.nurseName)}
+                  />
+                  <DetailField
                     label="간호사 ID"
                     value={safeValue(item.nursingId)}
+                  />
+                  <DetailField
+                    label="진료과"
+                    value={safeValue(item.departmentName)}
                   />
                 </Box>
               </Box>
@@ -163,10 +171,6 @@ export default function MedicationRecordDetailDialog({
                 >
                   <DetailField label="환자명" value={safeValue(item.patientName)} />
                   <DetailField label="환자 ID" value={safeValue(item.patientId)} />
-                  <DetailField
-                    label="진료과"
-                    value={safeValue(item.departmentName)}
-                  />
                 </Box>
               </Box>
             </>

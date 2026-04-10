@@ -2,17 +2,10 @@
 
 import * as React from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
-import ExamDetailDialog, {
-  type ExamDetailSection,
-} from "@/components/medical_support/common/ExamDetailDialog";
 import {
-  formatActiveStatus,
-  formatDateTime,
   formatProgressStatus,
-  formatYn,
-  getActiveStatusColor,
-  getActiveStatusSx,
   getProgressStatusColor,
   normalizeProgressStatus,
   safeValue,
@@ -39,18 +32,14 @@ import {
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { PathologyActions } from "@/features/medical_support/pathology/pathologySlice";
-import type { PathologyExam } from "@/features/medical_support/pathology/pathologyType";
 import type { RootState, AppDispatch } from "@/store/store";
 
 export default function PathologyList() {
   const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
 
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [selectedItem, setSelectedItem] = React.useState<PathologyExam | null>(
-    null
-  );
-  const [isDetailDialogOpen, setIsDetailDialogOpen] = React.useState(false);
 
   const { list: items, loading, error } = useSelector(
     (state: RootState) => state.pathologies
@@ -60,104 +49,57 @@ export default function PathologyList() {
     dispatch(PathologyActions.fetchPathologiesRequest());
   }, [dispatch]);
 
-  const waitingCount = React.useMemo(
+  const visibleItems = React.useMemo(
     () =>
       items.filter(
-        (item) => normalizeProgressStatus(item.progressStatus) === "WAITING"
+        (item) => normalizeProgressStatus(item.progressStatus) !== "CANCELLED"
+      ),
+    [items]
+  );
+
+  const cancelledCount = React.useMemo(
+    () =>
+      items.filter(
+        (item) => normalizeProgressStatus(item.progressStatus) === "CANCELLED"
       ).length,
     [items]
+  );
+
+  const waitingCount = React.useMemo(
+    () =>
+      visibleItems.filter(
+        (item) => normalizeProgressStatus(item.progressStatus) === "WAITING"
+      ).length,
+    [visibleItems]
   );
 
   const inProgressCount = React.useMemo(
     () =>
-      items.filter(
+      visibleItems.filter(
         (item) => normalizeProgressStatus(item.progressStatus) === "IN_PROGRESS"
       ).length,
-    [items]
+    [visibleItems]
   );
 
   const completedCount = React.useMemo(
     () =>
-      items.filter(
+      visibleItems.filter(
         (item) => normalizeProgressStatus(item.progressStatus) === "COMPLETED"
       ).length,
-    [items]
+    [visibleItems]
   );
 
-  const maxPage = Math.max(0, Math.ceil(items.length / rowsPerPage) - 1);
+  const maxPage = Math.max(0, Math.ceil(visibleItems.length / rowsPerPage) - 1);
   const currentPage = Math.min(page, maxPage);
 
   const paginatedItems = React.useMemo(
     () =>
-      items.slice(
+      visibleItems.slice(
         currentPage * rowsPerPage,
         currentPage * rowsPerPage + rowsPerPage
       ),
-    [currentPage, items, rowsPerPage]
+    [currentPage, visibleItems, rowsPerPage]
   );
-
-  const detailSections = React.useMemo<ExamDetailSection[]>(() => {
-    if (!selectedItem) return [];
-
-    return [
-      {
-        title: "기본 정보",
-        fields: [
-          {
-            label: "병리검사아이디",
-            value: safeValue(selectedItem.pathologyExamId),
-          },
-          {
-            label: "검사수행아이디",
-            value: safeValue(selectedItem.testExecutionId),
-          },
-          {
-            label: "담당자아이디",
-            value: safeValue(selectedItem.performerId),
-          },
-          {
-            label: "진행상태",
-            value: (
-              <Chip
-                label={formatProgressStatus(selectedItem.progressStatus)}
-                color={getProgressStatusColor(selectedItem.progressStatus)}
-                size="small"
-              />
-            ),
-          },
-          {
-            label: "활성 여부",
-            value: (
-              <Chip
-                label={formatActiveStatus(selectedItem.status)}
-                color={getActiveStatusColor(selectedItem.status)}
-                size="small"
-                sx={getActiveStatusSx(selectedItem.status)}
-              />
-            ),
-          },
-        ],
-      },
-      {
-        title: "검사 상세 정보",
-        fields: [
-          { label: "조직상태", value: safeValue(selectedItem.tissueStatus) },
-          { label: "채취방법", value: safeValue(selectedItem.collectionMethod) },
-          { label: "조직부위", value: safeValue(selectedItem.tissueSite) },
-          { label: "조직종류", value: safeValue(selectedItem.tissueType) },
-          { label: "채취일시", value: formatDateTime(selectedItem.collectedAt) },
-          { label: "재검여부", value: formatYn(selectedItem.reexamYn) },
-        ],
-      },
-      {
-        title: "이력 정보",
-        fields: [
-          { label: "생성일시", value: formatDateTime(selectedItem.createdAt) },
-          { label: "수정일시", value: formatDateTime(selectedItem.updatedAt) },
-        ],
-      },
-    ];
-  }, [selectedItem]);
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
@@ -168,16 +110,6 @@ export default function PathologyList() {
   ) => {
     setRowsPerPage(Number(event.target.value));
     setPage(0);
-  };
-
-  const handleOpenDetail = (item: PathologyExam) => {
-    setSelectedItem(item);
-    setIsDetailDialogOpen(true);
-  };
-
-  const handleCloseDetail = () => {
-    setIsDetailDialogOpen(false);
-    setSelectedItem(null);
   };
 
   return (
@@ -203,7 +135,7 @@ export default function PathologyList() {
                   병리 검사 워크스테이션
                 </Typography>
                 <Typography sx={{ color: "var(--muted)" }}>
-                  병리 검사 목록을 조회하고 선택한 항목의 상세 정보를 확인하는 화면입니다.
+                  병리 검사 목록을 조회하고 항목을 선택하면 수정 화면으로 바로 이동합니다.
                 </Typography>
               </Stack>
 
@@ -222,7 +154,7 @@ export default function PathologyList() {
         </Card>
 
         <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
-          <Chip label={`전체 ${items.length}`} color="primary" />
+          <Chip label={`전체 ${visibleItems.length}`} color="primary" />
           <Chip label={`대기 ${waitingCount}`} color="warning" variant="outlined" />
           <Chip
             label={`진행 중 ${inProgressCount}`}
@@ -234,12 +166,17 @@ export default function PathologyList() {
             color="success"
             variant="outlined"
           />
+          <Chip
+            label={`취소 ${cancelledCount}`}
+            color="error"
+            variant="outlined"
+          />
           {loading && <Chip label="불러오는 중" variant="outlined" />}
           {error && <Chip label={`오류: ${error}`} color="error" />}
         </Stack>
 
         <Card sx={{ borderRadius: 3, border: "1px solid var(--line)" }}>
-          <CardContent sx={{ p: 2 }}>
+          <CardContent sx={{ p: 2.5 }}>
             <Stack
               direction="row"
               spacing={1}
@@ -250,7 +187,7 @@ export default function PathologyList() {
                 <ScienceOutlinedIcon sx={{ color: "var(--brand)" }} />
                 <Typography fontWeight={800}>병리 검사 목록</Typography>
               </Stack>
-              <Chip label={`표시 ${items.length}`} size="small" />
+              <Chip label={`표시 ${visibleItems.length}`} size="small" />
             </Stack>
 
             {loading && (
@@ -280,7 +217,7 @@ export default function PathologyList() {
                     size="small"
                     stickyHeader
                     sx={{
-                      minWidth: 820,
+                      minWidth: 920,
                       "& .MuiTableCell-root": {
                         px: 1,
                         py: 1,
@@ -292,11 +229,12 @@ export default function PathologyList() {
                     <TableHead>
                       <TableRow>
                         <TableCell align="center">번호</TableCell>
-                        <TableCell align="center">병리검사아이디</TableCell>
-                        <TableCell align="center">조직종류</TableCell>
-                        <TableCell align="center">조직부위</TableCell>
-                        <TableCell align="center">채취일시</TableCell>
-                        <TableCell align="center">재검여부</TableCell>
+                        <TableCell align="center">병리검사 ID</TableCell>
+                        <TableCell align="center">환자명</TableCell>
+                        <TableCell align="center">진료과</TableCell>
+                        <TableCell align="center">병리유형</TableCell>
+                        <TableCell align="center">검사수행 ID</TableCell>
+                        <TableCell align="center">담당자 ID</TableCell>
                         <TableCell align="center">진행상태</TableCell>
                       </TableRow>
                     </TableHead>
@@ -304,8 +242,8 @@ export default function PathologyList() {
                     <TableBody>
                       {paginatedItems.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
-                            병리 검사 데이터가 없습니다.
+                          <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                            표시할 병리 검사 데이터가 없습니다.
                           </TableCell>
                         </TableRow>
                       )}
@@ -314,7 +252,11 @@ export default function PathologyList() {
                         <TableRow
                           key={String(item.pathologyExamId)}
                           hover
-                          onClick={() => handleOpenDetail(item)}
+                          onClick={() =>
+                            router.push(
+                              `/medical_support/pathology/edit/${item.pathologyExamId}`
+                            )
+                          }
                           sx={{
                             cursor: "pointer",
                             "&:hover": { backgroundColor: "#f9fbff" },
@@ -327,16 +269,19 @@ export default function PathologyList() {
                             {safeValue(item.pathologyExamId)}
                           </TableCell>
                           <TableCell align="center">
-                            {safeValue(item.tissueType)}
+                            {safeValue(item.patientName)}
                           </TableCell>
                           <TableCell align="center">
-                            {safeValue(item.tissueSite)}
+                            {safeValue(item.departmentName)}
                           </TableCell>
                           <TableCell align="center">
-                            {formatDateTime(item.collectedAt)}
+                            {safeValue(item.pathologyType)}
                           </TableCell>
                           <TableCell align="center">
-                            {formatYn(item.reexamYn)}
+                            {safeValue(item.testExecutionId)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(item.performerId)}
                           </TableCell>
                           <TableCell align="center">
                             <Chip
@@ -353,7 +298,7 @@ export default function PathologyList() {
 
                 <TablePagination
                   component="div"
-                  count={items.length}
+                  count={visibleItems.length}
                   page={currentPage}
                   onPageChange={handleChangePage}
                   rowsPerPage={rowsPerPage}
@@ -368,14 +313,6 @@ export default function PathologyList() {
             )}
           </CardContent>
         </Card>
-
-        <ExamDetailDialog
-          open={isDetailDialogOpen}
-          title="병리 검사 상세"
-          sections={detailSections}
-          editHref={`/medical_support/pathology/edit/${selectedItem?.pathologyExamId ?? ""}`}
-          onClose={handleCloseDetail}
-        />
       </Stack>
     </MainLayout>
   );

@@ -11,20 +11,33 @@ const api = axios.create({
     process.env.NEXT_PUBLIC_NURSING_API_BASE_URL ?? "http://192.168.1.66:8181",
 });
 
+type TreatmentResultApiRaw = TreatmentResult & {
+  NURSE_NAME?: string | null;
+};
+
+const normalizeTreatmentResult = (
+  item: TreatmentResultApiRaw
+): TreatmentResult => ({
+  ...item,
+  nurseName: item.nurseName ?? item.NURSE_NAME ?? null,
+});
+
 export const fetchTreatmentResultsApi = async (): Promise<TreatmentResult[]> => {
-  const res = await api.get<ApiResponse<TreatmentResult[]>>("/api/treatmentResult");
+  const res = await api.get<ApiResponse<TreatmentResultApiRaw[]>>(
+    "/api/treatmentResult"
+  );
 
   if (!res.data.success) {
     throw new Error(res.data.message || "처치 결과 목록 조회에 실패했습니다.");
   }
 
-  return res.data.result;
+  return (res.data.result ?? []).map(normalizeTreatmentResult);
 };
 
 export const fetchTreatmentResultApi = async (
   treatmentResultId: string
 ): Promise<TreatmentResult> => {
-  const res = await api.get<ApiResponse<TreatmentResult>>(
+  const res = await api.get<ApiResponse<TreatmentResultApiRaw>>(
     `/api/treatmentResult/${treatmentResultId}`
   );
 
@@ -32,13 +45,13 @@ export const fetchTreatmentResultApi = async (
     throw new Error(res.data.message || "처치 결과 상세 조회에 실패했습니다.");
   }
 
-  return res.data.result;
+  return normalizeTreatmentResult(res.data.result ?? {});
 };
 
 export const createTreatmentResultApi = async (
   payload: TreatmentResultCreatePayload
 ): Promise<TreatmentResult> => {
-  const res = await api.post<ApiResponse<TreatmentResult>>(
+  const res = await api.post<ApiResponse<TreatmentResultApiRaw>>(
     "/api/treatmentResult",
     payload
   );
@@ -47,14 +60,14 @@ export const createTreatmentResultApi = async (
     throw new Error(res.data.message || "처치 결과 등록에 실패했습니다.");
   }
 
-  return res.data.result;
+  return normalizeTreatmentResult(res.data.result ?? {});
 };
 
 export const updateTreatmentResultApi = async (
   treatmentResultId: string,
   payload: TreatmentResultUpdatePayload
 ): Promise<TreatmentResult> => {
-  const res = await api.put<ApiResponse<TreatmentResult>>(
+  const res = await api.put<ApiResponse<TreatmentResultApiRaw>>(
     `/api/treatmentResult/${treatmentResultId}`,
     payload
   );
@@ -63,5 +76,5 @@ export const updateTreatmentResultApi = async (
     throw new Error(res.data.message || "처치 결과 수정에 실패했습니다.");
   }
 
-  return res.data.result;
+  return normalizeTreatmentResult(res.data.result ?? {});
 };

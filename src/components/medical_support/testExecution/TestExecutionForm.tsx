@@ -15,6 +15,7 @@ import {
 import {
   TEST_EXECUTION_TYPE_OPTIONS,
   type TestExecution,
+  type TestExecutionUpdatePayload,
 } from "@/features/medical_support/testExecution/testExecutionType";
 
 type TestExecutionFormData = {
@@ -38,21 +39,22 @@ type Props = {
   form: TestExecutionFormData;
   onChange: (form: TestExecutionFormData) => void;
   onSubmit: () => void;
-  onCancel?: () => void;
+  onNavigateList?: () => void;
+  onCancelExecution?: () => void;
+  cancelExecutionDisabled?: boolean;
+  submitDisabled?: boolean;
   loading?: boolean;
 };
 
-const progressStatusOptions = [
-  "WAITING",
-  "IN_PROGRESS",
-  "COMPLETED",
-  "CANCELLED",
-] as const;
+type ProgressStatus =
+  | "WAITING"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELLED";
 
-const progressStatusOptionLabels: Record<
-  (typeof progressStatusOptions)[number],
-  string
-> = {
+const editableProgressStatusOptions = ["WAITING", "IN_PROGRESS"] as const;
+
+const progressStatusOptionLabels: Record<ProgressStatus, string> = {
   WAITING: "대기중",
   IN_PROGRESS: "검사중",
   COMPLETED: "검사완료",
@@ -116,7 +118,8 @@ export const toTestExecutionFormData = (
   departmentName: toTextValue(value?.departmentName),
   executionType: value?.executionType ?? "",
   progressStatus: value?.progressStatus ?? "",
-  retryNo: value?.retryNo === 0 ? "0" : value?.retryNo ? String(value.retryNo) : "",
+  retryNo:
+    value?.retryNo === 0 ? "0" : value?.retryNo ? String(value.retryNo) : "",
   createdAt: toDateTimeInputValue(value?.createdAt),
   updatedAt: toDateTimeInputValue(value?.updatedAt),
   startedAt: toDateTimeInputValue(value?.startedAt),
@@ -139,18 +142,50 @@ export const toTestExecutionPayload = (
   completedAt: toNullableDateTime(form.completedAt),
 });
 
+export const toTestExecutionUpdatePayload = (
+  form: TestExecutionFormData,
+  source?: Partial<TestExecution> | null
+): TestExecutionUpdatePayload => {
+  const patientName = toNullableText(form.patientName);
+  const departmentName = toNullableText(form.departmentName);
+
+  return {
+    progressStatus: form.progressStatus.trim() || null,
+    retryNo: toNullableNumber(form.retryNo),
+    patientId: source?.patientId,
+    patientName: patientName ?? source?.patientName ?? undefined,
+    departmentName: departmentName ?? source?.departmentName ?? undefined,
+    performerId: source?.performerId,
+  };
+};
+
 export default function TestExecutionForm({
   mode,
   form,
   onChange,
   onSubmit,
-  onCancel,
+  onNavigateList,
+  onCancelExecution,
+  cancelExecutionDisabled = false,
+  submitDisabled = false,
   loading = false,
 }: Props) {
   const isEditMode = mode === "edit";
   const readOnlyTextFieldProps = {
     InputProps: { readOnly: true },
   } as const;
+  const normalizedProgressStatus = form.progressStatus.trim().toUpperCase();
+  const shouldShowReadOnlyStatus =
+    Boolean(normalizedProgressStatus) &&
+    !editableProgressStatusOptions.includes(
+      normalizedProgressStatus as (typeof editableProgressStatusOptions)[number]
+    );
+  const visibleProgressStatusOptions = shouldShowReadOnlyStatus
+    ? [
+        normalizedProgressStatus as ProgressStatus,
+        ...editableProgressStatusOptions,
+      ]
+    : [...editableProgressStatusOptions];
 
   const handleChange =
     (field: keyof TestExecutionFormData) =>
@@ -173,14 +208,29 @@ export default function TestExecutionForm({
         }}
       >
         <Box sx={{ px: 3, py: 2.5, backgroundColor: "#fafafa" }}>
-          <Typography variant="h6" fontWeight={700}>
-            {isEditMode ? "검사 수행 수정" : "검사 수행 등록"}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            {isEditMode
-              ? "검사 수행의 식별 정보와 이력은 확인만 하고, 필요한 상태 값만 수정합니다."
-              : "검사 수행 정보를 입력하고 등록할 수 있습니다."}
-          </Typography>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            justifyContent="space-between"
+            alignItems={{ xs: "flex-start", sm: "center" }}
+            spacing={2}
+          >
+            <Box>
+              <Typography variant="h6" fontWeight={700}>
+                검사 수행 등록
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                {isEditMode
+                  ? "검사 시작 전 식별 정보와 진행 상태를 확인하고 필요한 값만 등록합니다."
+                  : "검사 수행 정보를 입력하고 등록합니다."}
+              </Typography>
+            </Box>
+
+            {isEditMode && onNavigateList ? (
+              <Button variant="outlined" size="small" onClick={onNavigateList}>
+                목록으로
+              </Button>
+            ) : null}
+          </Stack>
         </Box>
 
         <Divider />
@@ -206,8 +256,8 @@ export default function TestExecutionForm({
                     {...(isEditMode ? readOnlyTextFieldProps : {})}
                     helperText={
                       isEditMode
-                        ? "수정 화면에서는 검사수행 ID를 변경하지 않습니다."
-                        : "자동 생성이면 비워둘 수 있습니다."
+                        ? "시작 화면에서는 검사수행 ID를 변경하지 않습니다."
+                        : "자동 생성되면 비워둬도 됩니다."
                     }
                   />
                 </Grid>
@@ -274,11 +324,18 @@ export default function TestExecutionForm({
                     fullWidth
                   >
                     <MenuItem value="">선택</MenuItem>
-                    {progressStatusOptions.map((option) => (
-                      <MenuItem key={option} value={option}>
-                        {progressStatusOptionLabels[option]}
-                      </MenuItem>
-                    ))}
+                    {visibleProgressStatusOptions.map((option) => {
+                      const isReadOnlyStatus =
+                        !editableProgressStatusOptions.includes(
+                          option as (typeof editableProgressStatusOptions)[number]
+                        );
+
+                      return (
+                        <MenuItem key={option} value={option} disabled={isReadOnlyStatus}>
+                          {progressStatusOptionLabels[option]}
+                        </MenuItem>
+                      );
+                    })}
                   </TextField>
                 </Grid>
               </Grid>
@@ -291,8 +348,8 @@ export default function TestExecutionForm({
                 처리 및 이력 정보
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                진행상태와 재시도 횟수는 조정할 수 있고, 나머지 이력 컬럼은
-                읽기 전용으로 보여줍니다.
+                진행상태와 재시도 횟수는 조정할 수 있고, 나머지 이력 컬럼은 읽기 전용으로
+                보여집니다.
               </Typography>
 
               <Grid container spacing={2}>
@@ -327,7 +384,7 @@ export default function TestExecutionForm({
                       size="small"
                       fullWidth
                       {...readOnlyTextFieldProps}
-                      helperText="감사 이력 컬럼으로 수정 화면에서는 읽기 전용입니다."
+                      helperText="감사 이력 컬럼으로 시작 화면에서는 읽기 전용입니다."
                     />
                   </Grid>
                 )}
@@ -335,13 +392,28 @@ export default function TestExecutionForm({
             </Box>
 
             <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ pt: 1 }}>
-              {isEditMode && onCancel ? (
-                <Button variant="outlined" onClick={onCancel}>
-                  취소
+              {isEditMode && onCancelExecution ? (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={onCancelExecution}
+                  disabled={loading || cancelExecutionDisabled}
+                >
+                  검사 취소
                 </Button>
               ) : null}
-              <Button variant="contained" onClick={onSubmit} disabled={loading}>
-                {loading ? "처리 중..." : isEditMode ? "수정" : "등록"}
+              <Button
+                variant="contained"
+                onClick={onSubmit}
+                disabled={loading || submitDisabled}
+              >
+                {loading
+                  ? isEditMode
+                    ? "검사 시작 준비 중..."
+                    : "등록 중..."
+                  : isEditMode
+                    ? "검사 시작"
+                    : "등록"}
               </Button>
             </Stack>
           </Stack>

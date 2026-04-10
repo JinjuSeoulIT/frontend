@@ -217,13 +217,14 @@ export function TreatmentResultListSection() {
               }}
             >
               <TableContainer>
-                <Table size="small" stickyHeader sx={{ minWidth: 980 }}>
+                <Table size="small" stickyHeader sx={{ minWidth: 1140 }}>
                   <TableHead>
                     <TableRow>
                       <TableCell align="center">번호</TableCell>
                       <TableCell align="center">처치결과 ID</TableCell>
                       <TableCell align="center">환자명</TableCell>
                       <TableCell align="center">진료과</TableCell>
+                      <TableCell align="center">간호사명</TableCell>
                       <TableCell align="center">상태</TableCell>
                       <TableCell align="left">처치내용</TableCell>
                     </TableRow>
@@ -232,7 +233,7 @@ export function TreatmentResultListSection() {
                   <TableBody>
                     {paginatedRows.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={6} align="center">
+                        <TableCell colSpan={7} align="center">
                           처치 결과 데이터가 없습니다.
                         </TableCell>
                       </TableRow>
@@ -264,6 +265,9 @@ export function TreatmentResultListSection() {
                         </TableCell>
                         <TableCell align="center">
                           {safeValue(row.departmentName)}
+                        </TableCell>
+                        <TableCell align="center">
+                          {safeValue(row.nurseName)}
                         </TableCell>
                         <TableCell align="center">
                           <Chip

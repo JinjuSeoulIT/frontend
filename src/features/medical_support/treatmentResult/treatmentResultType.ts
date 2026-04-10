@@ -4,6 +4,7 @@ export interface TreatmentResult {
   status?: string | null;
   createdAt?: string | null;
   nursingId?: string | null;
+  nurseName?: string | null;
   detail?: string | null;
   patientId?: number | null;
   patientName?: string | null;
@@ -13,6 +14,7 @@ export interface TreatmentResult {
 export interface TreatmentResultCreatePayload {
   status?: string | null;
   nursingId?: string | null;
+  nurseName?: string | null;
   detail?: string | null;
   patientId?: number | null;
   patientName?: string | null;
@@ -23,6 +25,7 @@ export interface TreatmentResultCreatePayload {
 export interface TreatmentResultUpdatePayload {
   status?: string | null;
   nursingId?: string | null;
+  nurseName?: string | null;
   detail?: string | null;
   patientId?: number | null;
   patientName?: string | null;

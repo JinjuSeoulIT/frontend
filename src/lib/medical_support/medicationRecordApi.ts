@@ -11,8 +11,19 @@ const api = axios.create({
     process.env.NEXT_PUBLIC_NURSING_API_BASE_URL ?? "http://192.168.1.66:8181",
 });
 
+type MedicationRecordApiRaw = MedicationRecord & {
+  NURSE_NAME?: string | null;
+};
+
+const normalizeMedicationRecord = (
+  item: MedicationRecordApiRaw
+): MedicationRecord => ({
+  ...item,
+  nurseName: item.nurseName ?? item.NURSE_NAME ?? null,
+});
+
 export const fetchMedicationRecordsApi = async (): Promise<MedicationRecord[]> => {
-  const res = await api.get<ApiResponse<MedicationRecord[]>>(
+  const res = await api.get<ApiResponse<MedicationRecordApiRaw[]>>(
     "/api/medicationRecord"
   );
 
@@ -20,13 +31,13 @@ export const fetchMedicationRecordsApi = async (): Promise<MedicationRecord[]> =
     throw new Error(res.data.message || "투약 기록 목록 조회에 실패했습니다.");
   }
 
-  return res.data.result;
+  return (res.data.result ?? []).map(normalizeMedicationRecord);
 };
 
 export const fetchMedicationRecordApi = async (
   medicationRecordId: string | number
 ): Promise<MedicationRecord> => {
-  const res = await api.get<ApiResponse<MedicationRecord>>(
+  const res = await api.get<ApiResponse<MedicationRecordApiRaw>>(
     `/api/medicationRecord/${medicationRecordId}`
   );
 
@@ -34,13 +45,13 @@ export const fetchMedicationRecordApi = async (
     throw new Error(res.data.message || "투약 기록 상세 조회에 실패했습니다.");
   }
 
-  return res.data.result;
+  return normalizeMedicationRecord(res.data.result ?? {});
 };
 
 export const createMedicationRecordApi = async (
   payload: MedicationRecordCreatePayload
 ): Promise<MedicationRecord> => {
-  const res = await api.post<ApiResponse<MedicationRecord>>(
+  const res = await api.post<ApiResponse<MedicationRecordApiRaw>>(
     "/api/medicationRecord",
     payload
   );
@@ -49,14 +60,14 @@ export const createMedicationRecordApi = async (
     throw new Error(res.data.message || "투약 기록 등록에 실패했습니다.");
   }
 
-  return res.data.result;
+  return normalizeMedicationRecord(res.data.result ?? {});
 };
 
 export const updateMedicationRecordApi = async (
   medicationRecordId: string | number,
   payload: MedicationRecordUpdatePayload
 ): Promise<MedicationRecord> => {
-  const res = await api.put<ApiResponse<MedicationRecord>>(
+  const res = await api.put<ApiResponse<MedicationRecordApiRaw>>(
     `/api/medicationRecord/${medicationRecordId}`,
     payload
   );
@@ -65,5 +76,5 @@ export const updateMedicationRecordApi = async (
     throw new Error(res.data.message || "투약 기록 수정에 실패했습니다.");
   }
 
-  return res.data.result;
+  return normalizeMedicationRecord(res.data.result ?? {});
 };

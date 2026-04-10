@@ -1,6 +1,9 @@
 import axios from "axios";
 import type { ApiResponse } from "@/features/patients/patientTypes";
-import type { TestExecution } from "@/features/medical_support/testExecution/testExecutionType";
+import type {
+  TestExecution,
+  TestExecutionUpdatePayload,
+} from "@/features/medical_support/testExecution/testExecutionType";
 
 const api = axios.create({
   baseURL:
@@ -52,7 +55,7 @@ export const createTestExecutionApi = async (
 
 export const updateTestExecutionApi = async (
   testExecutionId: string | number,
-  payload: TestExecution
+  payload: TestExecutionUpdatePayload
 ): Promise<TestExecution> => {
   const res = await api.put<ApiResponse<TestExecution>>(
     `/api/testExecution/${testExecutionId}`,

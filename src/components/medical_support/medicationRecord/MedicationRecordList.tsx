@@ -218,13 +218,14 @@ export function MedicationRecordListSection() {
               }}
             >
               <TableContainer>
-                <Table size="small" stickyHeader sx={{ minWidth: 1080 }}>
+                <Table size="small" stickyHeader sx={{ minWidth: 1240 }}>
                   <TableHead>
                     <TableRow>
                       <TableCell align="center">번호</TableCell>
                       <TableCell align="center">투약기록 ID</TableCell>
                       <TableCell align="center">환자명</TableCell>
                       <TableCell align="center">진료과</TableCell>
+                      <TableCell align="center">간호사명</TableCell>
                       <TableCell align="center">투약일시</TableCell>
                       <TableCell align="center">투약량</TableCell>
                       <TableCell align="center">투약종류</TableCell>
@@ -235,7 +236,7 @@ export function MedicationRecordListSection() {
                   <TableBody>
                     {paginatedRows.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={8} align="center">
+                        <TableCell colSpan={9} align="center">
                           투약 기록 데이터가 없습니다.
                         </TableCell>
                       </TableRow>
@@ -267,6 +268,9 @@ export function MedicationRecordListSection() {
                         <TableCell align="center">{safeValue(row.patientName)}</TableCell>
                         <TableCell align="center">
                           {safeValue(row.departmentName)}
+                        </TableCell>
+                        <TableCell align="center">
+                          {safeValue(row.nurseName)}
                         </TableCell>
                         <TableCell align="center">
                           {formatDateTime(row.administeredAt)}

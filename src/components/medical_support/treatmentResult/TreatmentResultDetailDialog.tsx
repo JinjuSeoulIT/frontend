@@ -115,12 +115,20 @@ export default function TreatmentResultDetailDialog({
                     }
                   />
                   <DetailField
+                    label="간호사명"
+                    value={safeValue(item.nurseName)}
+                  />
+                  <DetailField
                     label="간호사 ID"
                     value={safeValue(item.nursingId)}
                   />
                   <DetailField
                     label="처치내용"
                     value={safeValue(item.detail)}
+                  />
+                  <DetailField
+                    label="진료과"
+                    value={safeValue(item.departmentName)}
                   />
                 </Box>
               </Box>
@@ -150,10 +158,6 @@ export default function TreatmentResultDetailDialog({
                   <DetailField
                     label="환자 ID"
                     value={safeValue(item.patientId)}
-                  />
-                  <DetailField
-                    label="진료과"
-                    value={safeValue(item.departmentName)}
                   />
                 </Box>
               </Box>

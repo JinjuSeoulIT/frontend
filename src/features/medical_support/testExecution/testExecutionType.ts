@@ -4,12 +4,22 @@ export interface TestExecution {
   executionType?: string | null;
   progressStatus?: string | null;
   retryNo?: number | null;
+  patientId?: string | number | null;
   patientName?: string | null;
   departmentName?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
   startedAt?: string | null;
   completedAt?: string | null;
+  performerId?: string | number | null;
+}
+
+export interface TestExecutionUpdatePayload {
+  progressStatus?: string | null;
+  retryNo?: number | null;
+  patientId?: string | number | null;
+  patientName?: string | null;
+  departmentName?: string | null;
   performerId?: string | number | null;
 }
 

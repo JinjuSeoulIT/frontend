@@ -13,14 +13,35 @@ const api = axios.create({
 
 type TreatmentResultApiRaw = TreatmentResult & {
   NURSE_NAME?: string | null;
+  PROGRESS_STATUS?: string | null;
+  progress_status?: string | null;
+  STATUS?: string | null;
 };
 
 const normalizeTreatmentResult = (
   item: TreatmentResultApiRaw
-): TreatmentResult => ({
-  ...item,
-  nurseName: item.nurseName ?? item.NURSE_NAME ?? null,
-});
+): TreatmentResult => {
+  const rawStatus = item.status ?? item.STATUS ?? null;
+  const rawProgressStatus =
+    item.progressStatus ?? item.PROGRESS_STATUS ?? item.progress_status ?? null;
+  const normalizedStatus = rawStatus?.trim().toUpperCase() ?? "";
+  const activeStatus =
+    normalizedStatus === "ACTIVE" || normalizedStatus === "INACTIVE"
+      ? rawStatus
+      : null;
+  const progressStatus =
+    rawProgressStatus ??
+    (activeStatus === null && rawStatus != null && rawStatus.trim() !== ""
+      ? rawStatus
+      : null);
+
+  return {
+    ...item,
+    nurseName: item.nurseName ?? item.NURSE_NAME ?? null,
+    progressStatus,
+    status: activeStatus ?? "ACTIVE",
+  };
+};
 
 export const fetchTreatmentResultsApi = async (): Promise<TreatmentResult[]> => {
   const res = await api.get<ApiResponse<TreatmentResultApiRaw[]>>(

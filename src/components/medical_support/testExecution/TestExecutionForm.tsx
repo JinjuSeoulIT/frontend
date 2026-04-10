@@ -21,10 +21,12 @@ import {
 type TestExecutionFormData = {
   testExecutionId: string;
   orderItemId: string;
+  patientId: string;
   patientName: string;
   departmentName: string;
   executionType: string;
   progressStatus: string;
+  status: string;
   retryNo: string;
   createdAt: string;
   updatedAt: string;
@@ -41,6 +43,9 @@ type Props = {
   onSubmit: () => void;
   onNavigateList?: () => void;
   onCancelExecution?: () => void;
+  onToggleActiveStatus?: () => void;
+  toggleActiveStatusLabel?: string;
+  toggleActiveStatusDisabled?: boolean;
   cancelExecutionDisabled?: boolean;
   submitDisabled?: boolean;
   loading?: boolean;
@@ -109,15 +114,22 @@ const toNullableDateTime = (value: string) => {
   return normalized.length === 16 ? `${normalized}:00` : normalized;
 };
 
+const toActiveStatusValue = (value?: string | null) => {
+  const normalized = value?.trim().toUpperCase() ?? "";
+  return normalized === "INACTIVE" ? "INACTIVE" : "ACTIVE";
+};
+
 export const toTestExecutionFormData = (
   value?: Partial<TestExecution> | null
 ): TestExecutionFormData => ({
   testExecutionId: value?.testExecutionId ? String(value.testExecutionId) : "",
   orderItemId: value?.orderItemId ? String(value.orderItemId) : "",
+  patientId: value?.patientId ? String(value.patientId) : "",
   patientName: toTextValue(value?.patientName),
   departmentName: toTextValue(value?.departmentName),
   executionType: value?.executionType ?? "",
   progressStatus: value?.progressStatus ?? "",
+  status: toActiveStatusValue(value?.status),
   retryNo:
     value?.retryNo === 0 ? "0" : value?.retryNo ? String(value.retryNo) : "",
   createdAt: toDateTimeInputValue(value?.createdAt),
@@ -131,10 +143,12 @@ export const toTestExecutionPayload = (
 ): TestExecution => ({
   testExecutionId: form.testExecutionId.trim() || "",
   orderItemId: toNullableNumber(form.orderItemId),
+  patientId: toNullableText(form.patientId),
   patientName: toNullableText(form.patientName),
   departmentName: toNullableText(form.departmentName),
   executionType: form.executionType.trim() || null,
   progressStatus: form.progressStatus.trim() || null,
+  status: toActiveStatusValue(form.status),
   retryNo: toNullableNumber(form.retryNo),
   createdAt: toNullableDateTime(form.createdAt),
   updatedAt: toNullableDateTime(form.updatedAt),
@@ -151,6 +165,7 @@ export const toTestExecutionUpdatePayload = (
 
   return {
     progressStatus: form.progressStatus.trim() || null,
+    status: toActiveStatusValue(form.status || source?.status),
     retryNo: toNullableNumber(form.retryNo),
     patientId: source?.patientId,
     patientName: patientName ?? source?.patientName ?? undefined,
@@ -166,6 +181,9 @@ export default function TestExecutionForm({
   onSubmit,
   onNavigateList,
   onCancelExecution,
+  onToggleActiveStatus,
+  toggleActiveStatusLabel,
+  toggleActiveStatusDisabled = false,
   cancelExecutionDisabled = false,
   submitDisabled = false,
   loading = false,
@@ -225,10 +243,25 @@ export default function TestExecutionForm({
               </Typography>
             </Box>
 
-            {isEditMode && onNavigateList ? (
-              <Button variant="outlined" size="small" onClick={onNavigateList}>
-                목록으로
-              </Button>
+            {isEditMode ? (
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                {onToggleActiveStatus && toggleActiveStatusLabel ? (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    color={toggleActiveStatusLabel === "활성화" ? "success" : "warning"}
+                    onClick={onToggleActiveStatus}
+                    disabled={loading || toggleActiveStatusDisabled}
+                  >
+                    {toggleActiveStatusLabel}
+                  </Button>
+                ) : null}
+                {onNavigateList ? (
+                  <Button variant="outlined" size="small" onClick={onNavigateList}>
+                    목록으로
+                  </Button>
+                ) : null}
+              </Stack>
             ) : null}
           </Stack>
         </Box>
@@ -338,6 +371,22 @@ export default function TestExecutionForm({
                     })}
                   </TextField>
                 </Grid>
+                {isEditMode && (
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TextField
+                      select
+                      label="활성여부"
+                      value={form.status}
+                      onChange={handleChange("status")}
+                      size="small"
+                      fullWidth
+                      helperText="비활성 상태에서는 검사 시작이 제한됩니다."
+                    >
+                      <MenuItem value="ACTIVE">활성</MenuItem>
+                      <MenuItem value="INACTIVE">비활성</MenuItem>
+                    </TextField>
+                  </Grid>
+                )}
               </Grid>
             </Box>
 

@@ -11,7 +11,9 @@ import {
   Chip,
   CircularProgress,
   Divider,
+  FormControlLabel,
   Paper,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -63,6 +65,12 @@ const safeValue = (value?: string | number | null) => {
 
 const normalizeStatus = (value?: string | null) =>
   value?.trim().toUpperCase() ?? "";
+
+const normalizeActiveStatus = (value?: string | null) =>
+  value?.trim().toUpperCase() === "INACTIVE" ? "INACTIVE" : "ACTIVE";
+
+const isInactiveExecution = (value?: { status?: string | null } | null) =>
+  normalizeActiveStatus(value?.status) === "INACTIVE";
 
 const formatProgressStatusLabel = (status?: string | null) => {
   const normalized = normalizeStatus(status);
@@ -159,6 +167,7 @@ export default function TestExecutionList() {
   const router = useRouter();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [includeInactive, setIncludeInactive] = useState(false);
   const [searchCriteria, setSearchCriteria] = useState<TestExecutionSearchCriteria>(
     INITIAL_SEARCH_CRITERIA
   );
@@ -185,6 +194,10 @@ export default function TestExecutionList() {
           normalizedItemStatus as (typeof DEFAULT_VISIBLE_STATUSES)[number]
         )
       ) {
+        return false;
+      }
+
+      if (!includeInactive && isInactiveExecution(item)) {
         return false;
       }
 
@@ -223,7 +236,7 @@ export default function TestExecutionList() {
         normalizedValue.toLowerCase()
       );
     });
-  }, [items, searchCriteria]);
+  }, [includeInactive, items, searchCriteria]);
 
   const waitingCount = useMemo(
     () =>
@@ -238,6 +251,11 @@ export default function TestExecutionList() {
       filteredItems.filter((item) =>
         ACTIVE_STATUSES.includes(normalizeStatus(item.progressStatus))
       ).length,
+    [filteredItems]
+  );
+
+  const inactiveCount = useMemo(
+    () => filteredItems.filter((item) => isInactiveExecution(item)).length,
     [filteredItems]
   );
 
@@ -298,6 +316,20 @@ export default function TestExecutionList() {
             <Box
               sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}
             >
+              <FormControlLabel
+                control={
+                  <Switch
+                    size="small"
+                    checked={includeInactive}
+                    onChange={(event) => {
+                      setIncludeInactive(event.target.checked);
+                      setPage(0);
+                    }}
+                  />
+                }
+                label="비활성 포함"
+                sx={{ mr: 0.5 }}
+              />
               <Chip label={`총 ${filteredItems.length}건`} size="small" />
               <Chip
                 label={`대기 ${waitingCount}건`}
@@ -311,6 +343,9 @@ export default function TestExecutionList() {
                 color="info"
                 variant="outlined"
               />
+              {includeInactive && inactiveCount > 0 ? (
+                <Chip label={`비활성 ${inactiveCount}건`} size="small" variant="outlined" />
+              ) : null}
               <Button
                 variant="outlined"
                 size="small"
@@ -399,49 +434,81 @@ export default function TestExecutionList() {
                       </TableRow>
                     )}
 
-                    {paginatedItems.map((item, index) => (
-                      <TableRow
-                        key={String(item.testExecutionId)}
-                        hover
-                        sx={{
-                          cursor: "pointer",
-                          "& td": { py: 1.25, whiteSpace: "nowrap" },
-                          "&:hover": { backgroundColor: "#f9fbff" },
-                        }}
-                        onClick={() =>
-                          router.push(
-                            `/medical_support/testExecution/edit/${item.testExecutionId}`
-                          )
-                        }
-                      >
-                        <TableCell align="center">
-                          {currentPage * rowsPerPage + index + 1}
-                        </TableCell>
-                        <TableCell align="center">
-                          {safeValue(item.patientName)}
-                        </TableCell>
-                        <TableCell align="center">
-                          {safeValue(item.departmentName)}
-                        </TableCell>
-                        <TableCell align="center">
-                          {safeValue(item.executionType)}
-                        </TableCell>
-                        <TableCell align="center">
-                          <Chip
-                            label={formatProgressStatusLabel(item.progressStatus)}
-                            color={getStatusColor(item.progressStatus)}
-                            size="small"
-                            sx={getStatusSx(item.progressStatus)}
-                          />
-                        </TableCell>
-                        <TableCell align="center">
-                          {formatDateTime(item.createdAt)}
-                        </TableCell>
-                        <TableCell align="center">
-                          {safeValue(item.testExecutionId)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {paginatedItems.map((item, index) => {
+                      const inactive = isInactiveExecution(item);
+
+                      return (
+                        <TableRow
+                          key={String(item.testExecutionId)}
+                          hover
+                          sx={{
+                            cursor: "pointer",
+                            backgroundColor: inactive ? "#fcfcfc" : undefined,
+                            "& td": {
+                              py: 1.25,
+                              whiteSpace: "nowrap",
+                              color: inactive ? "text.secondary" : undefined,
+                            },
+                            "&:hover": {
+                              backgroundColor: inactive ? "#f4f6f8" : "#f9fbff",
+                            },
+                          }}
+                          onClick={() =>
+                            router.push(
+                              `/medical_support/testExecution/edit/${item.testExecutionId}`
+                            )
+                          }
+                        >
+                          <TableCell align="center">
+                            {currentPage * rowsPerPage + index + 1}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(item.patientName)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(item.departmentName)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(item.executionType)}
+                          </TableCell>
+                          <TableCell align="center">
+                            <Box
+                              sx={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 0.75,
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <Chip
+                                label={formatProgressStatusLabel(item.progressStatus)}
+                                color={getStatusColor(item.progressStatus)}
+                                size="small"
+                                sx={getStatusSx(item.progressStatus)}
+                              />
+                              {inactive ? (
+                                <Chip
+                                  label="비활성"
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{
+                                    borderColor: "grey.400",
+                                    color: "text.secondary",
+                                  }}
+                                />
+                              ) : null}
+                            </Box>
+                          </TableCell>
+                          <TableCell align="center">
+                            {formatDateTime(item.createdAt)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(item.testExecutionId)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>

@@ -17,13 +17,23 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { TreatmentResultActions } from "@/features/medical_support/treatmentResult/treatmentResultSlice";
-import { TREATMENT_RESULT_STATUS_OPTIONS } from "@/components/medical_support/treatmentResult/treatmentResultDisplay";
+import {
+  formatTreatmentResultActiveStatus,
+  formatTreatmentResultProgressStatus,
+  getTreatmentResultActiveStatusColor,
+  getTreatmentResultActiveStatusSx,
+  getTreatmentResultProgressStatusColor,
+  getTreatmentResultProgressStatusSx,
+  TREATMENT_RESULT_ACTIVE_STATUS_OPTIONS,
+  TREATMENT_RESULT_PROGRESS_STATUS_OPTIONS,
+} from "@/components/medical_support/treatmentResult/treatmentResultDisplay";
 import type { RootState } from "@/store/rootReducer";
 import type { AppDispatch } from "@/store/store";
 
 type TreatmentResultEditForm = {
   treatmentResultId: string;
   procedureResultId: string;
+  progressStatus: string;
   status: string;
   nursingId: string;
   nurseName: string;
@@ -38,6 +48,7 @@ const toTreatmentResultFormData = (
 ): TreatmentResultEditForm => ({
   treatmentResultId: item?.treatmentResultId ?? "",
   procedureResultId: item?.procedureResultId ?? "",
+  progressStatus: item?.progressStatus ?? "",
   status: item?.status ?? "",
   nursingId: item?.nursingId ?? "",
   nurseName: item?.nurseName ?? "",
@@ -98,34 +109,6 @@ function SummaryItem({ label, value, truncate = false }: SummaryItemProps) {
   );
 }
 
-const formatTreatmentResultStatus = (value: string) => {
-  const matched = TREATMENT_RESULT_STATUS_OPTIONS.find(
-    (option) => option.value === value
-  );
-  return matched?.label ?? value ?? "-";
-};
-
-const getTreatmentResultStatusColor = (
-  value: string
-): "default" | "warning" | "info" | "success" | "error" => {
-  switch (value) {
-    case "REQUESTED":
-    case "요청":
-      return "warning";
-    case "IN_PROGRESS":
-    case "진행중":
-      return "info";
-    case "COMPLETED":
-    case "완료":
-      return "success";
-    case "CANCELLED":
-    case "취소":
-      return "error";
-    default:
-      return "default";
-  }
-};
-
 export default function TreatmentResultEdit() {
   const params = useParams();
   const router = useRouter();
@@ -169,6 +152,7 @@ export default function TreatmentResultEdit() {
     return toTreatmentResultFormData({
       treatmentResultId: selected.treatmentResultId ?? "",
       procedureResultId: selected.procedureResultId ?? "",
+      progressStatus: selected.progressStatus ?? "",
       status: selected.status ?? "",
       nursingId: selected.nursingId ?? "",
       nurseName: selected.nurseName ?? "",
@@ -201,8 +185,7 @@ export default function TreatmentResultEdit() {
           처치 결과 수정
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>
-          환자와 처치 결과 맥락은 상단에서 빠르게 확인하고, 수정은 아래에서
-          바로 진행할 수 있게 구성했습니다.
+          환자와 결과 요약을 먼저 확인한 뒤, 진행상태와 활성여부를 포함한 상세 정보를 수정할 수 있습니다.
         </Typography>
 
         {detailError ? (
@@ -269,10 +252,18 @@ export default function TreatmentResultEdit() {
                   </Stack>
                 </Box>
 
-                <Chip
-                  label={formatTreatmentResultStatus(form.status)}
-                  color={getTreatmentResultStatusColor(form.status)}
-                />
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                  <Chip
+                    label={formatTreatmentResultProgressStatus(form.progressStatus)}
+                    color={getTreatmentResultProgressStatusColor(form.progressStatus)}
+                    sx={getTreatmentResultProgressStatusSx()}
+                  />
+                  <Chip
+                    label={formatTreatmentResultActiveStatus(form.status)}
+                    color={getTreatmentResultActiveStatusColor(form.status)}
+                    sx={getTreatmentResultActiveStatusSx(form.status)}
+                  />
+                </Stack>
               </Stack>
 
               <Box
@@ -290,7 +281,7 @@ export default function TreatmentResultEdit() {
                   value={displayValue(form.treatmentResultId)}
                 />
                 <SummaryItem
-                  label="처치/시술 ID"
+                  label="처치/수술 ID"
                   value={displayValue(form.procedureResultId)}
                 />
                 <SummaryItem
@@ -299,8 +290,8 @@ export default function TreatmentResultEdit() {
                   truncate
                 />
                 <SummaryItem
-                  label="현재 상태"
-                  value={formatTreatmentResultStatus(form.status)}
+                  label="현재 진행상태"
+                  value={formatTreatmentResultProgressStatus(form.progressStatus)}
                 />
               </Box>
             </Stack>
@@ -329,8 +320,7 @@ export default function TreatmentResultEdit() {
               수정 항목
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              상태, 담당 간호사 정보, 처치 내용을 한 화면에서 빠르게 수정할 수
-              있습니다.
+              진행상태와 활성여부를 분리해서 관리하고, 간호사 정보와 처치 내용을 함께 수정할 수 있습니다.
             </Typography>
           </Box>
 
@@ -347,13 +337,30 @@ export default function TreatmentResultEdit() {
             >
               <TextField
                 select
-                label="상태"
+                label="진행상태"
+                size="small"
+                value={form.progressStatus}
+                onChange={(e) =>
+                  setDraftForm({ ...form, progressStatus: e.target.value })
+                }
+                fullWidth
+              >
+                {TREATMENT_RESULT_PROGRESS_STATUS_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              <TextField
+                select
+                label="활성여부"
                 size="small"
                 value={form.status}
                 onChange={(e) => setDraftForm({ ...form, status: e.target.value })}
                 fullWidth
               >
-                {TREATMENT_RESULT_STATUS_OPTIONS.map((option) => (
+                {TREATMENT_RESULT_ACTIVE_STATUS_OPTIONS.map((option) => (
                   <MenuItem key={option.value} value={option.value}>
                     {option.label}
                   </MenuItem>
@@ -390,10 +397,11 @@ export default function TreatmentResultEdit() {
                   border: "1px dashed",
                   borderColor: "grey.300",
                   backgroundColor: "#fcfcfd",
+                  gridColumn: { md: "1 / -1" },
                 }}
               >
                 <SummaryItem
-                  label="환자 식별"
+                  label="환자 요약"
                   value={`${displayValue(form.patientName)} / ${displayValue(form.patientId)}`}
                   truncate
                 />
@@ -453,7 +461,7 @@ export default function TreatmentResultEdit() {
                     변경 사항 저장
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    상태, 담당 간호사, 처치 내용을 확인한 뒤 저장하세요.
+                    진행상태, 활성여부, 간호사 정보와 처치 내용을 확인한 뒤 저장하세요.
                   </Typography>
                 </Box>
 
@@ -476,6 +484,7 @@ export default function TreatmentResultEdit() {
                         TreatmentResultActions.updateTreatmentResultRequest({
                           treatmentResultId,
                           form: {
+                            progressStatus: toNullableString(form.progressStatus),
                             status: toNullableString(form.status),
                             nursingId: toNullableString(form.nursingId),
                             nurseName: toNullableString(form.nurseName),

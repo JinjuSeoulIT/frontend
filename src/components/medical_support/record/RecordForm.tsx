@@ -237,8 +237,8 @@ const RecordForm: React.FC<Props> = ({
 
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
-                    label="진료과"
-                    value={toStr(form.departmentName)}
+                    label="환자 ID"
+                    value={toStr(form.patientId)}
                     size="small"
                     fullWidth
                     InputProps={{ readOnly: true }}
@@ -253,6 +253,16 @@ const RecordForm: React.FC<Props> = ({
                     size="small"
                     fullWidth
                     // InputProps={{ readOnly: true }}
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    label="진료과"
+                    value={toStr(form.departmentName)}
+                    size="small"
+                    fullWidth
+                    InputProps={{ readOnly: true }}
                   />
                 </Grid>
 

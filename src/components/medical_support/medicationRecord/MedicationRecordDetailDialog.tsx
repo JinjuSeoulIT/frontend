@@ -23,9 +23,12 @@ import {
 } from "@/components/medical_support/common/ExamDisplay";
 import {
   formatMedicationDose,
-  formatMedicationRecordStatus,
-  getMedicationRecordStatusColor,
-  getMedicationRecordStatusSx,
+  formatMedicationRecordActiveStatus,
+  formatMedicationRecordProgressStatus,
+  getMedicationRecordActiveStatusColor,
+  getMedicationRecordActiveStatusSx,
+  getMedicationRecordProgressStatusColor,
+  getMedicationRecordProgressStatusSx,
 } from "@/components/medical_support/medicationRecord/medicationRecordDisplay";
 
 type MedicationRecordDetailDialogProps = {
@@ -110,13 +113,26 @@ export default function MedicationRecordDetailDialog({
                     value={safeValue(item.medicationRecordId)}
                   />
                   <DetailField
-                    label="상태"
+                    label="진행상태"
                     value={
                       <Chip
-                        label={formatMedicationRecordStatus(item.status)}
-                        color={getMedicationRecordStatusColor(item.status)}
+                        label={formatMedicationRecordProgressStatus(item.progressStatus)}
+                        color={getMedicationRecordProgressStatusColor(
+                          item.progressStatus
+                        )}
                         size="small"
-                        sx={getMedicationRecordStatusSx(item.status)}
+                        sx={getMedicationRecordProgressStatusSx()}
+                      />
+                    }
+                  />
+                  <DetailField
+                    label="활성여부"
+                    value={
+                      <Chip
+                        label={formatMedicationRecordActiveStatus(item.status)}
+                        color={getMedicationRecordActiveStatusColor(item.status)}
+                        size="small"
+                        sx={getMedicationRecordActiveStatusSx(item.status)}
                       />
                     }
                   />

@@ -7,6 +7,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import {
   formatProgressStatus,
   getProgressStatusColor,
+  normalizeActiveStatus,
   normalizeProgressStatus,
   safeValue,
 } from "@/components/medical_support/common/ExamDisplay";
@@ -18,8 +19,10 @@ import {
   CardContent,
   Chip,
   CircularProgress,
+  FormControlLabel,
   Paper,
   Stack,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -40,6 +43,7 @@ export default function ImagingList() {
 
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [includeInactive, setIncludeInactive] = React.useState(false);
 
   const { list: items, loading, error } = useSelector(
     (state: RootState) => state.imagings
@@ -49,12 +53,22 @@ export default function ImagingList() {
     dispatch(ImagingActions.fetchImagingsRequest());
   }, [dispatch]);
 
-  const visibleItems = React.useMemo(
+  const nonCancelledItems = React.useMemo(
     () =>
       items.filter(
         (item) => normalizeProgressStatus(item.progressStatus) !== "CANCELLED"
       ),
     [items]
+  );
+
+  const visibleItems = React.useMemo(
+    () =>
+      includeInactive
+        ? nonCancelledItems
+        : nonCancelledItems.filter(
+            (item) => normalizeActiveStatus(item.status) !== "INACTIVE"
+          ),
+    [includeInactive, nonCancelledItems]
   );
 
   const cancelledCount = React.useMemo(
@@ -85,6 +99,14 @@ export default function ImagingList() {
     () =>
       visibleItems.filter(
         (item) => normalizeProgressStatus(item.progressStatus) === "COMPLETED"
+      ).length,
+    [visibleItems]
+  );
+
+  const inactiveCount = React.useMemo(
+    () =>
+      visibleItems.filter(
+        (item) => normalizeActiveStatus(item.status) === "INACTIVE"
       ).length,
     [visibleItems]
   );
@@ -139,7 +161,27 @@ export default function ImagingList() {
                 </Typography>
               </Stack>
 
-              <Stack direction="row" spacing={1}>
+              <Stack
+                direction="row"
+                spacing={1}
+                useFlexGap
+                flexWrap="wrap"
+                alignItems="center"
+              >
+                <FormControlLabel
+                  control={
+                    <Switch
+                      size="small"
+                      checked={includeInactive}
+                      onChange={(event) => {
+                        setIncludeInactive(event.target.checked);
+                        setPage(0);
+                      }}
+                    />
+                  }
+                  label="비활성 포함"
+                  sx={{ mr: 0.5 }}
+                />
                 <Button
                   variant="outlined"
                   startIcon={<RefreshIcon />}
@@ -173,6 +215,9 @@ export default function ImagingList() {
           />
           {loading && <Chip label="불러오는 중" variant="outlined" />}
           {error && <Chip label={`오류: ${error}`} color="error" />}
+          {includeInactive && inactiveCount > 0 ? (
+            <Chip label={`비활성 ${inactiveCount}`} variant="outlined" />
+          ) : null}
         </Stack>
 
         <Card sx={{ borderRadius: 3, border: "1px solid var(--line)" }}>
@@ -248,50 +293,80 @@ export default function ImagingList() {
                         </TableRow>
                       )}
 
-                      {paginatedItems.map((item, index) => (
-                        <TableRow
-                          key={String(item.imagingExamId)}
-                          hover
-                          onClick={() =>
-                            router.push(
-                              `/medical_support/imaging/edit/${item.imagingExamId}`
-                            )
-                          }
-                          sx={{
-                            cursor: "pointer",
-                            "&:hover": { backgroundColor: "#f9fbff" },
-                          }}
-                        >
-                          <TableCell align="center">
-                            {currentPage * rowsPerPage + index + 1}
-                          </TableCell>
-                          <TableCell align="center">
-                            {safeValue(item.imagingExamId)}
-                          </TableCell>
-                          <TableCell align="center">
-                            {safeValue(item.patientName)}
-                          </TableCell>
-                          <TableCell align="center">
-                            {safeValue(item.departmentName)}
-                          </TableCell>
-                          <TableCell align="center">
-                            {safeValue(item.imagingType)}
-                          </TableCell>
-                          <TableCell align="center">
-                            {safeValue(item.testExecutionId)}
-                          </TableCell>
-                          <TableCell align="center">
-                            {safeValue(item.performerId)}
-                          </TableCell>
-                          <TableCell align="center">
-                            <Chip
-                              label={formatProgressStatus(item.progressStatus)}
-                              color={getProgressStatusColor(item.progressStatus)}
-                              size="small"
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {paginatedItems.map((item, index) => {
+                        const inactive =
+                          normalizeActiveStatus(item.status) === "INACTIVE";
+
+                        return (
+                          <TableRow
+                            key={String(item.imagingExamId)}
+                            hover
+                            onClick={() =>
+                              router.push(
+                                `/medical_support/imaging/edit/${item.imagingExamId}`
+                              )
+                            }
+                            sx={{
+                              cursor: "pointer",
+                              backgroundColor: inactive ? "#fcfcfc" : undefined,
+                              "&:hover": {
+                                backgroundColor: inactive ? "#f4f6f8" : "#f9fbff",
+                              },
+                              "& td": {
+                                color: inactive ? "text.secondary" : undefined,
+                              },
+                            }}
+                          >
+                            <TableCell align="center">
+                              {currentPage * rowsPerPage + index + 1}
+                            </TableCell>
+                            <TableCell align="center">
+                              {safeValue(item.imagingExamId)}
+                            </TableCell>
+                            <TableCell align="center">
+                              {safeValue(item.patientName)}
+                            </TableCell>
+                            <TableCell align="center">
+                              {safeValue(item.departmentName)}
+                            </TableCell>
+                            <TableCell align="center">
+                              {safeValue(item.imagingType)}
+                            </TableCell>
+                            <TableCell align="center">
+                              {safeValue(item.testExecutionId)}
+                            </TableCell>
+                            <TableCell align="center">
+                              {safeValue(item.performerId)}
+                            </TableCell>
+                            <TableCell align="center">
+                              <Stack
+                                direction="row"
+                                spacing={0.75}
+                                justifyContent="center"
+                                useFlexGap
+                                flexWrap="wrap"
+                              >
+                                <Chip
+                                  label={formatProgressStatus(item.progressStatus)}
+                                  color={getProgressStatusColor(item.progressStatus)}
+                                  size="small"
+                                />
+                                {inactive ? (
+                                  <Chip
+                                    label="비활성"
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{
+                                      borderColor: "grey.400",
+                                      color: "text.secondary",
+                                    }}
+                                  />
+                                ) : null}
+                              </Stack>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </TableContainer>

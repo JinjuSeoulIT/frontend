@@ -8,15 +8,29 @@ const api = axios.create({
   baseURL: "http://192.168.1.66:8181",
 });
 
-type RecordApiRaw = Partial<RecordFormType> & {
+type RecordApiRaw = Omit<Partial<RecordFormType>, "patientId"> & {
+  patientId?: string | number | null;
+  PATIENT_ID?: string | number | null;
   CREATED_AT?: string | null;
   UPDATED_AT?: string | null;
   RECORDED_AT?: string | null;
 };
 
+const normalizeNullableNumber = (
+  value?: string | number | null
+): number | null => {
+  if (value === null || value === undefined || value === "") return null;
+
+  const numericValue =
+    typeof value === "number" ? value : Number(String(value).trim());
+
+  return Number.isFinite(numericValue) ? numericValue : null;
+};
+
 const normalizeRecord = (record: RecordApiRaw): RecordFormType =>
   ({
     ...record,
+    patientId: normalizeNullableNumber(record.patientId ?? record.PATIENT_ID),
     createdAt: record.createdAt ?? record.CREATED_AT ?? "",
     updatedAt: record.updatedAt ?? record.UPDATED_AT ?? "",
     recordedAt: record.recordedAt ?? record.RECORDED_AT ?? "",

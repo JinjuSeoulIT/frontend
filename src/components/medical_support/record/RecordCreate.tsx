@@ -13,6 +13,7 @@ import { RecordFormType } from "@/features/medical_support/record/recordTypes";
 const emptyForm: RecordFormType = {
   recordId: "",
   receptionId: null,
+  patientId: null,
   nursingId: "",
   recordedAt: "",
   createdAt: "",
@@ -41,21 +42,27 @@ const RecordCreate = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const receptionIdParam = searchParams.get("receptionId");
+  const patientIdParam = searchParams.get("patientId");
   const parsedReceptionId =
     receptionIdParam && !Number.isNaN(Number(receptionIdParam))
       ? Number(receptionIdParam)
+      : null;
+  const parsedPatientId =
+    patientIdParam && !Number.isNaN(Number(patientIdParam))
+      ? Number(patientIdParam)
       : null;
   const initialForm = useMemo<RecordFormType>(
     () => ({
       ...emptyForm,
       receptionId: parsedReceptionId,
+      patientId: parsedPatientId,
       nursingId: searchParams.get("nursingId") ?? "",
       patientName: searchParams.get("patientName") ?? "",
       nurseName: searchParams.get("nurseName") ?? "",
       departmentName: searchParams.get("departmentName") ?? "",
       status: "ACTIVE",
     }),
-    [parsedReceptionId, searchParams]
+    [parsedPatientId, parsedReceptionId, searchParams]
   );
   const [form, setForm] = useState<RecordFormType>(initialForm);
 
@@ -93,6 +100,7 @@ const RecordCreate = () => {
       ...form,
       recordId: "",
       receptionId: form.receptionId ?? null,
+      patientId: form.patientId ?? null,
       createdAt: now,
       updatedAt: now,
       status: form.status || "ACTIVE",

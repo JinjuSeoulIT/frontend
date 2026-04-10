@@ -7,6 +7,7 @@ import type {
 const initialRecord: RecordFormType = {
   recordId: "",
   receptionId: null,
+  patientId: null,
   nursingId: "",
   recordedAt: "",
   systolicBp: "",

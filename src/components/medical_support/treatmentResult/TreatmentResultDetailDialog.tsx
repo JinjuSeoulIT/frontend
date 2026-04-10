@@ -19,9 +19,12 @@ import {
 import type { TreatmentResult } from "@/features/medical_support/treatmentResult/treatmentResultType";
 import { safeValue } from "@/components/medical_support/common/ExamDisplay";
 import {
-  formatTreatmentResultStatus,
-  getTreatmentResultStatusColor,
-  getTreatmentResultStatusSx,
+  formatTreatmentResultActiveStatus,
+  formatTreatmentResultProgressStatus,
+  getTreatmentResultActiveStatusColor,
+  getTreatmentResultActiveStatusSx,
+  getTreatmentResultProgressStatusColor,
+  getTreatmentResultProgressStatusSx,
 } from "@/components/medical_support/treatmentResult/treatmentResultDisplay";
 
 type TreatmentResultDetailDialogProps = {
@@ -104,13 +107,26 @@ export default function TreatmentResultDetailDialog({
                     value={safeValue(item.treatmentResultId)}
                   />
                   <DetailField
-                    label="상태"
+                    label="진행상태"
                     value={
                       <Chip
-                        label={formatTreatmentResultStatus(item.status)}
-                        color={getTreatmentResultStatusColor(item.status)}
+                        label={formatTreatmentResultProgressStatus(item.progressStatus)}
+                        color={getTreatmentResultProgressStatusColor(
+                          item.progressStatus
+                        )}
                         size="small"
-                        sx={getTreatmentResultStatusSx(item.status)}
+                        sx={getTreatmentResultProgressStatusSx()}
+                      />
+                    }
+                  />
+                  <DetailField
+                    label="활성여부"
+                    value={
+                      <Chip
+                        label={formatTreatmentResultActiveStatus(item.status)}
+                        color={getTreatmentResultActiveStatusColor(item.status)}
+                        size="small"
+                        sx={getTreatmentResultActiveStatusSx(item.status)}
                       />
                     }
                   />

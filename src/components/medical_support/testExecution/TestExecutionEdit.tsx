@@ -9,6 +9,7 @@ import TestExecutionForm, {
   toTestExecutionUpdatePayload,
 } from "@/components/medical_support/testExecution/TestExecutionForm";
 import { TestExecutionActions } from "@/features/medical_support/testExecution/testExecutionSlice";
+import { updateTestExecutionApi } from "@/lib/medical_support/testExecutionApi";
 import { getTestExecutionStartListPath } from "@/lib/medical_support/testExecutionStart";
 import type { RootState } from "@/store/rootReducer";
 import type { AppDispatch } from "@/store/store";
@@ -17,6 +18,9 @@ type PendingAction = {
   nextPath: string;
   successMessage: string;
 };
+
+const normalizeActiveStatus = (value?: string | null) =>
+  value?.trim().toUpperCase() === "INACTIVE" ? "INACTIVE" : "ACTIVE";
 
 export default function TestExecutionEdit() {
   const params = useParams();
@@ -31,8 +35,9 @@ export default function TestExecutionEdit() {
   const [draftForm, setDraftForm] = useState<ReturnType<
     typeof toTestExecutionFormData
   > | null>(null);
+  const [statusUpdating, setStatusUpdating] = useState(false);
   const pendingActionRef = useRef<PendingAction | null>(null);
-  const { selected, loading, error, updateSuccess } = useSelector(
+  const { list, selected, loading, error, updateSuccess } = useSelector(
     (state: RootState) => state.testexecutions
   );
 
@@ -61,9 +66,15 @@ export default function TestExecutionEdit() {
 
   const currentProgressStatus =
     currentExecution?.progressStatus?.trim().toUpperCase() ?? "";
+  const isFormActive = normalizeActiveStatus(form.status) === "ACTIVE";
   const canCancel = currentProgressStatus === "WAITING";
   const canStart =
-    currentProgressStatus === "WAITING" || currentProgressStatus === "IN_PROGRESS";
+    isFormActive &&
+    (currentProgressStatus === "WAITING" || currentProgressStatus === "IN_PROGRESS");
+  const nextStatusLabel =
+    normalizeActiveStatus(currentExecution?.status) === "INACTIVE"
+      ? "활성화"
+      : "비활성화";
 
   useEffect(() => {
     if (!updateSuccess) return;
@@ -85,6 +96,56 @@ export default function TestExecutionEdit() {
     alert(error);
   }, [error]);
 
+  const handleToggleActiveStatus = async () => {
+    if (!testExecutionId || !currentExecution || statusUpdating) return;
+
+    const currentStatus = normalizeActiveStatus(currentExecution.status);
+    const nextStatus = currentStatus === "INACTIVE" ? "ACTIVE" : "INACTIVE";
+
+    if (
+      !window.confirm(
+        `활성 여부만 즉시 반영됩니다. 검사 수행을 ${nextStatusLabel}하시겠습니까?`
+      )
+    ) {
+      return;
+    }
+
+    setStatusUpdating(true);
+
+    try {
+      const updatedItem = await updateTestExecutionApi(testExecutionId, {
+        progressStatus: currentExecution.progressStatus ?? null,
+        status: nextStatus,
+        retryNo: currentExecution.retryNo ?? null,
+        patientId: currentExecution.patientId ?? null,
+        patientName: currentExecution.patientName ?? null,
+        departmentName: currentExecution.departmentName ?? null,
+        performerId: currentExecution.performerId ?? null,
+      });
+
+      setDraftForm(toTestExecutionFormData(updatedItem));
+      dispatch(TestExecutionActions.fetchTestExecutionSuccess(updatedItem));
+      dispatch(
+        TestExecutionActions.fetchTestExecutionsSuccess(
+          list.map((item) =>
+            String(item.testExecutionId) === String(updatedItem.testExecutionId)
+              ? updatedItem
+              : item
+          )
+        )
+      );
+      alert(`검사 수행이 ${nextStatusLabel}되었습니다.`);
+    } catch (err) {
+      alert(
+        err instanceof Error
+          ? err.message
+          : `검사 수행 ${nextStatusLabel}에 실패했습니다.`
+      );
+    } finally {
+      setStatusUpdating(false);
+    }
+  };
+
   if (loading && !form.testExecutionId) {
     return <CircularProgress sx={{ m: 3 }} />;
   }
@@ -94,6 +155,9 @@ export default function TestExecutionEdit() {
       mode="edit"
       form={form}
       onChange={setDraftForm}
+      onToggleActiveStatus={handleToggleActiveStatus}
+      toggleActiveStatusLabel={nextStatusLabel}
+      toggleActiveStatusDisabled={!currentExecution || statusUpdating}
       onNavigateList={() => router.push("/medical_support/testExecution/list")}
       onCancelExecution={() => {
         if (!testExecutionId || !canCancel) return;
@@ -139,7 +203,7 @@ export default function TestExecutionEdit() {
           })
         );
       }}
-      loading={loading}
+      loading={loading || statusUpdating}
     />
   );
 }

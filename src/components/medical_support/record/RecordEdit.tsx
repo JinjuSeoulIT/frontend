@@ -41,6 +41,7 @@ const RecordEdit = () => {
     return {
       recordId: selected.recordId ?? "",
       receptionId: selected.receptionId ?? null,
+      patientId: selected.patientId ?? null,
       nursingId: selected.nursingId ?? "",
       recordedAt: selected.recordedAt ?? "",
       systolicBp: selected.systolicBp ?? "",

@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import TestExecutionForm, {
   toTestExecutionPayload,
@@ -15,10 +14,23 @@ import type { AppDispatch } from "@/store/store";
 export default function TestExecutionCreate() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const [form, setForm] = useState(toTestExecutionFormData());
+  const searchParams = useSearchParams();
+  const patientIdParam = searchParams.get("patientId") ?? "";
+  const initialForm = useMemo(
+    () =>
+      toTestExecutionFormData({
+        patientId: patientIdParam,
+      }),
+    [patientIdParam]
+  );
+  const [form, setForm] = useState(initialForm);
   const { loading, error, createSuccess } = useSelector(
     (state: RootState) => state.testexecutions
   );
+
+  useEffect(() => {
+    setForm(initialForm);
+  }, [initialForm]);
 
   useEffect(() => {
     if (!createSuccess) return;

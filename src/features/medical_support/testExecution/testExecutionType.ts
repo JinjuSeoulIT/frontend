@@ -3,6 +3,7 @@ export interface TestExecution {
   orderItemId?: string | number | null;
   executionType?: string | null;
   progressStatus?: string | null;
+  status?: string | null;
   retryNo?: number | null;
   patientId?: string | number | null;
   patientName?: string | null;
@@ -16,6 +17,7 @@ export interface TestExecution {
 
 export interface TestExecutionUpdatePayload {
   progressStatus?: string | null;
+  status?: string | null;
   retryNo?: number | null;
   patientId?: string | number | null;
   patientName?: string | null;

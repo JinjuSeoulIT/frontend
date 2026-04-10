@@ -25,10 +25,14 @@ import { useDispatch, useSelector } from "react-redux";
 import { MedicationRecordActions } from "@/features/medical_support/medicationRecord/medicationRecordSlice";
 import {
   formatMedicationDose,
-  formatMedicationRecordStatus,
-  getMedicationRecordStatusColor,
-  getMedicationRecordStatusSx,
-  MEDICATION_RECORD_STATUS_OPTIONS,
+  formatMedicationRecordActiveStatus,
+  formatMedicationRecordProgressStatus,
+  getMedicationRecordActiveStatusColor,
+  getMedicationRecordActiveStatusSx,
+  getMedicationRecordProgressStatusColor,
+  getMedicationRecordProgressStatusSx,
+  MEDICATION_RECORD_ACTIVE_STATUS_OPTIONS,
+  MEDICATION_RECORD_PROGRESS_STATUS_OPTIONS,
 } from "@/components/medical_support/medicationRecord/medicationRecordDisplay";
 import type { RootState } from "@/store/rootReducer";
 import type { AppDispatch } from "@/store/store";
@@ -46,6 +50,7 @@ type MedicationRecordEditForm = {
   doseKind: string;
   nursingId: string;
   nurseName: string;
+  progressStatus: string;
   status: string;
   patientName: string;
   patientId: string;
@@ -63,6 +68,7 @@ const toMedicationRecordFormData = (
   doseKind: item?.doseKind ?? "",
   nursingId: item?.nursingId ?? "",
   nurseName: item?.nurseName ?? "",
+  progressStatus: item?.progressStatus ?? "",
   status: item?.status ?? "",
   patientName: item?.patientName ?? "",
   patientId: item?.patientId ?? "",
@@ -185,6 +191,7 @@ export default function MedicationRecordEdit() {
       doseKind: selected.doseKind ?? "",
       nursingId: selected.nursingId ?? "",
       nurseName: selected.nurseName ?? "",
+      progressStatus: selected.progressStatus ?? "",
       status: selected.status ?? "",
       patientName: selected.patientName ?? "",
       patientId:
@@ -214,7 +221,7 @@ export default function MedicationRecordEdit() {
           투약 기록 수정
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>
-          환자 맥락은 빠르게 확인하고, 수정은 한 화면에서 바로 끝낼 수 있게 구성했습니다.
+          환자와 기록 요약을 먼저 확인하고, 아래에서 진행상태와 활성여부를 포함한 상세 정보를 수정할 수 있습니다.
         </Typography>
 
         {detailError ? (
@@ -279,11 +286,18 @@ export default function MedicationRecordEdit() {
                   </Stack>
                 </Box>
 
-                <Chip
-                  label={formatMedicationRecordStatus(form.status)}
-                  color={getMedicationRecordStatusColor(form.status)}
-                  sx={getMedicationRecordStatusSx(form.status)}
-                />
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                  <Chip
+                    label={formatMedicationRecordProgressStatus(form.progressStatus)}
+                    color={getMedicationRecordProgressStatusColor(form.progressStatus)}
+                    sx={getMedicationRecordProgressStatusSx()}
+                  />
+                  <Chip
+                    label={formatMedicationRecordActiveStatus(form.status)}
+                    color={getMedicationRecordActiveStatusColor(form.status)}
+                    sx={getMedicationRecordActiveStatusSx(form.status)}
+                  />
+                </Stack>
               </Stack>
 
               <Box
@@ -340,15 +354,12 @@ export default function MedicationRecordEdit() {
               수정 항목
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              실행 정보와 담당 정보를 빠르게 수정할 수 있습니다.
+              진행상태와 활성여부를 분리해서 관리하며, 투약 정보와 담당자 정보도 함께 수정할 수 있습니다.
             </Typography>
           </Box>
 
           <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-            <LocalizationProvider
-              dateAdapter={AdapterDayjs}
-              adapterLocale="ko"
-            >
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ko">
               <Box
                 sx={{
                   display: "grid",
@@ -361,18 +372,36 @@ export default function MedicationRecordEdit() {
               >
                 <TextField
                   select
-                  label="상태"
+                  label="진행상태"
                   size="small"
-                  value={form.status}
-                  onChange={(e) => setDraftForm({ ...form, status: e.target.value })}
+                  value={form.progressStatus}
+                  onChange={(e) =>
+                    setDraftForm({ ...form, progressStatus: e.target.value })
+                  }
                   fullWidth
                 >
-                  {MEDICATION_RECORD_STATUS_OPTIONS.map((option) => (
+                  {MEDICATION_RECORD_PROGRESS_STATUS_OPTIONS.map((option) => (
                     <MenuItem key={option.value} value={option.value}>
                       {option.label}
                     </MenuItem>
                   ))}
                 </TextField>
+
+                <TextField
+                  select
+                  label="활성여부"
+                  size="small"
+                  value={form.status}
+                  onChange={(e) => setDraftForm({ ...form, status: e.target.value })}
+                  fullWidth
+                >
+                  {MEDICATION_RECORD_ACTIVE_STATUS_OPTIONS.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
                 <TextField
                   label="간호사명"
                   size="small"
@@ -400,7 +429,7 @@ export default function MedicationRecordEdit() {
                       textField: {
                         size: "small",
                         fullWidth: true,
-                        helperText: "달력과 시간 선택기로 투약일시를 입력할 수 있습니다.",
+                        helperText: "입력값이나 시간 선택기로 투약일시를 수정할 수 있습니다.",
                       },
                     }}
                   />
@@ -415,6 +444,7 @@ export default function MedicationRecordEdit() {
                   }
                   fullWidth
                 />
+
                 <TextField
                   label="간호사 ID"
                   size="small"
@@ -434,6 +464,7 @@ export default function MedicationRecordEdit() {
                   }
                   fullWidth
                 />
+
                 <Box
                   sx={{
                     display: "flex",
@@ -447,7 +478,7 @@ export default function MedicationRecordEdit() {
                   }}
                 >
                   <SummaryItem
-                    label="환자 식별"
+                    label="환자 요약"
                     value={`${displayValue(form.patientName)} / ${displayValue(form.patientId)}`}
                     truncate
                   />
@@ -506,7 +537,7 @@ export default function MedicationRecordEdit() {
                     변경 사항 저장
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    투약일시, 투약량, 담당 간호사 정보를 수정한 뒤 저장하세요.
+                    진행상태, 활성여부, 투약 정보를 확인한 뒤 저장하세요.
                   </Typography>
                 </Box>
 
@@ -538,6 +569,7 @@ export default function MedicationRecordEdit() {
                             doseKind: toNullableString(form.doseKind),
                             nursingId: toNullableString(form.nursingId),
                             nurseName: toNullableString(form.nurseName),
+                            progressStatus: toNullableString(form.progressStatus),
                             status: toNullableString(form.status),
                             patientId: form.patientId.trim()
                               ? Number(form.patientId)

@@ -13,6 +13,7 @@ export type VisitMedicationRecordCreatePayload = {
   doseUnit: string;
   doseKind?: string | null;
   nursingId?: string | null;
+  progressStatus?: string | null;
   status?: string | null;
   patientName?: string | null;
   departmentName?: string | null;
@@ -21,6 +22,7 @@ export type VisitMedicationRecordCreatePayload = {
 export type VisitTreatmentResultCreatePayload = {
   detail: string;
   nursingId?: string | null;
+  progressStatus?: string | null;
   status?: string | null;
   patientName?: string | null;
   departmentName?: string | null;
@@ -47,6 +49,9 @@ export async function createVisitMedicationRecordApi(
   }
   if (payload.nursingId != null && payload.nursingId !== "") {
     body.nursingId = payload.nursingId;
+  }
+  if (payload.progressStatus != null && payload.progressStatus !== "") {
+    body.progressStatus = payload.progressStatus;
   }
   if (payload.status != null && payload.status !== "") {
     body.status = payload.status;
@@ -80,6 +85,9 @@ export async function createVisitTreatmentResultApi(
   };
   if (payload.nursingId != null && payload.nursingId !== "") {
     body.nursingId = payload.nursingId;
+  }
+  if (payload.progressStatus != null && payload.progressStatus !== "") {
+    body.progressStatus = payload.progressStatus;
   }
   if (payload.status != null && payload.status !== "") {
     body.status = payload.status;

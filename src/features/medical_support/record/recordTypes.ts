@@ -1,6 +1,7 @@
 export interface RecordFormType {
   recordId: string;
   receptionId?: number | null;
+  patientId?: number | null;
   nursingId: string;
   recordedAt: string;
   systolicBp: string;

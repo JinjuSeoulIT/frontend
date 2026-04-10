@@ -1,9 +1,11 @@
 export interface TreatmentResult {
   treatmentResultId?: string | null;
   procedureResultId?: string | null;
+  progressStatus?: string | null;
   status?: string | null;
   createdAt?: string | null;
   nursingId?: string | null;
+  nurseName?: string | null;
   detail?: string | null;
   patientId?: number | null;
   patientName?: string | null;
@@ -11,8 +13,10 @@ export interface TreatmentResult {
 }
 
 export interface TreatmentResultCreatePayload {
+  progressStatus?: string | null;
   status?: string | null;
   nursingId?: string | null;
+  nurseName?: string | null;
   detail?: string | null;
   patientId?: number | null;
   patientName?: string | null;
@@ -21,8 +25,10 @@ export interface TreatmentResultCreatePayload {
 }
 
 export interface TreatmentResultUpdatePayload {
+  progressStatus?: string | null;
   status?: string | null;
   nursingId?: string | null;
+  nurseName?: string | null;
   detail?: string | null;
   patientId?: number | null;
   patientName?: string | null;

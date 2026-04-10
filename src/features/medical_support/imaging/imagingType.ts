@@ -1,6 +1,9 @@
 export interface ImagingExam {
   imagingExamId: string | number;
   testExecutionId?: string | number | null;
+  patientId?: string | number | null;
+  patientName?: string | null;
+  departmentName?: string | null;
   imagingType?: string | null;
   performerId?: string | number | null;
   progressStatus?: string | null;
@@ -11,6 +14,9 @@ export interface ImagingExam {
 
 export interface ImagingExamCreatePayload {
   testExecutionId?: string | number | null;
+  patientId?: string | number | null;
+  patientName?: string | null;
+  departmentName?: string | null;
   imagingType?: string | null;
   performerId?: string | number | null;
   progressStatus?: string | null;
@@ -19,6 +25,9 @@ export interface ImagingExamCreatePayload {
 
 export interface ImagingExamUpdatePayload {
   testExecutionId?: string | number | null;
+  patientId?: string | number | null;
+  patientName?: string | null;
+  departmentName?: string | null;
   imagingType?: string | null;
   performerId?: string | number | null;
   progressStatus?: string | null;

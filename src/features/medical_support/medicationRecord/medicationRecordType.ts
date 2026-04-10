@@ -6,6 +6,8 @@ export interface MedicationRecord {
   doseUnit?: string | null;
   doseKind?: string | null;
   nursingId?: string | null;
+  nurseName?: string | null;
+  progressStatus?: string | null;
   status?: string | null;
   createdAt?: string | null;
   patientId?: number | null;
@@ -20,6 +22,8 @@ export interface MedicationRecordCreatePayload {
   doseUnit?: string | null;
   doseKind?: string | null;
   nursingId?: string | null;
+  nurseName?: string | null;
+  progressStatus?: string | null;
   status?: string | null;
   patientId?: number | null;
   patientName?: string | null;
@@ -33,6 +37,8 @@ export interface MedicationRecordUpdatePayload {
   doseUnit?: string | null;
   doseKind?: string | null;
   nursingId?: string | null;
+  nurseName?: string | null;
+  progressStatus?: string | null;
   status?: string | null;
   patientId?: number | null;
   patientName?: string | null;

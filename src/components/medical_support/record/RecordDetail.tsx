@@ -263,6 +263,9 @@ export default function RecordDetail() {
                   <DetailItem label="간호사명" value={record.nurseName || "-"} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
+                  <DetailItem label="환자 ID" value={record.patientId ?? "-"} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem label="간호사 ID" value={record.nursingId || "-"} />
                 </Grid>
                 {/* <Grid size={{ xs: 12, md: 6 }}>

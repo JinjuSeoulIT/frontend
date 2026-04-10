@@ -11,7 +11,10 @@ import {
   CardContent,
   Chip,
   CircularProgress,
+  FormControlLabel,
   Paper,
+  Stack,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -26,23 +29,28 @@ import MedicationRecordDetailDialog from "@/components/medical_support/medicatio
 import { formatDateTime, safeValue } from "@/components/medical_support/common/ExamDisplay";
 import {
   formatMedicationDose,
-  formatMedicationRecordStatus,
-  getMedicationRecordStatusColor,
-  getMedicationRecordStatusSx,
-  normalizeMedicationRecordStatus,
+  formatMedicationRecordProgressStatus,
+  getMedicationRecordProgressStatusColor,
+  getMedicationRecordProgressStatusSx,
+  normalizeMedicationRecordActiveStatus,
+  normalizeMedicationRecordProgressStatus,
 } from "@/components/medical_support/medicationRecord/medicationRecordDisplay";
 import { MedicationRecordActions } from "@/features/medical_support/medicationRecord/medicationRecordSlice";
 import type { MedicationRecord } from "@/features/medical_support/medicationRecord/medicationRecordType";
 import type { RootState, AppDispatch } from "@/store/store";
 
-const REQUESTED_STATUSES = ["REQUESTED"];
-const ACTIVE_STATUSES = ["ACTIVE", "IN_PROGRESS"];
+const REQUESTED_STATUSES = ["REQUESTED", "WAITING"];
+const IN_PROGRESS_STATUSES = ["IN_PROGRESS"];
 const COMPLETED_STATUSES = ["COMPLETED"];
+
+const isInactiveRecord = (item: Pick<MedicationRecord, "status">) =>
+  normalizeMedicationRecordActiveStatus(item.status) === "INACTIVE";
 
 export function MedicationRecordListSection() {
   const dispatch = useDispatch<AppDispatch>();
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [includeInactive, setIncludeInactive] = React.useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState<MedicationRecord | null>(
     null
@@ -55,40 +63,57 @@ export function MedicationRecordListSection() {
     dispatch(MedicationRecordActions.fetchMedicationRecordsRequest());
   }, [dispatch]);
 
-  const requestedCount = React.useMemo(
+  const visibleRows = React.useMemo(
     () =>
-      rows.filter((item) =>
-        REQUESTED_STATUSES.includes(normalizeMedicationRecordStatus(item.status))
-      ).length,
-    [rows]
+      includeInactive ? rows : rows.filter((item) => !isInactiveRecord(item)),
+    [includeInactive, rows]
   );
 
-  const activeCount = React.useMemo(
+  const requestedCount = React.useMemo(
     () =>
-      rows.filter((item) =>
-        ACTIVE_STATUSES.includes(normalizeMedicationRecordStatus(item.status))
+      visibleRows.filter((item) =>
+        REQUESTED_STATUSES.includes(
+          normalizeMedicationRecordProgressStatus(item.progressStatus)
+        )
       ).length,
-    [rows]
+    [visibleRows]
+  );
+
+  const inProgressCount = React.useMemo(
+    () =>
+      visibleRows.filter((item) =>
+        IN_PROGRESS_STATUSES.includes(
+          normalizeMedicationRecordProgressStatus(item.progressStatus)
+        )
+      ).length,
+    [visibleRows]
   );
 
   const completedCount = React.useMemo(
     () =>
-      rows.filter((item) =>
-        COMPLETED_STATUSES.includes(normalizeMedicationRecordStatus(item.status))
+      visibleRows.filter((item) =>
+        COMPLETED_STATUSES.includes(
+          normalizeMedicationRecordProgressStatus(item.progressStatus)
+        )
       ).length,
-    [rows]
+    [visibleRows]
   );
 
-  const maxPage = Math.max(0, Math.ceil(rows.length / rowsPerPage) - 1);
+  const inactiveCount = React.useMemo(
+    () => visibleRows.filter((item) => isInactiveRecord(item)).length,
+    [visibleRows]
+  );
+
+  const maxPage = Math.max(0, Math.ceil(visibleRows.length / rowsPerPage) - 1);
   const currentPage = Math.min(page, maxPage);
 
   const paginatedRows = React.useMemo(
     () =>
-      rows.slice(
+      visibleRows.slice(
         currentPage * rowsPerPage,
         currentPage * rowsPerPage + rowsPerPage
       ),
-    [currentPage, rows, rowsPerPage]
+    [currentPage, rowsPerPage, visibleRows]
   );
 
   const detailItem = React.useMemo(() => {
@@ -163,14 +188,26 @@ export function MedicationRecordListSection() {
                 투약 기록 목록
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                투약 기록을 목록과 상세로 나누어 확인할 수 있습니다.
+                진행 상태 중심으로 투약 기록을 확인하고, 필요한 경우 비활성 데이터도 함께 볼 수 있습니다.
               </Typography>
             </Box>
 
-            <Box
-              sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}
-            >
-              <Chip label={`총 ${rows.length}건`} size="small" />
+            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
+              <FormControlLabel
+                control={
+                  <Switch
+                    size="small"
+                    checked={includeInactive}
+                    onChange={(event) => {
+                      setIncludeInactive(event.target.checked);
+                      setPage(0);
+                    }}
+                  />
+                }
+                label="비활성 포함"
+                sx={{ mr: 0.5 }}
+              />
+              <Chip label={`총 ${visibleRows.length}건`} size="small" />
               <Chip
                 label={`요청 ${requestedCount}건`}
                 size="small"
@@ -178,7 +215,7 @@ export function MedicationRecordListSection() {
                 variant="outlined"
               />
               <Chip
-                label={`진행 중 ${activeCount}건`}
+                label={`진행 중 ${inProgressCount}건`}
                 size="small"
                 color="info"
                 variant="outlined"
@@ -189,6 +226,9 @@ export function MedicationRecordListSection() {
                 color="success"
                 variant="outlined"
               />
+              {includeInactive && inactiveCount > 0 ? (
+                <Chip label={`비활성 ${inactiveCount}건`} size="small" variant="outlined" />
+              ) : null}
               <Button
                 variant="outlined"
                 size="small"
@@ -199,15 +239,15 @@ export function MedicationRecordListSection() {
               >
                 새로고침
               </Button>
-            </Box>
+            </Stack>
           </Box>
         </Box>
 
         <CardContent sx={{ p: 2.5 }}>
-          {loading && <CircularProgress />}
-          {error && <Alert severity="error">{error}</Alert>}
+          {loading ? <CircularProgress /> : null}
+          {error ? <Alert severity="error">{error}</Alert> : null}
 
-          {!loading && !error && (
+          {!loading && !error ? (
             <Paper
               elevation={0}
               sx={{
@@ -218,92 +258,127 @@ export function MedicationRecordListSection() {
               }}
             >
               <TableContainer>
-                <Table size="small" stickyHeader sx={{ minWidth: 1080 }}>
+                <Table size="small" stickyHeader sx={{ minWidth: 1240 }}>
                   <TableHead>
                     <TableRow>
                       <TableCell align="center">번호</TableCell>
                       <TableCell align="center">투약기록 ID</TableCell>
                       <TableCell align="center">환자명</TableCell>
                       <TableCell align="center">진료과</TableCell>
+                      <TableCell align="center">간호사명</TableCell>
                       <TableCell align="center">투약일시</TableCell>
                       <TableCell align="center">투약량</TableCell>
                       <TableCell align="center">투약종류</TableCell>
-                      <TableCell align="center">상태</TableCell>
+                      <TableCell align="center">진행상태</TableCell>
                     </TableRow>
                   </TableHead>
 
                   <TableBody>
-                    {paginatedRows.length === 0 && (
+                    {paginatedRows.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} align="center">
-                          투약 기록 데이터가 없습니다.
+                        <TableCell colSpan={9} align="center">
+                          조회된 투약 기록이 없습니다.
                         </TableCell>
                       </TableRow>
-                    )}
+                    ) : null}
 
-                    {paginatedRows.map((row, index) => (
-                      <TableRow
-                        key={
-                          row.medicationRecordId
-                            ? String(row.medicationRecordId)
-                            : row.medicationId
-                              ? String(row.medicationId)
-                              : `medication-record-${index}`
-                        }
-                        hover
-                        onClick={() => handleOpenDetail(row)}
-                        sx={{
-                          cursor: "pointer",
-                          "&:hover": { backgroundColor: "#f9fbff" },
-                          "& td": { py: 1.25 },
-                        }}
-                      >
-                        <TableCell align="center">
-                          {currentPage * rowsPerPage + index + 1}
-                        </TableCell>
-                        <TableCell align="center">
-                          {safeValue(row.medicationRecordId)}
-                        </TableCell>
-                        <TableCell align="center">{safeValue(row.patientName)}</TableCell>
-                        <TableCell align="center">
-                          {safeValue(row.departmentName)}
-                        </TableCell>
-                        <TableCell align="center">
-                          {formatDateTime(row.administeredAt)}
-                        </TableCell>
-                        <TableCell align="center">
-                          {formatMedicationDose(row.doseNumber, row.doseUnit)}
-                        </TableCell>
-                        <TableCell align="center">{safeValue(row.doseKind)}</TableCell>
-                        <TableCell align="center">
-                          <Chip
-                            label={formatMedicationRecordStatus(row.status)}
-                            color={getMedicationRecordStatusColor(row.status)}
-                            size="small"
-                            sx={getMedicationRecordStatusSx(row.status)}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {paginatedRows.map((row, index) => {
+                      const inactive = isInactiveRecord(row);
+
+                      return (
+                        <TableRow
+                          key={
+                            row.medicationRecordId
+                              ? String(row.medicationRecordId)
+                              : row.medicationId
+                                ? String(row.medicationId)
+                                : `medication-record-${index}`
+                          }
+                          hover
+                          onClick={() => handleOpenDetail(row)}
+                          sx={{
+                            cursor: "pointer",
+                            backgroundColor: inactive ? "#fcfcfc" : undefined,
+                            "&:hover": {
+                              backgroundColor: inactive ? "#f4f6f8" : "#f9fbff",
+                            },
+                            "& td": {
+                              py: 1.25,
+                              color: inactive ? "text.secondary" : undefined,
+                            },
+                          }}
+                        >
+                          <TableCell align="center">
+                            {currentPage * rowsPerPage + index + 1}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(row.medicationRecordId)}
+                          </TableCell>
+                          <TableCell align="center">{safeValue(row.patientName)}</TableCell>
+                          <TableCell align="center">
+                            {safeValue(row.departmentName)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(row.nurseName)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {formatDateTime(row.administeredAt)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {formatMedicationDose(row.doseNumber, row.doseUnit)}
+                          </TableCell>
+                          <TableCell align="center">{safeValue(row.doseKind)}</TableCell>
+                          <TableCell align="center">
+                            <Stack
+                              direction="row"
+                              spacing={0.75}
+                              justifyContent="center"
+                              useFlexGap
+                              flexWrap="wrap"
+                            >
+                              <Chip
+                                label={formatMedicationRecordProgressStatus(
+                                  row.progressStatus
+                                )}
+                                color={getMedicationRecordProgressStatusColor(
+                                  row.progressStatus
+                                )}
+                                size="small"
+                                sx={getMedicationRecordProgressStatusSx()}
+                              />
+                              {inactive ? (
+                                <Chip
+                                  label="비활성"
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{
+                                    borderColor: "grey.400",
+                                    color: "text.secondary",
+                                  }}
+                                />
+                              ) : null}
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>
 
               <TablePagination
                 component="div"
-                count={rows.length}
+                count={visibleRows.length}
                 page={currentPage}
                 onPageChange={handleChangePage}
                 rowsPerPage={rowsPerPage}
                 onRowsPerPageChange={handleChangeRowsPerPage}
                 rowsPerPageOptions={[10, 20, 50]}
                 labelRowsPerPage="페이지당 행 수"
-                labelDisplayedRows={({ from, to, count }) =>
-                  `${from}-${to} / 총 ${count}`
-                }
+                labelDisplayedRows={({ from, to, count }) => `${from}-${to} / 총 ${count}`}
               />
             </Paper>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 

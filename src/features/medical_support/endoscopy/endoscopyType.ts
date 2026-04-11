@@ -8,6 +8,7 @@ export interface EndoscopyExam {
   equipment?: string | null;
   sedationYn?: string | null;
   performerId?: string | number | null;
+  performerName?: string | null;
   procedureAt?: string | null;
   progressStatus?: string | null;
   status?: string | null;
@@ -24,6 +25,7 @@ export interface EndoscopyExamCreatePayload {
   equipment?: string | null;
   sedationYn?: string | null;
   performerId?: string | number | null;
+  performerName?: string | null;
   procedureAt?: string | null;
   progressStatus?: string | null;
   status?: string | null;
@@ -38,6 +40,7 @@ export interface EndoscopyExamUpdatePayload {
   equipment?: string | null;
   sedationYn?: string | null;
   performerId?: string | number | null;
+  performerName?: string | null;
   procedureAt?: string | null;
   progressStatus?: string | null;
   status?: string | null;

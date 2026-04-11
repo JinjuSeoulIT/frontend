@@ -8,6 +8,7 @@ export interface PhysiologicalExam {
   rawData?: string | null;
   reportDocId?: string | number | null;
   performerId?: string | number | null;
+  performerName?: string | null;
   progressStatus?: string | null;
   status?: string | null;
   createdAt?: string | null;
@@ -23,6 +24,7 @@ export interface PhysiologicalExamCreatePayload {
   rawData?: string | null;
   reportDocId?: string | number | null;
   performerId?: string | number | null;
+  performerName?: string | null;
   progressStatus?: string | null;
   status?: string | null;
 }
@@ -36,6 +38,7 @@ export interface PhysiologicalExamUpdatePayload {
   rawData?: string | null;
   reportDocId?: string | number | null;
   performerId?: string | number | null;
+  performerName?: string | null;
   progressStatus?: string | null;
   status?: string | null;
 }

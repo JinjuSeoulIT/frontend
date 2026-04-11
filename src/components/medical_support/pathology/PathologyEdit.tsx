@@ -33,11 +33,11 @@ type PathologyEditForm = {
   patientId: string;
   patientName: string;
   departmentName: string;
-  pathologyType: string;
   specimenId: string;
   resultSummary: string;
   reportDocId: string;
   performerId: string;
+  performerName: string;
   progressStatus: string;
   status: string;
   createdAt: string;
@@ -62,11 +62,11 @@ const toPathologyFormData = (
   patientId: item?.patientId ?? "",
   patientName: item?.patientName ?? "",
   departmentName: item?.departmentName ?? "",
-  pathologyType: item?.pathologyType ?? "",
   specimenId: item?.specimenId ?? "",
   resultSummary: item?.resultSummary ?? "",
   reportDocId: item?.reportDocId ?? "",
   performerId: item?.performerId ?? "",
+  performerName: item?.performerName ?? "",
   progressStatus: item?.progressStatus ?? "",
   status: item?.status ?? "",
   createdAt: item?.createdAt ?? "",
@@ -151,7 +151,6 @@ export default function PathologyEdit() {
           : String(selected.patientId),
       patientName: selected.patientName ?? "",
       departmentName: selected.departmentName ?? "",
-      pathologyType: selected.pathologyType ?? "",
       specimenId:
         selected.specimenId === null || selected.specimenId === undefined
           ? ""
@@ -162,6 +161,7 @@ export default function PathologyEdit() {
           ? ""
           : String(selected.reportDocId),
       performerId: String(selected.performerId ?? ""),
+      performerName: selected.performerName ?? "",
       progressStatus: selected.progressStatus ?? "",
       status: selected.status ?? "",
       createdAt: selected.createdAt ?? "",
@@ -192,11 +192,11 @@ export default function PathologyEdit() {
           patientId: form.patientId.trim() ? Number(form.patientId) : null,
           patientName: form.patientName,
           departmentName: form.departmentName,
-          pathologyType: form.pathologyType,
           specimenId: form.specimenId,
           resultSummary: form.resultSummary,
           reportDocId: form.reportDocId,
           performerId: form.performerId,
+          performerName: form.performerName,
           progressStatus: nextProgressStatus,
           status: form.status,
         },
@@ -317,7 +317,7 @@ export default function PathologyEdit() {
                   gap: 1.75,
                   gridTemplateColumns: {
                     xs: "1fr 1fr",
-                    lg: "repeat(4, minmax(0, 1fr))",
+                    lg: "repeat(5, minmax(0, 1fr))",
                   },
                 }}
               >
@@ -335,8 +335,8 @@ export default function PathologyEdit() {
                   value={safeValue(form.performerId)}
                 />
                 <SummaryItem
-                  label="병리유형"
-                  value={safeValue(form.pathologyType)}
+                  label="담당자명"
+                  value={safeValue(form.performerName)}
                 />
               </Box>
             </Stack>
@@ -441,6 +441,19 @@ export default function PathologyEdit() {
               />
 
               <TextField
+                label="담당자명"
+                size="small"
+                value={form.performerName}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    performerName: e.target.value,
+                  })
+                }
+                fullWidth
+              />
+
+              <TextField
                 label="검사수행 ID"
                 size="small"
                 value={form.testExecutionId}
@@ -448,19 +461,6 @@ export default function PathologyEdit() {
                   setDraftForm({
                     ...form,
                     testExecutionId: e.target.value,
-                  })
-                }
-                fullWidth
-              />
-
-              <TextField
-                label="병리유형"
-                size="small"
-                value={form.pathologyType}
-                onChange={(e) =>
-                  setDraftForm({
-                    ...form,
-                    pathologyType: e.target.value,
                   })
                 }
                 fullWidth

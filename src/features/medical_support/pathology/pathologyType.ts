@@ -4,7 +4,6 @@ export interface PathologyExam {
   patientId?: string | number | null;
   patientName?: string | null;
   departmentName?: string | null;
-  pathologyType?: string | null;
   specimenId?: string | number | null;
   resultSummary?: string | null;
   reportDocId?: string | number | null;
@@ -14,6 +13,7 @@ export interface PathologyExam {
   tissueType?: string | null;
   collectedAt?: string | null;
   performerId?: string | number | null;
+  performerName?: string | null;
   reexamYn?: string | null;
   progressStatus?: string | null;
   status?: string | null;
@@ -26,7 +26,6 @@ export interface PathologyExamCreatePayload {
   patientId?: string | number | null;
   patientName?: string | null;
   departmentName?: string | null;
-  pathologyType?: string | null;
   specimenId?: string | number | null;
   resultSummary?: string | null;
   reportDocId?: string | number | null;
@@ -36,6 +35,7 @@ export interface PathologyExamCreatePayload {
   tissueType?: string | null;
   collectedAt?: string | null;
   performerId?: string | number | null;
+  performerName?: string | null;
   reexamYn?: string | null;
   progressStatus?: string | null;
   status?: string | null;
@@ -46,7 +46,6 @@ export interface PathologyExamUpdatePayload {
   patientId?: string | number | null;
   patientName?: string | null;
   departmentName?: string | null;
-  pathologyType?: string | null;
   specimenId?: string | number | null;
   resultSummary?: string | null;
   reportDocId?: string | number | null;
@@ -56,6 +55,7 @@ export interface PathologyExamUpdatePayload {
   tissueType?: string | null;
   collectedAt?: string | null;
   performerId?: string | number | null;
+  performerName?: string | null;
   reexamYn?: string | null;
   progressStatus?: string | null;
   status?: string | null;

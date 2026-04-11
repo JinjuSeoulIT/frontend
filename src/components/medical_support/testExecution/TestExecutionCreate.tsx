@@ -16,12 +16,14 @@ export default function TestExecutionCreate() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const patientIdParam = searchParams.get("patientId") ?? "";
+  const detailCodeParam = searchParams.get("detailCode") ?? "";
   const initialForm = useMemo(
     () =>
       toTestExecutionFormData({
         patientId: patientIdParam,
+        detailCode: detailCodeParam,
       }),
-    [patientIdParam]
+    [detailCodeParam, patientIdParam]
   );
   const [form, setForm] = useState(initialForm);
   const { loading, error, createSuccess } = useSelector(

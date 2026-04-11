@@ -121,6 +121,7 @@ export default function TestExecutionEdit() {
         patientName: currentExecution.patientName ?? null,
         departmentName: currentExecution.departmentName ?? null,
         performerId: currentExecution.performerId ?? null,
+        performerName: currentExecution.performerName ?? null,
       });
 
       setDraftForm(toTestExecutionFormData(updatedItem));

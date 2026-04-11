@@ -4,6 +4,7 @@ export interface TreatmentResult {
   progressStatus?: string | null;
   status?: string | null;
   createdAt?: string | null;
+  treatmentAt?: string | null;
   nursingId?: string | null;
   nurseName?: string | null;
   detail?: string | null;
@@ -15,6 +16,7 @@ export interface TreatmentResult {
 export interface TreatmentResultCreatePayload {
   progressStatus?: string | null;
   status?: string | null;
+  treatmentAt?: string | null;
   nursingId?: string | null;
   nurseName?: string | null;
   detail?: string | null;
@@ -27,6 +29,7 @@ export interface TreatmentResultCreatePayload {
 export interface TreatmentResultUpdatePayload {
   progressStatus?: string | null;
   status?: string | null;
+  treatmentAt?: string | null;
   nursingId?: string | null;
   nurseName?: string | null;
   detail?: string | null;

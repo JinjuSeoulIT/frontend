@@ -21,6 +21,7 @@ import {
 type TestExecutionFormData = {
   testExecutionId: string;
   orderItemId: string;
+  detailCode: string;
   patientId: string;
   patientName: string;
   departmentName: string;
@@ -32,6 +33,8 @@ type TestExecutionFormData = {
   updatedAt: string;
   startedAt: string;
   completedAt: string;
+  performerId: string;
+  performerName: string;
 };
 
 export type { TestExecutionFormData };
@@ -124,6 +127,7 @@ export const toTestExecutionFormData = (
 ): TestExecutionFormData => ({
   testExecutionId: value?.testExecutionId ? String(value.testExecutionId) : "",
   orderItemId: value?.orderItemId ? String(value.orderItemId) : "",
+  detailCode: toTextValue(value?.detailCode),
   patientId: value?.patientId ? String(value.patientId) : "",
   patientName: toTextValue(value?.patientName),
   departmentName: toTextValue(value?.departmentName),
@@ -136,6 +140,8 @@ export const toTestExecutionFormData = (
   updatedAt: toDateTimeInputValue(value?.updatedAt),
   startedAt: toDateTimeInputValue(value?.startedAt),
   completedAt: toDateTimeInputValue(value?.completedAt),
+  performerId: value?.performerId ? String(value.performerId) : "",
+  performerName: toTextValue(value?.performerName),
 });
 
 export const toTestExecutionPayload = (
@@ -143,6 +149,7 @@ export const toTestExecutionPayload = (
 ): TestExecution => ({
   testExecutionId: form.testExecutionId.trim() || "",
   orderItemId: toNullableNumber(form.orderItemId),
+  detailCode: toNullableText(form.detailCode),
   patientId: toNullableText(form.patientId),
   patientName: toNullableText(form.patientName),
   departmentName: toNullableText(form.departmentName),
@@ -154,6 +161,8 @@ export const toTestExecutionPayload = (
   updatedAt: toNullableDateTime(form.updatedAt),
   startedAt: toNullableDateTime(form.startedAt),
   completedAt: toNullableDateTime(form.completedAt),
+  performerId: toNullableText(form.performerId),
+  performerName: toNullableText(form.performerName),
 });
 
 export const toTestExecutionUpdatePayload = (
@@ -162,6 +171,8 @@ export const toTestExecutionUpdatePayload = (
 ): TestExecutionUpdatePayload => {
   const patientName = toNullableText(form.patientName);
   const departmentName = toNullableText(form.departmentName);
+  const performerId = toNullableText(form.performerId);
+  const performerName = toNullableText(form.performerName);
 
   return {
     progressStatus: form.progressStatus.trim() || null,
@@ -170,7 +181,8 @@ export const toTestExecutionUpdatePayload = (
     patientId: source?.patientId,
     patientName: patientName ?? source?.patientName ?? undefined,
     departmentName: departmentName ?? source?.departmentName ?? undefined,
-    performerId: source?.performerId,
+    performerId: performerId ?? source?.performerId ?? undefined,
+    performerName: performerName ?? source?.performerName ?? undefined,
   };
 };
 
@@ -305,6 +317,18 @@ export default function TestExecutionForm({
                   />
                 </Grid>
 
+                {!isEditMode && form.detailCode ? (
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TextField
+                      label="검사명"
+                      value={form.detailCode}
+                      size="small"
+                      fullWidth
+                      {...readOnlyTextFieldProps}
+                    />
+                  </Grid>
+                ) : null}
+
                 {isEditMode && (
                   <Grid size={{ xs: 12, md: 6 }}>
                     <TextField
@@ -385,6 +409,30 @@ export default function TestExecutionForm({
                       <MenuItem value="ACTIVE">활성</MenuItem>
                       <MenuItem value="INACTIVE">비활성</MenuItem>
                     </TextField>
+                  </Grid>
+                )}
+
+                {isEditMode && (
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TextField
+                      label="담당자 ID"
+                      value={form.performerId}
+                      onChange={handleChange("performerId")}
+                      size="small"
+                      fullWidth
+                    />
+                  </Grid>
+                )}
+
+                {isEditMode && (
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TextField
+                      label="담당자명"
+                      value={form.performerName}
+                      onChange={handleChange("performerName")}
+                      size="small"
+                      fullWidth
+                    />
                   </Grid>
                 )}
               </Grid>

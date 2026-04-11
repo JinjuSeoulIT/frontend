@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useDispatch, useSelector } from "react-redux";
-import MainLayout from "@/components/layout/MainLayout";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import {
   Alert,
   Box,
@@ -24,9 +24,15 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import { safeValue } from "@/components/medical_support/common/ExamDisplay";
+import MainLayout from "@/components/layout/MainLayout";
+import {
+  formatDateTime,
+  safeValue,
+} from "@/components/medical_support/common/ExamDisplay";
 import TreatmentResultDetailDialog from "@/components/medical_support/treatmentResult/TreatmentResultDetailDialog";
+import TreatmentResultSearch, {
+  type TreatmentResultSearchCriteria,
+} from "@/components/medical_support/treatmentResult/TreatmentResultSearch";
 import {
   formatTreatmentResultProgressStatus,
   getTreatmentResultProgressStatusColor,
@@ -36,7 +42,7 @@ import {
 } from "@/components/medical_support/treatmentResult/treatmentResultDisplay";
 import { TreatmentResultActions } from "@/features/medical_support/treatmentResult/treatmentResultSlice";
 import type { TreatmentResult } from "@/features/medical_support/treatmentResult/treatmentResultType";
-import type { RootState, AppDispatch } from "@/store/store";
+import type { AppDispatch, RootState } from "@/store/store";
 
 const REQUESTED_STATUSES = ["REQUESTED", "WAITING"];
 const IN_PROGRESS_STATUSES = ["IN_PROGRESS"];
@@ -51,13 +57,46 @@ const summarizeDetail = (value?: string | null) => {
 const isInactiveResult = (item: Pick<TreatmentResult, "status">) =>
   normalizeTreatmentResultActiveStatus(item.status) === "INACTIVE";
 
+const normalizeKeyword = (value?: string | number | null) =>
+  value == null ? "" : String(value).trim().toLocaleLowerCase("ko-KR");
+
+const matchesKeyword = (
+  source: string | number | null | undefined,
+  keyword: string
+) => normalizeKeyword(source).includes(normalizeKeyword(keyword));
+
+const matchesTreatmentResultSearch = (
+  item: TreatmentResult,
+  criteria: TreatmentResultSearchCriteria | null
+) => {
+  if (!criteria) return true;
+
+  switch (criteria.searchType) {
+    case "patientName":
+      return matchesKeyword(item.patientName, criteria.searchValue);
+    case "departmentName":
+      return item.departmentName?.trim() === criteria.searchValue.trim();
+    case "progressStatus":
+      return (
+        normalizeTreatmentResultProgressStatus(item.progressStatus) ===
+        criteria.searchValue.trim().toUpperCase()
+      );
+    default:
+      return true;
+  }
+};
+
 export function TreatmentResultListSection() {
   const dispatch = useDispatch<AppDispatch>();
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [includeInactive, setIncludeInactive] = React.useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = React.useState(false);
-  const [selectedRow, setSelectedRow] = React.useState<TreatmentResult | null>(null);
+  const [selectedRow, setSelectedRow] = React.useState<TreatmentResult | null>(
+    null
+  );
+  const [searchCriteria, setSearchCriteria] =
+    React.useState<TreatmentResultSearchCriteria | null>(null);
 
   const { list: rows, selected, loading, detailLoading, error, detailError } =
     useSelector((state: RootState) => state.treatmentResults);
@@ -66,10 +105,15 @@ export function TreatmentResultListSection() {
     dispatch(TreatmentResultActions.fetchTreatmentResultsRequest());
   }, [dispatch]);
 
-  const visibleRows = React.useMemo(
+  const baseRows = React.useMemo(
     () =>
       includeInactive ? rows : rows.filter((item) => !isInactiveResult(item)),
     [includeInactive, rows]
+  );
+
+  const visibleRows = React.useMemo(
+    () => baseRows.filter((item) => matchesTreatmentResultSearch(item, searchCriteria)),
+    [baseRows, searchCriteria]
   );
 
   const requestedCount = React.useMemo(
@@ -121,6 +165,7 @@ export function TreatmentResultListSection() {
 
   const detailItem = React.useMemo(() => {
     if (!selectedRow) return selected;
+
     if (
       selected?.treatmentResultId &&
       selectedRow.treatmentResultId &&
@@ -128,6 +173,7 @@ export function TreatmentResultListSection() {
     ) {
       return { ...selectedRow, ...selected };
     }
+
     return selectedRow;
   }, [selected, selectedRow]);
 
@@ -161,6 +207,16 @@ export function TreatmentResultListSection() {
     dispatch(TreatmentResultActions.clearTreatmentResultSelection());
   };
 
+  const handleSearch = (criteria: TreatmentResultSearchCriteria) => {
+    setSearchCriteria(criteria);
+    setPage(0);
+  };
+
+  const handleResetSearch = () => {
+    setSearchCriteria(null);
+    setPage(0);
+  };
+
   return (
     <>
       <Card
@@ -188,11 +244,18 @@ export function TreatmentResultListSection() {
                 처치 결과 목록
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                진행 상태 기준으로 처치 결과를 확인하고, 필요하면 비활성 데이터도 함께 조회할 수 있습니다.
+                진행 상태 기준으로 처치 결과를 확인하고, 필요하면 비활성 데이터도 함께
+                조회할 수 있습니다.
               </Typography>
             </Box>
 
-            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
+            <Stack
+              direction="row"
+              spacing={1}
+              useFlexGap
+              flexWrap="wrap"
+              alignItems="center"
+            >
               <FormControlLabel
                 control={
                   <Switch
@@ -244,6 +307,14 @@ export function TreatmentResultListSection() {
         </Box>
 
         <CardContent sx={{ p: 2.5 }}>
+          <Box sx={{ mb: 2.5 }}>
+            <TreatmentResultSearch
+              loading={loading}
+              onSearch={handleSearch}
+              onReset={handleResetSearch}
+            />
+          </Box>
+
           {loading ? <CircularProgress /> : null}
           {error ? <Alert severity="error">{error}</Alert> : null}
 
@@ -258,7 +329,7 @@ export function TreatmentResultListSection() {
               }}
             >
               <TableContainer>
-                <Table size="small" stickyHeader sx={{ minWidth: 1140 }}>
+                <Table size="small" stickyHeader sx={{ minWidth: 1280 }}>
                   <TableHead>
                     <TableRow>
                       <TableCell align="center">번호</TableCell>
@@ -266,6 +337,7 @@ export function TreatmentResultListSection() {
                       <TableCell align="center">환자명</TableCell>
                       <TableCell align="center">진료과</TableCell>
                       <TableCell align="center">간호사명</TableCell>
+                      <TableCell align="center">처치일시</TableCell>
                       <TableCell align="center">진행상태</TableCell>
                       <TableCell align="left">처치내용</TableCell>
                     </TableRow>
@@ -274,7 +346,7 @@ export function TreatmentResultListSection() {
                   <TableBody>
                     {paginatedRows.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} align="center">
+                        <TableCell colSpan={8} align="center">
                           조회된 처치 결과가 없습니다.
                         </TableCell>
                       </TableRow>
@@ -314,8 +386,9 @@ export function TreatmentResultListSection() {
                           <TableCell align="center">
                             {safeValue(row.departmentName)}
                           </TableCell>
+                          <TableCell align="center">{safeValue(row.nurseName)}</TableCell>
                           <TableCell align="center">
-                            {safeValue(row.nurseName)}
+                            {formatDateTime(row.treatmentAt)}
                           </TableCell>
                           <TableCell align="center">
                             <Stack

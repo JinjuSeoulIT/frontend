@@ -11,20 +11,31 @@ const api = axios.create({
     process.env.NEXT_PUBLIC_NURSING_API_BASE_URL ?? "http://192.168.1.66:8181",
 });
 
+type PathologyExamApiRaw = PathologyExam & {
+  PERFORMER_NAME?: string | null;
+  performer_name?: string | null;
+};
+
+const normalizePathologyExam = (item: PathologyExamApiRaw): PathologyExam => ({
+  ...item,
+  performerName:
+    item.performerName ?? item.PERFORMER_NAME ?? item.performer_name ?? null,
+});
+
 export const fetchPathologyExamsApi = async (): Promise<PathologyExam[]> => {
-  const res = await api.get<ApiResponse<PathologyExam[]>>("/api/pathology");
+  const res = await api.get<ApiResponse<PathologyExamApiRaw[]>>("/api/pathology");
 
   if (!res.data.success) {
     throw new Error(res.data.message || "병리 검사 목록 조회에 실패했습니다.");
   }
 
-  return res.data.result;
+  return (res.data.result ?? []).map(normalizePathologyExam);
 };
 
 export const fetchPathologyExamApi = async (
   pathologyExamId: string | number
 ): Promise<PathologyExam> => {
-  const res = await api.get<ApiResponse<PathologyExam>>(
+  const res = await api.get<ApiResponse<PathologyExamApiRaw>>(
     `/api/pathology/${pathologyExamId}`
   );
 
@@ -32,26 +43,29 @@ export const fetchPathologyExamApi = async (
     throw new Error(res.data.message || "병리 검사 상세 조회에 실패했습니다.");
   }
 
-  return res.data.result;
+  return normalizePathologyExam((res.data.result ?? {}) as PathologyExamApiRaw);
 };
 
 export const createPathologyExamApi = async (
   payload: PathologyExamCreatePayload
 ): Promise<PathologyExam> => {
-  const res = await api.post<ApiResponse<PathologyExam>>("/api/pathology", payload);
+  const res = await api.post<ApiResponse<PathologyExamApiRaw>>(
+    "/api/pathology",
+    payload
+  );
 
   if (!res.data.success) {
     throw new Error(res.data.message || "병리 검사 등록에 실패했습니다.");
   }
 
-  return res.data.result;
+  return normalizePathologyExam((res.data.result ?? {}) as PathologyExamApiRaw);
 };
 
 export const updatePathologyExamApi = async (
   pathologyExamId: string | number,
   payload: PathologyExamUpdatePayload
 ): Promise<PathologyExam> => {
-  const res = await api.put<ApiResponse<PathologyExam>>(
+  const res = await api.put<ApiResponse<PathologyExamApiRaw>>(
     `/api/pathology/${pathologyExamId}`,
     payload
   );
@@ -60,5 +74,5 @@ export const updatePathologyExamApi = async (
     throw new Error(res.data.message || "병리 검사 수정에 실패했습니다.");
   }
 
-  return res.data.result;
+  return normalizePathologyExam((res.data.result ?? {}) as PathologyExamApiRaw);
 };

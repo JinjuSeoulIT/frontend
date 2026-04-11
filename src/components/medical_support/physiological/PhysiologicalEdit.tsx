@@ -30,6 +30,7 @@ type PhysiologicalEditForm = {
   rawData: string;
   reportDocId: string;
   performerId: string;
+  performerName: string;
   progressStatus: string;
   status: string;
   createdAt: string;
@@ -58,6 +59,7 @@ const toPhysiologicalFormData = (
   rawData: item?.rawData ?? "",
   reportDocId: item?.reportDocId ?? "",
   performerId: item?.performerId ?? "",
+  performerName: item?.performerName ?? "",
   progressStatus: item?.progressStatus ?? "",
   status: item?.status ?? "",
   createdAt: item?.createdAt ?? "",
@@ -214,6 +216,7 @@ export default function PhysiologicalEdit() {
       rawData: selected.rawData ?? "",
       reportDocId: String(selected.reportDocId ?? ""),
       performerId: String(selected.performerId ?? ""),
+      performerName: selected.performerName ?? "",
       progressStatus: selected.progressStatus ?? "",
       status: selected.status ?? "",
       createdAt: selected.createdAt ?? "",
@@ -249,6 +252,7 @@ export default function PhysiologicalEdit() {
           rawData: form.rawData,
           reportDocId: form.reportDocId,
           performerId: form.performerId,
+          performerName: form.performerName,
           progressStatus: nextProgressStatus,
           status: form.status,
         },
@@ -369,7 +373,7 @@ export default function PhysiologicalEdit() {
                   gap: 1.75,
                   gridTemplateColumns: {
                     xs: "1fr 1fr",
-                    lg: "repeat(4, minmax(0, 1fr))",
+                    lg: "repeat(5, minmax(0, 1fr))",
                   },
                 }}
               >
@@ -385,6 +389,10 @@ export default function PhysiologicalEdit() {
                 <SummaryItem
                   label="담당자 ID"
                   value={displayValue(form.performerId)}
+                />
+                <SummaryItem
+                  label="담당자명"
+                  value={displayValue(form.performerName)}
                 />
                 <SummaryItem
                   label="검사장비 ID"
@@ -487,6 +495,19 @@ export default function PhysiologicalEdit() {
                   setDraftForm({
                     ...form,
                     performerId: e.target.value,
+                  })
+                }
+                fullWidth
+              />
+
+              <TextField
+                label="담당자명"
+                size="small"
+                value={form.performerName}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    performerName: e.target.value,
                   })
                 }
                 fullWidth

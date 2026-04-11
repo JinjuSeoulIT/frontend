@@ -30,6 +30,7 @@ type SpecimenEditForm = {
   specimenStatus: string;
   collectedAt: string;
   performerId: string;
+  performerName: string;
   collectionSite: string;
   recollectionYn: string;
   progressStatus: string;
@@ -65,6 +66,7 @@ const toSpecimenFormData = (
   specimenStatus: item?.specimenStatus ?? "",
   collectedAt: item?.collectedAt ?? "",
   performerId: item?.performerId ?? "",
+  performerName: item?.performerName ?? "",
   collectionSite: item?.collectionSite ?? "",
   recollectionYn: item?.recollectionYn ?? "",
   progressStatus: item?.progressStatus ?? "",
@@ -228,6 +230,7 @@ export default function SpecimenEdit() {
       specimenStatus: selected.specimenStatus ?? "",
       collectedAt: selected.collectedAt ?? "",
       performerId: String(selected.performerId ?? ""),
+      performerName: selected.performerName ?? "",
       collectionSite: selected.collectionSite ?? "",
       recollectionYn: selected.recollectionYn ?? "",
       progressStatus: selected.progressStatus ?? "",
@@ -265,6 +268,7 @@ export default function SpecimenEdit() {
           specimenStatus: form.specimenStatus,
           collectedAt: form.collectedAt,
           performerId: form.performerId,
+          performerName: form.performerName,
           collectionSite: form.collectionSite,
           recollectionYn: form.recollectionYn,
           progressStatus: nextProgressStatus,
@@ -387,7 +391,7 @@ export default function SpecimenEdit() {
                   gap: 1.75,
                   gridTemplateColumns: {
                     xs: "1fr 1fr",
-                    lg: "repeat(4, minmax(0, 1fr))",
+                    lg: "repeat(5, minmax(0, 1fr))",
                   },
                 }}
               >
@@ -403,6 +407,10 @@ export default function SpecimenEdit() {
                 <SummaryItem
                   label="담당자 ID"
                   value={displayValue(form.performerId)}
+                />
+                <SummaryItem
+                  label="담당자명"
+                  value={displayValue(form.performerName)}
                 />
                 <SummaryItem
                   label="재채취 여부"
@@ -505,6 +513,19 @@ export default function SpecimenEdit() {
                   setDraftForm({
                     ...form,
                     performerId: e.target.value,
+                  })
+                }
+                fullWidth
+              />
+
+              <TextField
+                label="담당자명"
+                size="small"
+                value={form.performerName}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    performerName: e.target.value,
                   })
                 }
                 fullWidth

@@ -30,6 +30,7 @@ type EndoscopyEditForm = {
   equipment: string;
   sedationYn: string;
   performerId: string;
+  performerName: string;
   procedureAt: string;
   progressStatus: string;
   status: string;
@@ -64,6 +65,7 @@ const toEndoscopyFormData = (
   equipment: item?.equipment ?? "",
   sedationYn: item?.sedationYn ?? "",
   performerId: item?.performerId ?? "",
+  performerName: item?.performerName ?? "",
   procedureAt: item?.procedureAt ?? "",
   progressStatus: item?.progressStatus ?? "",
   status: item?.status ?? "",
@@ -226,6 +228,7 @@ export default function EndoscopyEdit() {
       equipment: selected.equipment ?? "",
       sedationYn: selected.sedationYn ?? "",
       performerId: String(selected.performerId ?? ""),
+      performerName: selected.performerName ?? "",
       procedureAt: selected.procedureAt ?? "",
       progressStatus: selected.progressStatus ?? "",
       status: selected.status ?? "",
@@ -262,6 +265,7 @@ export default function EndoscopyEdit() {
           equipment: form.equipment,
           sedationYn: form.sedationYn,
           performerId: form.performerId,
+          performerName: form.performerName,
           procedureAt: form.procedureAt,
           progressStatus: nextProgressStatus,
           status: form.status,
@@ -383,7 +387,7 @@ export default function EndoscopyEdit() {
                   gap: 1.75,
                   gridTemplateColumns: {
                     xs: "1fr 1fr",
-                    lg: "repeat(4, minmax(0, 1fr))",
+                    lg: "repeat(5, minmax(0, 1fr))",
                   },
                 }}
               >
@@ -399,6 +403,10 @@ export default function EndoscopyEdit() {
                 <SummaryItem
                   label="담당자 ID"
                   value={displayValue(form.performerId)}
+                />
+                <SummaryItem
+                  label="담당자명"
+                  value={displayValue(form.performerName)}
                 />
                 <SummaryItem
                   label="진정 여부"
@@ -501,6 +509,19 @@ export default function EndoscopyEdit() {
                   setDraftForm({
                     ...form,
                     performerId: e.target.value,
+                  })
+                }
+                fullWidth
+              />
+
+              <TextField
+                label="담당자명"
+                size="small"
+                value={form.performerName}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    performerName: e.target.value,
                   })
                 }
                 fullWidth

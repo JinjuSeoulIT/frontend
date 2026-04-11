@@ -11,6 +11,9 @@ const api = axios.create({
 });
 
 type TestExecutionApiRaw = Omit<Partial<TestExecution>, "status"> & {
+  DETAIL_CODE?: string | null;
+  PERFORMER_NAME?: string | null;
+  performer_name?: string | null;
   status?: string | null;
   STATUS?: string | null;
 };
@@ -25,6 +28,7 @@ const normalizeTestExecution = (
 ): TestExecution => ({
   testExecutionId: item?.testExecutionId ?? "",
   orderItemId: item?.orderItemId ?? null,
+  detailCode: item?.detailCode ?? item?.DETAIL_CODE ?? null,
   executionType: item?.executionType ?? null,
   progressStatus: item?.progressStatus ?? null,
   status: normalizeActiveStatus(item?.status ?? item?.STATUS),
@@ -37,6 +41,8 @@ const normalizeTestExecution = (
   startedAt: item?.startedAt ?? null,
   completedAt: item?.completedAt ?? null,
   performerId: item?.performerId ?? null,
+  performerName:
+    item?.performerName ?? item?.PERFORMER_NAME ?? item?.performer_name ?? null,
 });
 
 const normalizeTestExecutions = (

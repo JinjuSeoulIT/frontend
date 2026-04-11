@@ -16,6 +16,8 @@ type TreatmentResultApiRaw = TreatmentResult & {
   PROGRESS_STATUS?: string | null;
   progress_status?: string | null;
   STATUS?: string | null;
+  TREATMENT_AT?: string | null;
+  treatment_at?: string | null;
 };
 
 const normalizeTreatmentResult = (
@@ -37,6 +39,8 @@ const normalizeTreatmentResult = (
 
   return {
     ...item,
+    treatmentAt:
+      item.treatmentAt ?? item.TREATMENT_AT ?? item.treatment_at ?? null,
     nurseName: item.nurseName ?? item.NURSE_NAME ?? null,
     progressStatus,
     status: activeStatus ?? "ACTIVE",

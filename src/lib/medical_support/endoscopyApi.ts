@@ -11,20 +11,31 @@ const api = axios.create({
     process.env.NEXT_PUBLIC_NURSING_API_BASE_URL ?? "http://192.168.1.66:8181",
 });
 
+type EndoscopyExamApiRaw = EndoscopyExam & {
+  PERFORMER_NAME?: string | null;
+  performer_name?: string | null;
+};
+
+const normalizeEndoscopyExam = (item: EndoscopyExamApiRaw): EndoscopyExam => ({
+  ...item,
+  performerName:
+    item.performerName ?? item.PERFORMER_NAME ?? item.performer_name ?? null,
+});
+
 export const fetchEndoscopyExamsApi = async (): Promise<EndoscopyExam[]> => {
-  const res = await api.get<ApiResponse<EndoscopyExam[]>>("/api/endoscopy");
+  const res = await api.get<ApiResponse<EndoscopyExamApiRaw[]>>("/api/endoscopy");
 
   if (!res.data.success) {
     throw new Error(res.data.message || "내시경 검사 목록 조회에 실패했습니다.");
   }
 
-  return res.data.result;
+  return (res.data.result ?? []).map(normalizeEndoscopyExam);
 };
 
 export const fetchEndoscopyExamApi = async (
   endoscopyExamId: string | number
 ): Promise<EndoscopyExam> => {
-  const res = await api.get<ApiResponse<EndoscopyExam>>(
+  const res = await api.get<ApiResponse<EndoscopyExamApiRaw>>(
     `/api/endoscopy/${endoscopyExamId}`
   );
 
@@ -32,26 +43,29 @@ export const fetchEndoscopyExamApi = async (
     throw new Error(res.data.message || "내시경 검사 상세 조회에 실패했습니다.");
   }
 
-  return res.data.result;
+  return normalizeEndoscopyExam((res.data.result ?? {}) as EndoscopyExamApiRaw);
 };
 
 export const createEndoscopyExamApi = async (
   payload: EndoscopyExamCreatePayload
 ): Promise<EndoscopyExam> => {
-  const res = await api.post<ApiResponse<EndoscopyExam>>("/api/endoscopy", payload);
+  const res = await api.post<ApiResponse<EndoscopyExamApiRaw>>(
+    "/api/endoscopy",
+    payload
+  );
 
   if (!res.data.success) {
     throw new Error(res.data.message || "내시경 검사 등록에 실패했습니다.");
   }
 
-  return res.data.result;
+  return normalizeEndoscopyExam((res.data.result ?? {}) as EndoscopyExamApiRaw);
 };
 
 export const updateEndoscopyExamApi = async (
   endoscopyExamId: string | number,
   payload: EndoscopyExamUpdatePayload
 ): Promise<EndoscopyExam> => {
-  const res = await api.put<ApiResponse<EndoscopyExam>>(
+  const res = await api.put<ApiResponse<EndoscopyExamApiRaw>>(
     `/api/endoscopy/${endoscopyExamId}`,
     payload
   );
@@ -60,5 +74,5 @@ export const updateEndoscopyExamApi = async (
     throw new Error(res.data.message || "내시경 검사 수정에 실패했습니다.");
   }
 
-  return res.data.result;
+  return normalizeEndoscopyExam((res.data.result ?? {}) as EndoscopyExamApiRaw);
 };

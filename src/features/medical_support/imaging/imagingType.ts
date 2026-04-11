@@ -4,8 +4,8 @@ export interface ImagingExam {
   patientId?: string | number | null;
   patientName?: string | null;
   departmentName?: string | null;
-  imagingType?: string | null;
   performerId?: string | number | null;
+  performerName?: string | null;
   progressStatus?: string | null;
   status?: string | null;
   createdAt?: string | null;
@@ -17,8 +17,8 @@ export interface ImagingExamCreatePayload {
   patientId?: string | number | null;
   patientName?: string | null;
   departmentName?: string | null;
-  imagingType?: string | null;
   performerId?: string | number | null;
+  performerName?: string | null;
   progressStatus?: string | null;
   status?: string | null;
 }
@@ -28,8 +28,8 @@ export interface ImagingExamUpdatePayload {
   patientId?: string | number | null;
   patientName?: string | null;
   departmentName?: string | null;
-  imagingType?: string | null;
   performerId?: string | number | null;
+  performerName?: string | null;
   progressStatus?: string | null;
   status?: string | null;
 }

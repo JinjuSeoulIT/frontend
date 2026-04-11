@@ -26,8 +26,8 @@ type ImagingEditForm = {
   patientId: string;
   patientName: string;
   departmentName: string;
-  imagingType: string;
   performerId: string;
+  performerName: string;
   progressStatus: string;
   status: string;
   createdAt: string;
@@ -52,8 +52,8 @@ const toImagingFormData = (
   patientId: item?.patientId ?? "",
   patientName: item?.patientName ?? "",
   departmentName: item?.departmentName ?? "",
-  imagingType: item?.imagingType ?? "",
   performerId: item?.performerId ?? "",
+  performerName: item?.performerName ?? "",
   progressStatus: item?.progressStatus ?? "",
   status: item?.status ?? "",
   createdAt: item?.createdAt ?? "",
@@ -200,8 +200,8 @@ export default function ImagingEdit() {
           : String(selected.patientId),
       patientName: selected.patientName ?? "",
       departmentName: selected.departmentName ?? "",
-      imagingType: selected.imagingType ?? "",
       performerId: String(selected.performerId ?? ""),
+      performerName: selected.performerName ?? "",
       progressStatus: selected.progressStatus ?? "",
       status: selected.status ?? "",
       createdAt: selected.createdAt ?? "",
@@ -233,8 +233,8 @@ export default function ImagingEdit() {
           patientId: form.patientId.trim() ? Number(form.patientId) : null,
           patientName: form.patientName,
           departmentName: form.departmentName,
-          imagingType: form.imagingType,
           performerId: form.performerId,
+          performerName: form.performerName,
           progressStatus: nextProgressStatus,
           status: form.status,
         },
@@ -355,7 +355,7 @@ export default function ImagingEdit() {
                   gap: 1.75,
                   gridTemplateColumns: {
                     xs: "1fr 1fr",
-                    lg: "repeat(4, minmax(0, 1fr))",
+                    lg: "repeat(5, minmax(0, 1fr))",
                   },
                 }}
               >
@@ -373,8 +373,8 @@ export default function ImagingEdit() {
                   value={displayValue(form.performerId)}
                 />
                 <SummaryItem
-                  label="영상검사유형"
-                  value={displayValue(form.imagingType)}
+                  label="담당자명"
+                  value={displayValue(form.performerName)}
                 />
               </Box>
             </Stack>
@@ -479,6 +479,19 @@ export default function ImagingEdit() {
               />
 
               <TextField
+                label="담당자명"
+                size="small"
+                value={form.performerName}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    performerName: e.target.value,
+                  })
+                }
+                fullWidth
+              />
+
+              <TextField
                 label="검사수행 ID"
                 size="small"
                 value={form.testExecutionId}
@@ -490,21 +503,6 @@ export default function ImagingEdit() {
                 }
                 fullWidth
               />
-
-              <Box sx={{ gridColumn: { md: "1 / -1" } }}>
-                <TextField
-                  label="영상검사유형"
-                  size="small"
-                  value={form.imagingType}
-                  onChange={(e) =>
-                    setDraftForm({
-                      ...form,
-                      imagingType: e.target.value,
-                    })
-                  }
-                  fullWidth
-                />
-              </Box>
             </Box>
           </CardContent>
         </Card>

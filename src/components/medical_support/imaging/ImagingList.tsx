@@ -277,7 +277,6 @@ export default function ImagingList() {
                         <TableCell align="center">영상검사 ID</TableCell>
                         <TableCell align="center">환자명</TableCell>
                         <TableCell align="center">진료과</TableCell>
-                        <TableCell align="center">영상검사유형</TableCell>
                         <TableCell align="center">검사수행 ID</TableCell>
                         <TableCell align="center">담당자 ID</TableCell>
                         <TableCell align="center">진행상태</TableCell>
@@ -287,7 +286,7 @@ export default function ImagingList() {
                     <TableBody>
                       {paginatedItems.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                          <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
                             표시할 영상 검사 데이터가 없습니다.
                           </TableCell>
                         </TableRow>
@@ -328,9 +327,6 @@ export default function ImagingList() {
                             </TableCell>
                             <TableCell align="center">
                               {safeValue(item.departmentName)}
-                            </TableCell>
-                            <TableCell align="center">
-                              {safeValue(item.imagingType)}
                             </TableCell>
                             <TableCell align="center">
                               {safeValue(item.testExecutionId)}

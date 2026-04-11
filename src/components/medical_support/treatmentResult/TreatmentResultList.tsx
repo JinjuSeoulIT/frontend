@@ -41,7 +41,10 @@ import {
   normalizeTreatmentResultProgressStatus,
 } from "@/components/medical_support/treatmentResult/treatmentResultDisplay";
 import { TreatmentResultActions } from "@/features/medical_support/treatmentResult/treatmentResultSlice";
-import type { TreatmentResult } from "@/features/medical_support/treatmentResult/treatmentResultType";
+import type {
+  TreatmentResult,
+  TreatmentResultSearchParams,
+} from "@/features/medical_support/treatmentResult/treatmentResultType";
 import type { AppDispatch, RootState } from "@/store/store";
 
 const REQUESTED_STATUSES = ["REQUESTED", "WAITING"];
@@ -57,64 +60,19 @@ const summarizeDetail = (value?: string | null) => {
 const isInactiveResult = (item: Pick<TreatmentResult, "status">) =>
   normalizeTreatmentResultActiveStatus(item.status) === "INACTIVE";
 
-const normalizeKeyword = (value?: string | number | null) =>
-  value == null ? "" : String(value).trim().toLocaleLowerCase("ko-KR");
-
-const matchesKeyword = (
-  source: string | number | null | undefined,
-  keyword: string
-) => normalizeKeyword(source).includes(normalizeKeyword(keyword));
-
-const getDateOnlyValue = (value?: string | null) => {
-  const normalized = value?.trim();
-  if (!normalized) return "";
-
-  const directMatch = normalized.match(/^\d{4}-\d{2}-\d{2}/);
-  if (directMatch) {
-    return directMatch[0];
+const toTreatmentResultSearchParams = (
+  criteria: TreatmentResultSearchCriteria
+): TreatmentResultSearchParams => {
+  if (criteria.searchType === "treatmentAt") {
+    return {
+      startDate: criteria.startDate,
+      endDate: criteria.endDate,
+    };
   }
 
-  const date = new Date(normalized);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
-
-const matchesTreatmentResultSearch = (
-  item: TreatmentResult,
-  criteria: TreatmentResultSearchCriteria | null
-) => {
-  if (!criteria) return true;
-
-  switch (criteria.searchType) {
-    case "patientName":
-      return matchesKeyword(item.patientName, criteria.searchValue);
-    case "departmentName":
-      return item.departmentName?.trim() === criteria.searchValue.trim();
-    case "progressStatus":
-      return (
-        normalizeTreatmentResultProgressStatus(item.progressStatus) ===
-        criteria.searchValue.trim().toUpperCase()
-      );
-    case "treatmentAt": {
-      const treatmentDate = getDateOnlyValue(item.treatmentAt);
-      if (!treatmentDate) {
-        return false;
-      }
-
-      return (
-        treatmentDate >= criteria.startDate && treatmentDate <= criteria.endDate
-      );
-    }
-    default:
-      return true;
-  }
+  return {
+    [criteria.searchType]: criteria.searchValue,
+  };
 };
 
 export function TreatmentResultListSection() {
@@ -126,9 +84,6 @@ export function TreatmentResultListSection() {
   const [selectedRow, setSelectedRow] = React.useState<TreatmentResult | null>(
     null
   );
-  const [searchCriteria, setSearchCriteria] =
-    React.useState<TreatmentResultSearchCriteria | null>(null);
-
   const { list: rows, selected, loading, detailLoading, error, detailError } =
     useSelector((state: RootState) => state.treatmentResults);
 
@@ -142,10 +97,7 @@ export function TreatmentResultListSection() {
     [includeInactive, rows]
   );
 
-  const visibleRows = React.useMemo(
-    () => baseRows.filter((item) => matchesTreatmentResultSearch(item, searchCriteria)),
-    [baseRows, searchCriteria]
-  );
+  const visibleRows = baseRows;
 
   const requestedCount = React.useMemo(
     () =>
@@ -239,12 +191,16 @@ export function TreatmentResultListSection() {
   };
 
   const handleSearch = (criteria: TreatmentResultSearchCriteria) => {
-    setSearchCriteria(criteria);
+    dispatch(
+      TreatmentResultActions.fetchTreatmentResultsRequest(
+        toTreatmentResultSearchParams(criteria)
+      )
+    );
     setPage(0);
   };
 
   const handleResetSearch = () => {
-    setSearchCriteria(null);
+    dispatch(TreatmentResultActions.fetchTreatmentResultsRequest());
     setPage(0);
   };
 

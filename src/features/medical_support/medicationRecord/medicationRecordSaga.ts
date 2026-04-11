@@ -6,6 +6,7 @@ import { MedicationRecordActions as actions } from "./medicationRecordSlice";
 import type {
   MedicationRecord,
   MedicationRecordCreatePayload,
+  MedicationRecordSearchParams,
   MedicationRecordUpdatePayload,
 } from "@/features/medical_support/medicationRecord/medicationRecordType";
 
@@ -17,9 +18,21 @@ const getErrorMessage = (err: unknown, fallback: string) => {
   return fallback;
 };
 
-function* fetchMedicationRecordsSaga(): SagaIterator {
+const hasSearchParams = (
+  params?: MedicationRecordSearchParams
+): params is MedicationRecordSearchParams =>
+  Boolean(
+    params &&
+      Object.values(params).some((value) => value != null && value.trim() !== "")
+  );
+
+function* fetchMedicationRecordsSaga(
+  action: PayloadAction<MedicationRecordSearchParams | undefined>
+): SagaIterator {
   try {
-    const items: MedicationRecord[] = yield call(api.fetchMedicationRecordsApi);
+    const items: MedicationRecord[] = hasSearchParams(action.payload)
+      ? yield call(api.searchMedicationRecordsApi, action.payload)
+      : yield call(api.fetchMedicationRecordsApi);
     yield put(actions.fetchMedicationRecordsSuccess(items));
   } catch (err: unknown) {
     yield put(

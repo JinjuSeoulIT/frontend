@@ -39,7 +39,10 @@ import {
   normalizeMedicationRecordProgressStatus,
 } from "@/components/medical_support/medicationRecord/medicationRecordDisplay";
 import { MedicationRecordActions } from "@/features/medical_support/medicationRecord/medicationRecordSlice";
-import type { MedicationRecord } from "@/features/medical_support/medicationRecord/medicationRecordType";
+import type {
+  MedicationRecord,
+  MedicationRecordSearchParams,
+} from "@/features/medical_support/medicationRecord/medicationRecordType";
 import type { RootState, AppDispatch } from "@/store/store";
 
 const REQUESTED_STATUSES = ["REQUESTED", "WAITING"];
@@ -49,55 +52,19 @@ const COMPLETED_STATUSES = ["COMPLETED"];
 const isInactiveRecord = (item: Pick<MedicationRecord, "status">) =>
   normalizeMedicationRecordActiveStatus(item.status) === "INACTIVE";
 
-const normalizeKeyword = (value?: string | number | null) =>
-  value == null ? "" : String(value).trim().toLocaleLowerCase("ko-KR");
-
-const matchesKeyword = (source: string | number | null | undefined, keyword: string) =>
-  normalizeKeyword(source).includes(normalizeKeyword(keyword));
-
-const matchesDateRange = (value: string | null | undefined, startDate: string, endDate: string) => {
-  if (!value) return false;
-
-  const target = new Date(value).getTime();
-  const start = new Date(`${startDate}T00:00:00`).getTime();
-  const end = new Date(`${endDate}T23:59:59.999`).getTime();
-
-  if (
-    Number.isNaN(target) ||
-    Number.isNaN(start) ||
-    Number.isNaN(end)
-  ) {
-    return false;
+const toMedicationRecordSearchParams = (
+  criteria: MedicationSearchCriteria
+): MedicationRecordSearchParams => {
+  if (criteria.searchType === "administeredAt") {
+    return {
+      startDate: criteria.startDate,
+      endDate: criteria.endDate,
+    };
   }
 
-  return target >= start && target <= end;
-};
-
-const matchesMedicationSearch = (
-  item: MedicationRecord,
-  criteria: MedicationSearchCriteria | null
-) => {
-  if (!criteria) return true;
-
-  switch (criteria.searchType) {
-    case "patientName":
-      return matchesKeyword(item.patientName, criteria.searchValue);
-    case "departmentName":
-      return item.departmentName?.trim() === criteria.searchValue.trim();
-    case "progressStatus":
-      return (
-        normalizeMedicationRecordProgressStatus(item.progressStatus) ===
-        criteria.searchValue.trim().toUpperCase()
-      );
-    case "administeredAt":
-      return matchesDateRange(
-        item.administeredAt,
-        criteria.startDate,
-        criteria.endDate
-      );
-    default:
-      return true;
-  }
+  return {
+    [criteria.searchType]: criteria.searchValue,
+  };
 };
 
 export function MedicationRecordListSection() {
@@ -109,9 +76,6 @@ export function MedicationRecordListSection() {
   const [selectedRow, setSelectedRow] = React.useState<MedicationRecord | null>(
     null
   );
-  const [searchCriteria, setSearchCriteria] =
-    React.useState<MedicationSearchCriteria | null>(null);
-
   const { list: rows, selected, loading, detailLoading, error, detailError } =
     useSelector((state: RootState) => state.medicationRecords);
 
@@ -125,10 +89,7 @@ export function MedicationRecordListSection() {
     [includeInactive, rows]
   );
 
-  const visibleRows = React.useMemo(
-    () => baseRows.filter((item) => matchesMedicationSearch(item, searchCriteria)),
-    [baseRows, searchCriteria]
-  );
+  const visibleRows = baseRows;
 
   const requestedCount = React.useMemo(
     () =>
@@ -223,12 +184,16 @@ export function MedicationRecordListSection() {
   };
 
   const handleSearch = (criteria: MedicationSearchCriteria) => {
-    setSearchCriteria(criteria);
+    dispatch(
+      MedicationRecordActions.fetchMedicationRecordsRequest(
+        toMedicationRecordSearchParams(criteria)
+      )
+    );
     setPage(0);
   };
 
   const handleResetSearch = () => {
-    setSearchCriteria(null);
+    dispatch(MedicationRecordActions.fetchMedicationRecordsRequest());
     setPage(0);
   };
 

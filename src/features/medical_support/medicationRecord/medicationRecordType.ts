@@ -44,3 +44,11 @@ export interface MedicationRecordUpdatePayload {
   patientName?: string | null;
   departmentName?: string | null;
 }
+
+export interface MedicationRecordSearchParams {
+  patientName?: string;
+  departmentName?: string;
+  progressStatus?: string;
+  startDate?: string;
+  endDate?: string;
+}

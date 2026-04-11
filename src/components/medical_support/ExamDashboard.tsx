@@ -54,7 +54,7 @@ const ExamDashboard = () => {
         "linear-gradient(135deg, rgba(23, 162, 142, 0.22), rgba(23, 162, 142, 0))",
     },
      {
-      key: "physiological",
+      key: "testResult",
       label: "검사 결과",
       desc: "검사 결과 관리",
       path: "/medical_support/testResult/list",

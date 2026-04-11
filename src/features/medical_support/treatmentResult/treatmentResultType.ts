@@ -38,3 +38,11 @@ export interface TreatmentResultUpdatePayload {
   departmentName?: string | null;
   procedureResultId?: string | null;
 }
+
+export interface TreatmentResultSearchParams {
+  patientName?: string;
+  departmentName?: string;
+  progressStatus?: string;
+  startDate?: string;
+  endDate?: string;
+}

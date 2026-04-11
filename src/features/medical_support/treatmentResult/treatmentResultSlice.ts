@@ -2,6 +2,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type {
   TreatmentResult,
   TreatmentResultCreatePayload,
+  TreatmentResultSearchParams,
   TreatmentResultUpdatePayload,
 } from "@/features/medical_support/treatmentResult/treatmentResultType";
 
@@ -31,10 +32,19 @@ const treatmentResultSlice = createSlice({
   name: "treatmentResults",
   initialState,
   reducers: {
-    fetchTreatmentResultsRequest: (state) => {
-      state.loading = true;
-      state.error = null;
-      state.createSuccess = false;
+    fetchTreatmentResultsRequest: {
+      reducer: (
+        state,
+        action: PayloadAction<TreatmentResultSearchParams | undefined>
+      ) => {
+        void action;
+        state.loading = true;
+        state.error = null;
+        state.createSuccess = false;
+      },
+      prepare: (params?: TreatmentResultSearchParams) => ({
+        payload: params,
+      }),
     },
     fetchTreatmentResultsSuccess: (
       state,

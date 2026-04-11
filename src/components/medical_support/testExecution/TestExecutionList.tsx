@@ -124,6 +124,7 @@ const TABLE_HEADERS = [
   "환자명",
   "진료과",
   "검사유형",
+  "검사명",
   "진행상태",
   "생성일시",
   "검사수행 ID",
@@ -401,7 +402,7 @@ export default function TestExecutionList() {
               }}
             >
               <TableContainer>
-                <Table size="small" stickyHeader sx={{ minWidth: 980 }}>
+                <Table size="small" stickyHeader sx={{ minWidth: 1080 }}>
                   <TableHead>
                     <TableRow>
                       {TABLE_HEADERS.map((label) => (
@@ -470,6 +471,9 @@ export default function TestExecutionList() {
                           </TableCell>
                           <TableCell align="center">
                             {safeValue(item.executionType)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(item.detailCode)}
                           </TableCell>
                           <TableCell align="center">
                             <Box

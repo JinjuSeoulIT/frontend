@@ -12,6 +12,7 @@ const api = axios.create({
 });
 
 type PhysiologicalExamApiRaw = PhysiologicalExam & {
+  DETAIL_CODE?: string | null;
   PERFORMER_NAME?: string | null;
   performer_name?: string | null;
 };
@@ -20,6 +21,7 @@ const normalizePhysiologicalExam = (
   item: PhysiologicalExamApiRaw
 ): PhysiologicalExam => ({
   ...item,
+  detailCode: item.detailCode ?? item.DETAIL_CODE ?? null,
   performerName:
     item.performerName ?? item.PERFORMER_NAME ?? item.performer_name ?? null,
 });

@@ -1,6 +1,7 @@
 export interface PhysiologicalExam {
   physiologicalExamId: string | number;
   testExecutionId?: string | number | null;
+  detailCode?: string | null;
   patientId?: string | number | null;
   patientName?: string | null;
   departmentName?: string | null;

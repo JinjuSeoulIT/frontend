@@ -317,7 +317,7 @@ export default function TestExecutionForm({
                   />
                 </Grid>
 
-                {!isEditMode && form.detailCode ? (
+                {isEditMode || Boolean(form.detailCode) ? (
                   <Grid size={{ xs: 12, md: 6 }}>
                     <TextField
                       label="검사명"

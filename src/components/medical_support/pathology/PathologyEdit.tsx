@@ -30,6 +30,7 @@ import type { AppDispatch } from "@/store/store";
 type PathologyEditForm = {
   pathologyExamId: string;
   testExecutionId: string;
+  detailCode: string;
   patientId: string;
   patientName: string;
   departmentName: string;
@@ -59,6 +60,7 @@ const toPathologyFormData = (
 ): PathologyEditForm => ({
   pathologyExamId: item?.pathologyExamId ?? "",
   testExecutionId: item?.testExecutionId ?? "",
+  detailCode: item?.detailCode ?? "",
   patientId: item?.patientId ?? "",
   patientName: item?.patientName ?? "",
   departmentName: item?.departmentName ?? "",
@@ -145,6 +147,7 @@ export default function PathologyEdit() {
     return toPathologyFormData({
       pathologyExamId: String(selected.pathologyExamId ?? ""),
       testExecutionId: String(selected.testExecutionId ?? ""),
+      detailCode: selected.detailCode ?? "",
       patientId:
         selected.patientId === null || selected.patientId === undefined
           ? ""
@@ -464,6 +467,14 @@ export default function PathologyEdit() {
                   })
                 }
                 fullWidth
+              />
+
+              <TextField
+                label="검사명"
+                size="small"
+                value={form.detailCode}
+                fullWidth
+                InputProps={{ readOnly: true }}
               />
 
               <TextField

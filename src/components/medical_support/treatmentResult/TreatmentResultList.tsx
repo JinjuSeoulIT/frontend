@@ -65,6 +65,27 @@ const matchesKeyword = (
   keyword: string
 ) => normalizeKeyword(source).includes(normalizeKeyword(keyword));
 
+const getDateOnlyValue = (value?: string | null) => {
+  const normalized = value?.trim();
+  if (!normalized) return "";
+
+  const directMatch = normalized.match(/^\d{4}-\d{2}-\d{2}/);
+  if (directMatch) {
+    return directMatch[0];
+  }
+
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
 const matchesTreatmentResultSearch = (
   item: TreatmentResult,
   criteria: TreatmentResultSearchCriteria | null
@@ -81,6 +102,16 @@ const matchesTreatmentResultSearch = (
         normalizeTreatmentResultProgressStatus(item.progressStatus) ===
         criteria.searchValue.trim().toUpperCase()
       );
+    case "treatmentAt": {
+      const treatmentDate = getDateOnlyValue(item.treatmentAt);
+      if (!treatmentDate) {
+        return false;
+      }
+
+      return (
+        treatmentDate >= criteria.startDate && treatmentDate <= criteria.endDate
+      );
+    }
     default:
       return true;
   }

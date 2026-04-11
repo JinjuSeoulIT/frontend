@@ -262,7 +262,7 @@ export default function SpecimenList() {
                     size="small"
                     stickyHeader
                     sx={{
-                      minWidth: 980,
+                      minWidth: 1100,
                       "& .MuiTableCell-root": {
                         px: 1,
                         py: 1,
@@ -279,6 +279,7 @@ export default function SpecimenList() {
                         <TableCell align="center">진료과</TableCell>
                         <TableCell align="center">검체종류</TableCell>
                         <TableCell align="center">검체상태</TableCell>
+                        <TableCell align="center">검사명</TableCell>
                         <TableCell align="center">검사수행 ID</TableCell>
                         <TableCell align="center">담당자 ID</TableCell>
                         <TableCell align="center">진행상태</TableCell>
@@ -288,7 +289,7 @@ export default function SpecimenList() {
                     <TableBody>
                       {paginatedItems.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={9} align="center" sx={{ py: 5 }}>
+                          <TableCell colSpan={10} align="center" sx={{ py: 5 }}>
                             표시할 검체 검사 데이터가 없습니다.
                           </TableCell>
                         </TableRow>
@@ -335,6 +336,9 @@ export default function SpecimenList() {
                             </TableCell>
                             <TableCell align="center">
                               {safeValue(item.specimenStatus)}
+                            </TableCell>
+                            <TableCell align="center">
+                              {safeValue(item.detailCode)}
                             </TableCell>
                             <TableCell align="center">
                               {safeValue(item.testExecutionId)}

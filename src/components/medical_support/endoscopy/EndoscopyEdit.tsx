@@ -23,6 +23,7 @@ import type { AppDispatch } from "@/store/store";
 type EndoscopyEditForm = {
   endoscopyExamId: string;
   testExecutionId: string;
+  detailCode: string;
   patientId: string;
   patientName: string;
   departmentName: string;
@@ -58,6 +59,7 @@ const toEndoscopyFormData = (
 ): EndoscopyEditForm => ({
   endoscopyExamId: item?.endoscopyExamId ?? "",
   testExecutionId: item?.testExecutionId ?? "",
+  detailCode: item?.detailCode ?? "",
   patientId: item?.patientId ?? "",
   patientName: item?.patientName ?? "",
   departmentName: item?.departmentName ?? "",
@@ -218,6 +220,7 @@ export default function EndoscopyEdit() {
     return toEndoscopyFormData({
       endoscopyExamId: String(selected.endoscopyExamId ?? ""),
       testExecutionId: String(selected.testExecutionId ?? ""),
+      detailCode: selected.detailCode ?? "",
       patientId:
         selected.patientId === null || selected.patientId === undefined
           ? ""
@@ -538,6 +541,14 @@ export default function EndoscopyEdit() {
                   })
                 }
                 fullWidth
+              />
+
+              <TextField
+                label="검사명"
+                size="small"
+                value={form.detailCode}
+                fullWidth
+                InputProps={{ readOnly: true }}
               />
             </Box>
           </CardContent>

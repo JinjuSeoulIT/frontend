@@ -18,11 +18,14 @@ import { TREATMENT_RESULT_PROGRESS_STATUS_OPTIONS } from "./treatmentResultDispl
 export type TreatmentResultSearchType =
   | "patientName"
   | "departmentName"
-  | "progressStatus";
+  | "progressStatus"
+  | "treatmentAt";
 
 export type TreatmentResultSearchCriteria = {
   searchType: TreatmentResultSearchType;
   searchValue: string;
+  startDate: string;
+  endDate: string;
 };
 
 type TreatmentResultSearchProps = {
@@ -40,6 +43,7 @@ const SEARCH_TYPE_OPTIONS: Array<{
   { value: "patientName", label: "\uD658\uC790\uBA85" },
   { value: "departmentName", label: "\uC9C4\uB8CC\uACFC" },
   { value: "progressStatus", label: "\uC9C4\uD589\uC0C1\uD0DC" },
+  { value: "treatmentAt", label: "\uCC98\uCE58\uC77C\uC2DC" },
 ];
 
 const TEXT_SEARCH_LABELS = {
@@ -53,9 +57,15 @@ const TEXT_SEARCH_ERROR_MESSAGES = {
 const SEARCH_TYPE_LABEL = "\uAC80\uC0C9\uAD6C\uBD84";
 const DEPARTMENT_LABEL = "\uC9C4\uB8CC\uACFC \uC120\uD0DD";
 const PROGRESS_STATUS_LABEL = "\uC9C4\uD589\uC0C1\uD0DC \uC120\uD0DD";
+const START_DATE_LABEL = "\uC2DC\uC791\uC77C";
+const END_DATE_LABEL = "\uC885\uB8CC\uC77C";
 const SELECT_LABEL = "\uC120\uD0DD";
 const SEARCH_BUTTON_LABEL = "\uC870\uD68C";
 const RESET_BUTTON_LABEL = "\uCD08\uAE30\uD654";
+const DATE_RANGE_REQUIRED_MESSAGE =
+  "\uC2DC\uC791\uC77C\uACFC \uC885\uB8CC\uC77C\uC744 \uBAA8\uB450 \uC785\uB825\uD574\uC8FC\uC138\uC694.";
+const DATE_RANGE_ORDER_MESSAGE =
+  "\uC2DC\uC791\uC77C\uC774 \uC885\uB8CC\uC77C\uBCF4\uB2E4 \uB2A6\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.";
 
 export default function TreatmentResultSearch({
   loading = false,
@@ -65,6 +75,8 @@ export default function TreatmentResultSearch({
   const [searchType, setSearchType] =
     useState<TreatmentResultSearchType>(DEFAULT_SEARCH_TYPE);
   const [searchValue, setSearchValue] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [searchError, setSearchError] = useState("");
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
@@ -117,12 +129,34 @@ export default function TreatmentResultSearch({
   const resetSearchFields = (nextSearchType: TreatmentResultSearchType) => {
     setSearchType(nextSearchType);
     setSearchValue("");
+    setStartDate("");
+    setEndDate("");
     setSearchError("");
     setDepartmentError(null);
   };
 
   const handleSearch = () => {
     setSearchError("");
+
+    if (searchType === "treatmentAt") {
+      if (!startDate || !endDate) {
+        setSearchError(DATE_RANGE_REQUIRED_MESSAGE);
+        return;
+      }
+
+      if (startDate > endDate) {
+        setSearchError(DATE_RANGE_ORDER_MESSAGE);
+        return;
+      }
+
+      onSearch({
+        searchType,
+        searchValue: "",
+        startDate,
+        endDate,
+      });
+      return;
+    }
 
     if (searchType === "departmentName") {
       if (departmentsLoading) {
@@ -157,6 +191,8 @@ export default function TreatmentResultSearch({
     onSearch({
       searchType,
       searchValue: normalizedValue,
+      startDate: "",
+      endDate: "",
     });
   };
 
@@ -196,7 +232,32 @@ export default function TreatmentResultSearch({
         </Select>
       </FormControl>
 
-      {searchType === "departmentName" ? (
+      {searchType === "treatmentAt" ? (
+        <>
+          <TextField
+            size="small"
+            type="date"
+            label={START_DATE_LABEL}
+            value={startDate}
+            onChange={(event) => {
+              setStartDate(event.target.value);
+              setSearchError("");
+            }}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            size="small"
+            type="date"
+            label={END_DATE_LABEL}
+            value={endDate}
+            onChange={(event) => {
+              setEndDate(event.target.value);
+              setSearchError("");
+            }}
+            InputLabelProps={{ shrink: true }}
+          />
+        </>
+      ) : searchType === "departmentName" ? (
         <FormControl size="small" sx={{ minWidth: 180 }}>
           <InputLabel id="treatment-result-search-value-label">
             {DEPARTMENT_LABEL}

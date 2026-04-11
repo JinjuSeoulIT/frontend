@@ -12,12 +12,14 @@ const api = axios.create({
 });
 
 type EndoscopyExamApiRaw = EndoscopyExam & {
+  DETAIL_CODE?: string | null;
   PERFORMER_NAME?: string | null;
   performer_name?: string | null;
 };
 
 const normalizeEndoscopyExam = (item: EndoscopyExamApiRaw): EndoscopyExam => ({
   ...item,
+  detailCode: item.detailCode ?? item.DETAIL_CODE ?? null,
   performerName:
     item.performerName ?? item.PERFORMER_NAME ?? item.performer_name ?? null,
 });

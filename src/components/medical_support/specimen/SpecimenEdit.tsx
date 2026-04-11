@@ -13,7 +13,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { SpecimenActions } from "@/features/medical_support/specimen/specimenSlice";
@@ -202,6 +202,7 @@ export default function SpecimenEdit() {
   }, [params]);
 
   const [draftForm, setDraftForm] = useState<SpecimenEditForm | null>(null);
+  const lastRequestedProgressStatusRef = useRef<string | null>(null);
 
   const { selected, loading, error, updateSuccess } = useSelector(
     (state: RootState) => state.specimens
@@ -246,9 +247,15 @@ export default function SpecimenEdit() {
   useEffect(() => {
     if (!updateSuccess) return;
 
+    const nextPath =
+      lastRequestedProgressStatusRef.current === "COMPLETED"
+        ? "/medical_support/testResult/list?resultType=SPECIMEN"
+        : "/medical_support/specimen/list";
+    lastRequestedProgressStatusRef.current = null;
+
     alert("검체 검사 상태가 변경되었습니다.");
     dispatch(SpecimenActions.resetUpdateSuccess());
-    router.push("/medical_support/specimen/list");
+    router.push(nextPath);
   }, [dispatch, router, updateSuccess]);
 
   useEffect(() => {
@@ -258,6 +265,8 @@ export default function SpecimenEdit() {
 
   const handleUpdate = (nextProgressStatus: string) => {
     if (!specimenExamId) return;
+
+    lastRequestedProgressStatusRef.current = nextProgressStatus;
 
     dispatch(
       SpecimenActions.updateSpecimenRequest({

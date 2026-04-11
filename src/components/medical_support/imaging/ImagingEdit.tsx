@@ -13,7 +13,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { ImagingActions } from "@/features/medical_support/imaging/imagingSlice";
@@ -176,6 +176,7 @@ export default function ImagingEdit() {
   }, [params]);
 
   const [draftForm, setDraftForm] = useState<ImagingEditForm | null>(null);
+  const lastRequestedProgressStatusRef = useRef<string | null>(null);
 
   const { selected, loading, error, updateSuccess } = useSelector(
     (state: RootState) => state.imagings
@@ -215,9 +216,15 @@ export default function ImagingEdit() {
   useEffect(() => {
     if (!updateSuccess) return;
 
+    const nextPath =
+      lastRequestedProgressStatusRef.current === "COMPLETED"
+        ? "/medical_support/testResult/list?resultType=IMAGING"
+        : "/medical_support/imaging/list";
+    lastRequestedProgressStatusRef.current = null;
+
     alert("영상 검사 상태가 변경되었습니다.");
     dispatch(ImagingActions.resetUpdateSuccess());
-    router.push("/medical_support/imaging/list");
+    router.push(nextPath);
   }, [dispatch, router, updateSuccess]);
 
   useEffect(() => {
@@ -228,11 +235,15 @@ export default function ImagingEdit() {
   const handleUpdate = (nextProgressStatus: string) => {
     if (!imagingExamId) return;
 
+    lastRequestedProgressStatusRef.current = nextProgressStatus;
+
     dispatch(
       ImagingActions.updateImagingRequest({
         imagingExamId,
         form: {
+          imagingExamId: form.imagingExamId,
           testExecutionId: form.testExecutionId,
+          detailCode: form.detailCode,
           patientId: form.patientId.trim() ? Number(form.patientId) : null,
           patientName: form.patientName,
           departmentName: form.departmentName,
@@ -240,6 +251,8 @@ export default function ImagingEdit() {
           performerName: form.performerName,
           progressStatus: nextProgressStatus,
           status: form.status,
+          createdAt: form.createdAt,
+          updatedAt: form.updatedAt,
         },
       })
     );

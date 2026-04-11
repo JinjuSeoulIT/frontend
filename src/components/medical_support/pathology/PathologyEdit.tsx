@@ -13,7 +13,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { PathologyActions } from "@/features/medical_support/pathology/pathologySlice";
@@ -127,6 +127,7 @@ export default function PathologyEdit() {
   }, [params]);
 
   const [draftForm, setDraftForm] = useState<PathologyEditForm | null>(null);
+  const lastRequestedProgressStatusRef = useRef<string | null>(null);
 
   const { selected, loading, error, updateSuccess } = useSelector(
     (state: RootState) => state.pathologies
@@ -174,9 +175,15 @@ export default function PathologyEdit() {
 
   useEffect(() => {
     if (!updateSuccess) return;
+    const nextPath =
+      lastRequestedProgressStatusRef.current === "COMPLETED"
+        ? "/medical_support/testResult/list?resultType=PATHOLOGY"
+        : "/medical_support/pathology/list";
+    lastRequestedProgressStatusRef.current = null;
+
     alert("병리 검사 상태가 변경되었습니다.");
     dispatch(PathologyActions.resetUpdateSuccess());
-    router.push("/medical_support/pathology/list");
+    router.push(nextPath);
   }, [dispatch, router, updateSuccess]);
 
   useEffect(() => {
@@ -186,6 +193,8 @@ export default function PathologyEdit() {
 
   const handleUpdate = (nextProgressStatus: string) => {
     if (!pathologyExamId) return;
+
+    lastRequestedProgressStatusRef.current = nextProgressStatus;
 
     dispatch(
       PathologyActions.updatePathologyRequest({

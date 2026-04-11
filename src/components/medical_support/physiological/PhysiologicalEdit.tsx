@@ -13,7 +13,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { PhysiologicalActions } from "@/features/medical_support/physiological/physiologicalSlice";
@@ -184,6 +184,7 @@ export default function PhysiologicalEdit() {
   const [draftForm, setDraftForm] = useState<PhysiologicalEditForm | null>(
     null
   );
+  const lastRequestedProgressStatusRef = useRef<string | null>(null);
 
   const { selected, loading, error, updateSuccess } = useSelector(
     (state: RootState) => state.physiologicals
@@ -230,9 +231,15 @@ export default function PhysiologicalEdit() {
   useEffect(() => {
     if (!updateSuccess) return;
 
+    const nextPath =
+      lastRequestedProgressStatusRef.current === "COMPLETED"
+        ? "/medical_support/testResult/list?resultType=PHYSIOLOGICAL"
+        : "/medical_support/physiological/list";
+    lastRequestedProgressStatusRef.current = null;
+
     alert("생리기능 검사 상태가 변경되었습니다.");
     dispatch(PhysiologicalActions.resetUpdateSuccess());
-    router.push("/medical_support/physiological/list");
+    router.push(nextPath);
   }, [dispatch, router, updateSuccess]);
 
   useEffect(() => {
@@ -242,6 +249,8 @@ export default function PhysiologicalEdit() {
 
   const handleUpdate = (nextProgressStatus: string) => {
     if (!physiologicalExamId) return;
+
+    lastRequestedProgressStatusRef.current = nextProgressStatus;
 
     dispatch(
       PhysiologicalActions.updatePhysiologicalRequest({

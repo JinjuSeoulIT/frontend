@@ -13,7 +13,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { EndoscopyActions } from "@/features/medical_support/endoscopy/endoscopySlice";
@@ -200,6 +200,7 @@ export default function EndoscopyEdit() {
   }, [params]);
 
   const [draftForm, setDraftForm] = useState<EndoscopyEditForm | null>(null);
+  const lastRequestedProgressStatusRef = useRef<string | null>(null);
 
   const { selected, loading, error, updateSuccess } = useSelector(
     (state: RootState) => state.endoscopies
@@ -243,9 +244,15 @@ export default function EndoscopyEdit() {
   useEffect(() => {
     if (!updateSuccess) return;
 
+    const nextPath =
+      lastRequestedProgressStatusRef.current === "COMPLETED"
+        ? "/medical_support/testResult/list?resultType=ENDOSCOPY"
+        : "/medical_support/endoscopy/list";
+    lastRequestedProgressStatusRef.current = null;
+
     alert("내시경 검사 상태가 변경되었습니다.");
     dispatch(EndoscopyActions.resetUpdateSuccess());
-    router.push("/medical_support/endoscopy/list");
+    router.push(nextPath);
   }, [dispatch, router, updateSuccess]);
 
   useEffect(() => {
@@ -255,6 +262,8 @@ export default function EndoscopyEdit() {
 
   const handleUpdate = (nextProgressStatus: string) => {
     if (!endoscopyExamId) return;
+
+    lastRequestedProgressStatusRef.current = nextProgressStatus;
 
     dispatch(
       EndoscopyActions.updateEndoscopyRequest({

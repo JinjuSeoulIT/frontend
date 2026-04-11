@@ -25,7 +25,9 @@ export interface ImagingExamCreatePayload {
 }
 
 export interface ImagingExamUpdatePayload {
+  imagingExamId?: string | number | null;
   testExecutionId?: string | number | null;
+  detailCode?: string | null;
   patientId?: string | number | null;
   patientName?: string | null;
   departmentName?: string | null;
@@ -33,4 +35,6 @@ export interface ImagingExamUpdatePayload {
   performerName?: string | null;
   progressStatus?: string | null;
   status?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }

@@ -353,6 +353,14 @@ export default function TestResultDetail() {
                   label="검사수행자명"
                   value={safeValue(detail.performerName)}
                 />
+                <DetailField
+                  label="검사결과관리자 ID"
+                  value={safeValue(detail.resultManagerId)}
+                />
+                <DetailField
+                  label="검사결과관리자명"
+                  value={safeValue(detail.resultManagerName)}
+                />
                 <DetailField label="검사일시" value={formatDateTime(detail.resultAt)} />
                 <DetailField label="생성일시" value={formatDateTime(detail.createdAt)} />
                 <DetailField

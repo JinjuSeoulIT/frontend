@@ -27,6 +27,10 @@ type TestResultApiRaw = Partial<TestResult> & {
   performer_id?: string | number | null;
   PERFORMER_NAME?: string | null;
   performer_name?: string | null;
+  RESULT_MANAGER_ID?: string | number | null;
+  result_manager_id?: string | number | null;
+  RESULT_MANAGER_NAME?: string | null;
+  result_manager_name?: string | null;
   SUMMARY?: string | null;
   RESULT_AT?: string | null;
   STATUS?: string | null;
@@ -71,6 +75,16 @@ const normalizeTestResult = (item?: TestResultApiRaw | null): TestResult => ({
   performerId: item?.performerId ?? item?.PERFORMER_ID ?? item?.performer_id ?? null,
   performerName:
     item?.performerName ?? item?.PERFORMER_NAME ?? item?.performer_name ?? null,
+  resultManagerId:
+    item?.resultManagerId ??
+    item?.RESULT_MANAGER_ID ??
+    item?.result_manager_id ??
+    null,
+  resultManagerName:
+    item?.resultManagerName ??
+    item?.RESULT_MANAGER_NAME ??
+    item?.result_manager_name ??
+    null,
   summary: item?.summary ?? item?.SUMMARY ?? null,
   resultAt: item?.resultAt ?? item?.RESULT_AT ?? null,
   status: item?.status ?? item?.STATUS ?? null,

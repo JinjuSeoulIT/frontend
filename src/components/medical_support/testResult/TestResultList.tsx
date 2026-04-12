@@ -105,6 +105,7 @@ const LABELS = {
   examId: "\uAC80\uC0AC ID",
   testExecutionId: "\uAC80\uC0AC \uC218\uD589 ID",
   performer: "\uAC80\uC0AC\uC218\uD589\uC790\uBA85",
+  resultManagerName: "\uAC80\uC0AC\uACB0\uACFC\uAD00\uB9AC\uC790\uBA85",
   summary: "\uACB0\uACFC \uC694\uC57D",
   createdAt: "\uC0DD\uC131\uC77C\uC2DC",
   rowsPerPage: "\uD398\uC774\uC9C0\uB2F9 \uD589",
@@ -164,6 +165,7 @@ const TABLE_HEADERS = [
   LABELS.patientName,
   LABELS.departmentName,
   LABELS.performer,
+  LABELS.resultManagerName,
   LABELS.resultAt,
   LABELS.status,
   LABELS.summary,
@@ -735,7 +737,7 @@ export default function TestResultList() {
               }}
             >
               <TableContainer>
-                <Table size="small" stickyHeader sx={{ minWidth: 1420 }}>
+                <Table size="small" stickyHeader sx={{ minWidth: 1540 }}>
                   <TableHead>
                     <TableRow>
                       {TABLE_HEADERS.map((header) => (
@@ -830,6 +832,9 @@ export default function TestResultList() {
                           </TableCell>
                           <TableCell align="center">
                             {safeValue(row.performerName)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(row.resultManagerName)}
                           </TableCell>
                           <TableCell align="center">
                             {formatDateTime(row.resultAt)}

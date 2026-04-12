@@ -33,6 +33,7 @@ import type {
   TestResult,
   TestResultDetailData,
   TestResultDetailValue,
+  TestResultUpdatePayload,
 } from "@/features/medical_support/testResult/testResultType";
 import { TEST_RESULT_TYPE_OPTIONS } from "@/features/medical_support/testResult/testResultType";
 import type { AppDispatch, RootState } from "@/store/store";
@@ -122,6 +123,11 @@ const toEditableValue = (
   }
 
   return String(value);
+};
+
+const toNullableText = (value: string) => {
+  const normalized = value.trim();
+  return normalized || null;
 };
 
 const buildDetailFieldConfigs = (
@@ -228,6 +234,10 @@ export default function TestResultEdit() {
     detail?.resultAt ?? ""
   }:${
     detail?.status ?? ""
+  }:${
+    detail?.resultManagerId ?? ""
+  }:${
+    detail?.resultManagerName ?? ""
   }`;
   const draftValues = draftState.sourceKey === sourceKey ? draftState.values : {};
   const detailFields = useMemo(
@@ -236,6 +246,15 @@ export default function TestResultEdit() {
   );
   const confirmedAtInitial = toDateTimeInputValue(detail?.resultAt);
   const confirmedAtValue = draftValues.confirmedAt ?? confirmedAtInitial;
+  const resultManagerIdInitial =
+    detail?.resultManagerId === null || detail?.resultManagerId === undefined
+      ? ""
+      : String(detail.resultManagerId);
+  const resultManagerIdValue =
+    draftValues.resultManagerId ?? resultManagerIdInitial;
+  const resultManagerNameInitial = detail?.resultManagerName ?? "";
+  const resultManagerNameValue =
+    draftValues.resultManagerName ?? resultManagerNameInitial;
   const initialStatus = normalizeStatus(detail?.status);
   const draftStatus = normalizeStatus(draftValues.status ?? initialStatus);
   const nextStatus = draftStatus === "INACTIVE" ? "ACTIVE" : "INACTIVE";
@@ -319,11 +338,7 @@ export default function TestResultEdit() {
     return changedDetail;
   };
 
-  const submitUpdate = (form: {
-    status?: string;
-    confirmedAt?: string;
-    detail?: TestResultDetailData;
-  }) => {
+  const submitUpdate = (form: TestResultUpdatePayload) => {
     if (!resultId || !resultType || updateLoading) return;
 
     dispatch(
@@ -345,11 +360,7 @@ export default function TestResultEdit() {
     if (!detail || updateLoading) return;
 
     const changedDetail = buildChangedDetail();
-    const form: {
-      status?: string;
-      confirmedAt?: string;
-      detail?: TestResultDetailData;
-    } = {};
+    const form: TestResultUpdatePayload = {};
 
     if (draftStatus !== initialStatus) {
       form.status = draftStatus;
@@ -359,11 +370,19 @@ export default function TestResultEdit() {
       form.confirmedAt = confirmedAtValue;
     }
 
+    if (resultManagerIdValue !== resultManagerIdInitial) {
+      form.resultManagerId = toNullableText(resultManagerIdValue);
+    }
+
+    if (resultManagerNameValue !== resultManagerNameInitial) {
+      form.resultManagerName = toNullableText(resultManagerNameValue);
+    }
+
     if (Object.keys(changedDetail).length > 0) {
       form.detail = changedDetail;
     }
 
-    if (!form.status && !form.confirmedAt && !form.detail) {
+    if (Object.keys(form).length === 0) {
       alert("변경된 내용이 없습니다.");
       return;
     }
@@ -587,6 +606,26 @@ export default function TestResultEdit() {
                   InputLabelProps={{ shrink: true }}
                   onChange={(event) =>
                     updateDraftValue("confirmedAt", event.target.value)
+                  }
+                  disabled={updateLoading}
+                />
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="검사결과관리자 ID"
+                  value={resultManagerIdValue}
+                  onChange={(event) =>
+                    updateDraftValue("resultManagerId", event.target.value)
+                  }
+                  disabled={updateLoading}
+                />
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="검사결과관리자명"
+                  value={resultManagerNameValue}
+                  onChange={(event) =>
+                    updateDraftValue("resultManagerName", event.target.value)
                   }
                   disabled={updateLoading}
                 />

@@ -25,6 +25,8 @@ export interface TestResultDetailRequestPayload {
 export interface TestResultUpdatePayload {
   status?: string;
   confirmedAt?: string;
+  resultManagerId?: string | number | null;
+  resultManagerName?: string | null;
   detail?: TestResultDetailData;
 }
 
@@ -45,6 +47,8 @@ export interface TestResult {
   departmentName?: string | null;
   performerId?: string | number | null;
   performerName?: string | null;
+  resultManagerId?: string | number | null;
+  resultManagerName?: string | null;
   summary?: string | null;
   resultAt?: string | null;
   status?: TestResultStatus | null;

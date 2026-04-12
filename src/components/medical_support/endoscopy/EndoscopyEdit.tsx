@@ -118,6 +118,18 @@ const formatSedationYn = (value: string) => {
   }
 };
 
+const toDateTimeInputValue = (value?: string | null) => {
+  const normalized = value?.trim();
+  if (!normalized) return "";
+  return normalized.replace(" ", "T").slice(0, 16);
+};
+
+const toNullableDateTime = (value: string) => {
+  const normalized = value.trim();
+  if (!normalized) return null;
+  return normalized.length === 16 ? `${normalized}:00` : normalized;
+};
+
 const getProgressStatusColor = (
   value: string
 ): "default" | "warning" | "info" | "success" | "error" => {
@@ -233,7 +245,7 @@ export default function EndoscopyEdit() {
       sedationYn: selected.sedationYn ?? "",
       performerId: String(selected.performerId ?? ""),
       performerName: selected.performerName ?? "",
-      procedureAt: selected.procedureAt ?? "",
+      procedureAt: toDateTimeInputValue(selected.procedureAt),
       progressStatus: selected.progressStatus ?? "",
       status: selected.status ?? "",
       createdAt: selected.createdAt ?? "",
@@ -278,7 +290,7 @@ export default function EndoscopyEdit() {
           sedationYn: form.sedationYn,
           performerId: form.performerId,
           performerName: form.performerName,
-          procedureAt: form.procedureAt,
+          procedureAt: toNullableDateTime(form.procedureAt),
           progressStatus: nextProgressStatus,
           status: form.status,
         },
@@ -649,8 +661,10 @@ export default function EndoscopyEdit() {
 
               <TextField
                 label="시술일시"
+                type="datetime-local"
                 size="small"
                 value={form.procedureAt}
+                InputLabelProps={{ shrink: true }}
                 onChange={(e) =>
                   setDraftForm({
                     ...form,
@@ -658,7 +672,6 @@ export default function EndoscopyEdit() {
                   })
                 }
                 fullWidth
-                helperText="백엔드 포맷에 맞는 일시 값을 입력하세요."
               />
             </Box>
           </CardContent>

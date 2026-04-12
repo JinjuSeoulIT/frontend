@@ -120,6 +120,18 @@ const formatYesNo = (value: string) => {
   }
 };
 
+const toDateTimeInputValue = (value?: string | null) => {
+  const normalized = value?.trim();
+  if (!normalized) return "";
+  return normalized.replace(" ", "T").slice(0, 16);
+};
+
+const toNullableDateTime = (value: string) => {
+  const normalized = value.trim();
+  if (!normalized) return null;
+  return normalized.length === 16 ? `${normalized}:00` : normalized;
+};
+
 const getProgressStatusColor = (
   value: string
 ): "default" | "warning" | "info" | "success" | "error" => {
@@ -232,7 +244,7 @@ export default function SpecimenEdit() {
       departmentName: selected.departmentName ?? "",
       specimenType: selected.specimenType ?? "",
       specimenStatus: selected.specimenStatus ?? "",
-      collectedAt: selected.collectedAt ?? "",
+      collectedAt: toDateTimeInputValue(selected.collectedAt),
       performerId: String(selected.performerId ?? ""),
       performerName: selected.performerName ?? "",
       collectionSite: selected.collectionSite ?? "",
@@ -278,7 +290,7 @@ export default function SpecimenEdit() {
           departmentName: form.departmentName,
           specimenType: form.specimenType,
           specimenStatus: form.specimenStatus,
-          collectedAt: form.collectedAt,
+          collectedAt: toNullableDateTime(form.collectedAt),
           performerId: form.performerId,
           performerName: form.performerName,
           collectionSite: form.collectionSite,
@@ -673,8 +685,10 @@ export default function SpecimenEdit() {
             >
               <TextField
                 label="채취일시"
+                type="datetime-local"
                 size="small"
                 value={form.collectedAt}
+                InputLabelProps={{ shrink: true }}
                 onChange={(e) =>
                   setDraftForm({
                     ...form,

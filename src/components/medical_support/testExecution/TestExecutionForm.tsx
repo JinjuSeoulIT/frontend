@@ -415,7 +415,7 @@ export default function TestExecutionForm({
                 {isEditMode && (
                   <Grid size={{ xs: 12, md: 6 }}>
                     <TextField
-                      label="담당자 ID"
+                      label="검사수행자 ID"
                       value={form.performerId}
                       onChange={handleChange("performerId")}
                       size="small"
@@ -427,7 +427,7 @@ export default function TestExecutionForm({
                 {isEditMode && (
                   <Grid size={{ xs: 12, md: 6 }}>
                     <TextField
-                      label="담당자명"
+                      label="검사수행자명"
                       value={form.performerName}
                       onChange={handleChange("performerName")}
                       size="small"

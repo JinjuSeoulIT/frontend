@@ -104,7 +104,7 @@ const LABELS = {
   resultId: "\uACB0\uACFC ID",
   examId: "\uAC80\uC0AC ID",
   testExecutionId: "\uAC80\uC0AC \uC218\uD589 ID",
-  performer: "\uC218\uD589\uC790",
+  performer: "\uAC80\uC0AC\uC218\uD589\uC790\uBA85",
   summary: "\uACB0\uACFC \uC694\uC57D",
   createdAt: "\uC0DD\uC131\uC77C\uC2DC",
   rowsPerPage: "\uD398\uC774\uC9C0\uB2F9 \uD589",
@@ -829,7 +829,7 @@ export default function TestResultList() {
                             {safeValue(row.departmentName)}
                           </TableCell>
                           <TableCell align="center">
-                            {safeValue(row.performerName ?? row.performerId)}
+                            {safeValue(row.performerName)}
                           </TableCell>
                           <TableCell align="center">
                             {formatDateTime(row.resultAt)}

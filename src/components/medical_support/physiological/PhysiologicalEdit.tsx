@@ -399,11 +399,11 @@ export default function PhysiologicalEdit() {
                   truncate
                 />
                 <SummaryItem
-                  label="담당자 ID"
+                  label="검사수행자 ID"
                   value={displayValue(form.performerId)}
                 />
                 <SummaryItem
-                  label="담당자명"
+                  label="검사수행자명"
                   value={displayValue(form.performerName)}
                 />
                 <SummaryItem
@@ -500,7 +500,7 @@ export default function PhysiologicalEdit() {
               </TextField>
 
               <TextField
-                label="담당자 ID"
+                label="검사수행자 ID"
                 size="small"
                 value={form.performerId}
                 onChange={(e) =>
@@ -513,7 +513,7 @@ export default function PhysiologicalEdit() {
               />
 
               <TextField
-                label="담당자명"
+                label="검사수행자명"
                 size="small"
                 value={form.performerName}
                 onChange={(e) =>

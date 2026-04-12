@@ -343,11 +343,11 @@ export default function PathologyEdit() {
                   truncate
                 />
                 <SummaryItem
-                  label="담당자 ID"
+                  label="검사수행자 ID"
                   value={safeValue(form.performerId)}
                 />
                 <SummaryItem
-                  label="담당자명"
+                  label="검사수행자명"
                   value={safeValue(form.performerName)}
                 />
               </Box>
@@ -440,7 +440,7 @@ export default function PathologyEdit() {
               </TextField>
 
               <TextField
-                label="담당자 ID"
+                label="검사수행자 ID"
                 size="small"
                 value={form.performerId}
                 onChange={(e) =>
@@ -453,7 +453,7 @@ export default function PathologyEdit() {
               />
 
               <TextField
-                label="담당자명"
+                label="검사수행자명"
                 size="small"
                 value={form.performerName}
                 onChange={(e) =>

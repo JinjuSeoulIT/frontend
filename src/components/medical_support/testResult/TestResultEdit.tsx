@@ -549,7 +549,7 @@ export default function TestResultEdit() {
                 <InfoField label="환자명" value={safeValue(detail.patientName)} />
                 <InfoField label="진료과" value={safeValue(detail.departmentName)} />
                 <InfoField
-                  label="수행자"
+                  label="검사수행자"
                   value={safeValue(detail.performerName ?? detail.performerId)}
                 />
                 <InfoField

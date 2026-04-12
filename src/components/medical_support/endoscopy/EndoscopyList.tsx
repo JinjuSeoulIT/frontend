@@ -281,7 +281,7 @@ export default function EndoscopyList() {
                         <TableCell align="center">장비</TableCell>
                         <TableCell align="center">검사명</TableCell>
                         <TableCell align="center">검사수행 ID</TableCell>
-                        <TableCell align="center">담당자 ID</TableCell>
+                        <TableCell align="center">검사수행자 ID</TableCell>
                         <TableCell align="center">진행상태</TableCell>
                       </TableRow>
                     </TableHead>

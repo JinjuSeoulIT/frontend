@@ -346,11 +346,11 @@ export default function TestResultDetail() {
                 <DetailField label="환자명" value={safeValue(detail.patientName)} />
                 <DetailField label="진료과" value={safeValue(detail.departmentName)} />
                 <DetailField
-                  label="수행자 ID"
+                  label="검사수행자 ID"
                   value={safeValue(detail.performerId)}
                 />
                 <DetailField
-                  label="수행자명"
+                  label="검사수행자명"
                   value={safeValue(detail.performerName)}
                 />
                 <DetailField label="검사일시" value={formatDateTime(detail.resultAt)} />

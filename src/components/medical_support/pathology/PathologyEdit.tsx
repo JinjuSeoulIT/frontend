@@ -181,7 +181,7 @@ export default function PathologyEdit() {
         : "/medical_support/pathology/list";
     lastRequestedProgressStatusRef.current = null;
 
-    alert("병리 검사 상태가 변경되었습니다.");
+    alert("병리 검사가 완료되었습니다.");
     dispatch(PathologyActions.resetUpdateSuccess());
     router.push(nextPath);
   }, [dispatch, router, updateSuccess]);
@@ -232,10 +232,10 @@ export default function PathologyEdit() {
         >
           <Box>
             <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>
-              병리 검사 수정
+              병리 검사 등록
             </Typography>
             <Typography color="text.secondary">
-              환자 정보와 검사 상태를 먼저 확인하고, 수행 정보를 수정하세요.
+              환자 정보와 검사 상태를 먼저 확인하고, 수행 정보를 등록하세요.
             </Typography>
           </Box>
 

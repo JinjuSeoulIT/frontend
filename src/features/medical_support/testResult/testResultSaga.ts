@@ -5,7 +5,9 @@ import * as api from "@/lib/medical_support/testResultApi";
 import { TestResultActions as actions } from "./testResultSlice";
 import type {
   TestResult,
+  TestResultDetailRequestPayload,
   TestResultSearchParams,
+  TestResultUpdateRequestPayload,
 } from "@/features/medical_support/testResult/testResultType";
 
 const getErrorMessage = (err: unknown, fallback: string) => {
@@ -37,6 +39,44 @@ function* fetchTestResultsSaga(
   }
 }
 
+function* fetchTestResultDetailSaga(
+  action: PayloadAction<TestResultDetailRequestPayload>
+): SagaIterator {
+  try {
+    const item: TestResult = yield call(
+      api.fetchTestResultDetailApi,
+      action.payload
+    );
+    yield put(actions.fetchTestResultDetailSuccess(item));
+  } catch (err: unknown) {
+    yield put(
+      actions.fetchTestResultDetailFailure(
+        getErrorMessage(err, "검사 결과 상세 조회에 실패했습니다.")
+      )
+    );
+  }
+}
+
+function* updateTestResultSaga(
+  action: PayloadAction<TestResultUpdateRequestPayload>
+): SagaIterator {
+  try {
+    const item: TestResult = yield call(api.updateTestResultApi, action.payload);
+    yield put(actions.updateTestResultSuccess(item));
+  } catch (err: unknown) {
+    yield put(
+      actions.updateTestResultFailure(
+        getErrorMessage(err, "검사 결과 수정에 실패했습니다.")
+      )
+    );
+  }
+}
+
 export function* watchTestResultSaga(): SagaIterator {
   yield takeLatest(actions.fetchTestResultsRequest.type, fetchTestResultsSaga);
+  yield takeLatest(
+    actions.fetchTestResultDetailRequest.type,
+    fetchTestResultDetailSaga
+  );
+  yield takeLatest(actions.updateTestResultRequest.type, updateTestResultSaga);
 }

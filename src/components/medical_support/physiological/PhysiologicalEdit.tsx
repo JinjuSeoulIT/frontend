@@ -237,7 +237,7 @@ export default function PhysiologicalEdit() {
         : "/medical_support/physiological/list";
     lastRequestedProgressStatusRef.current = null;
 
-    alert("생리기능 검사 상태가 변경되었습니다.");
+    alert("생리기능 검사가 완료되었습니다.");
     dispatch(PhysiologicalActions.resetUpdateSuccess());
     router.push(nextPath);
   }, [dispatch, router, updateSuccess]);
@@ -288,10 +288,10 @@ export default function PhysiologicalEdit() {
         >
           <Box>
             <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>
-              생리기능 검사 수정
+              생리기능 검사 등록
             </Typography>
             <Typography color="text.secondary">
-              환자 정보와 검사 상태를 먼저 확인하고, 장비 및 결과 정보를 수정하세요.
+              환자 정보와 검사 상태를 먼저 확인하고, 장비 및 결과 정보를 등록하세요.
             </Typography>
           </Box>
 

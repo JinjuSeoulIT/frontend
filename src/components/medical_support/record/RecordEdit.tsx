@@ -126,6 +126,9 @@ const RecordEdit = () => {
         onChange={setDraftForm}
         onSubmit={handleSubmit}
         onCancel={() => router.push(`/medical_support/record/detail/${recordId}`)}
+        onNavigateDetail={() =>
+          router.push(`/medical_support/record/detail/${recordId}`)
+        }
         loading={loading}
       />
     </main>

@@ -29,7 +29,7 @@ import {
   Typography,
 } from "@mui/material";
 import type { ChipProps } from "@mui/material";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { TestResultActions } from "@/features/medical_support/testResult/testResultSlice";
 import type {
@@ -484,17 +484,25 @@ function TestResultSearchControls({
 
 export default function TestResultList() {
   const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const queryInitialSearchCriteria = React.useMemo(
     () => getInitialSearchCriteria(searchParams.get("resultType")),
     [searchParams]
   );
+  const queryInitialIncludeInactive = React.useMemo(
+    () => searchParams.get("includeInactive") === "true",
+    [searchParams]
+  );
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [includeInactive, setIncludeInactive] = React.useState(false);
+  const [includeInactive, setIncludeInactive] = React.useState(
+    queryInitialIncludeInactive
+  );
   const [searchCriteria, setSearchCriteria] =
     React.useState<TestResultSearchCriteria>(() => queryInitialSearchCriteria);
   const initialSearchCriteriaRef = React.useRef(queryInitialSearchCriteria);
+  const initialIncludeInactiveRef = React.useRef(queryInitialIncludeInactive);
 
   const { list: rows, loading, error } = useSelector(
     (state: RootState) => state.testResults
@@ -512,7 +520,10 @@ export default function TestResultList() {
   );
 
   React.useEffect(() => {
-    fetchRows(initialSearchCriteriaRef.current, false);
+    fetchRows(
+      initialSearchCriteriaRef.current,
+      initialIncludeInactiveRef.current
+    );
   }, [fetchRows]);
 
   const activeCount = React.useMemo(
@@ -581,6 +592,36 @@ export default function TestResultList() {
   ) => {
     setRowsPerPage(Number(event.target.value));
     setPage(0);
+  };
+
+  const navigateToDetail = React.useCallback(
+    (row: TestResult) => {
+      const resultId = String(row.resultId ?? "").trim();
+      const resultType = normalizeValue(row.resultType);
+
+      if (!resultId || !resultType) {
+        return;
+      }
+
+      router.push(
+        `/medical_support/testResult/detail/${encodeURIComponent(
+          resultId
+        )}?resultType=${encodeURIComponent(resultType)}`
+      );
+    },
+    [router]
+  );
+
+  const handleRowKeyDown = (
+    event: React.KeyboardEvent<HTMLTableRowElement>,
+    row: TestResult
+  ) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    navigateToDetail(row);
   };
 
   return (
@@ -729,6 +770,10 @@ export default function TestResultList() {
 
                     {paginatedRows.map((row, index) => {
                       const inactive = isInactiveStatus(row.status);
+                      const canOpenDetail = Boolean(
+                        String(row.resultId ?? "").trim() &&
+                          normalizeValue(row.resultType)
+                      );
 
                       return (
                         <TableRow
@@ -736,7 +781,18 @@ export default function TestResultList() {
                             row.resultId
                           )}-${currentPage * rowsPerPage + index}`}
                           hover
+                          role={canOpenDetail ? "button" : undefined}
+                          tabIndex={canOpenDetail ? 0 : undefined}
+                          onClick={
+                            canOpenDetail ? () => navigateToDetail(row) : undefined
+                          }
+                          onKeyDown={
+                            canOpenDetail
+                              ? (event) => handleRowKeyDown(event, row)
+                              : undefined
+                          }
                           sx={{
+                            cursor: canOpenDetail ? "pointer" : "default",
                             backgroundColor: inactive ? "#fcfcfc" : undefined,
                             "&:hover": {
                               backgroundColor: inactive ? "#f4f6f8" : "#f9fbff",

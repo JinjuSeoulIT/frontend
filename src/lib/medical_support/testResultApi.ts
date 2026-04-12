@@ -2,7 +2,10 @@ import axios from "axios";
 import type { ApiResponse } from "@/features/patients/patientTypes";
 import type {
   TestResult,
+  TestResultDetailData,
+  TestResultDetailRequestPayload,
   TestResultSearchParams,
+  TestResultUpdateRequestPayload,
 } from "@/features/medical_support/testResult/testResultType";
 
 const api = axios.create({
@@ -26,6 +29,7 @@ type TestResultApiRaw = Partial<TestResult> & {
   RESULT_AT?: string | null;
   STATUS?: string | null;
   CREATED_AT?: string | null;
+  DETAIL?: TestResultDetailData | null;
 };
 
 const cleanSearchParams = (params?: TestResultSearchParams) => {
@@ -68,6 +72,7 @@ const normalizeTestResult = (item?: TestResultApiRaw | null): TestResult => ({
   resultAt: item?.resultAt ?? item?.RESULT_AT ?? null,
   status: item?.status ?? item?.STATUS ?? null,
   createdAt: item?.createdAt ?? item?.CREATED_AT ?? null,
+  detail: item?.detail ?? item?.DETAIL ?? null,
 });
 
 export const fetchTestResultsApi = async (
@@ -88,4 +93,42 @@ export const fetchTestResultsApi = async (
   }
 
   return (res.data.result ?? []).map(normalizeTestResult);
+};
+
+export const fetchTestResultDetailApi = async ({
+  resultType,
+  resultId,
+}: TestResultDetailRequestPayload): Promise<TestResult> => {
+  const encodedResultType = encodeURIComponent(resultType.trim());
+  const encodedResultId = encodeURIComponent(String(resultId).trim());
+  const res = await api.get<ApiResponse<TestResultApiRaw>>(
+    `/api/testResult/${encodedResultType}/${encodedResultId}`
+  );
+
+  if (!res.data.success) {
+    throw new Error(
+      res.data.message || "검사 결과 상세 조회에 실패했습니다."
+    );
+  }
+
+  return normalizeTestResult(res.data.result);
+};
+
+export const updateTestResultApi = async ({
+  resultType,
+  resultId,
+  form,
+}: TestResultUpdateRequestPayload): Promise<TestResult> => {
+  const encodedResultType = encodeURIComponent(resultType.trim());
+  const encodedResultId = encodeURIComponent(String(resultId).trim());
+  const res = await api.put<ApiResponse<TestResultApiRaw>>(
+    `/api/testResult/${encodedResultType}/${encodedResultId}`,
+    form
+  );
+
+  if (!res.data.success) {
+    throw new Error(res.data.message || "검사 결과 수정에 실패했습니다.");
+  }
+
+  return normalizeTestResult(res.data.result);
 };

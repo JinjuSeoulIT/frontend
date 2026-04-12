@@ -253,7 +253,7 @@ export default function SpecimenEdit() {
         : "/medical_support/specimen/list";
     lastRequestedProgressStatusRef.current = null;
 
-    alert("검체 검사 상태가 변경되었습니다.");
+    alert("검체 검사가 완료되었습니다.");
     dispatch(SpecimenActions.resetUpdateSuccess());
     router.push(nextPath);
   }, [dispatch, router, updateSuccess]);
@@ -306,10 +306,10 @@ export default function SpecimenEdit() {
         >
           <Box>
             <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>
-              검체 검사 수정
+              검체 검사 등록
             </Typography>
             <Typography color="text.secondary">
-              환자 정보와 검사 상태를 먼저 확인하고, 검체 및 채취 정보를 수정하세요.
+              환자 정보와 검사 상태를 먼저 확인하고, 검체 및 채취 정보를 등록하세요.
             </Typography>
           </Box>
 

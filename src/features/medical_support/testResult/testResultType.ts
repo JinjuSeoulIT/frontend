@@ -8,6 +8,31 @@ export type TestResultTypeCode =
 
 export type TestResultStatus = "ACTIVE" | "INACTIVE" | string;
 
+export type TestResultDetailValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined;
+
+export type TestResultDetailData = Record<string, TestResultDetailValue>;
+
+export interface TestResultDetailRequestPayload {
+  resultType: string;
+  resultId: string | number;
+}
+
+export interface TestResultUpdatePayload {
+  status?: string;
+  confirmedAt?: string;
+  detail?: TestResultDetailData;
+}
+
+export interface TestResultUpdateRequestPayload
+  extends TestResultDetailRequestPayload {
+  form: TestResultUpdatePayload;
+}
+
 export interface TestResult {
   resultType?: TestResultTypeCode | null;
   resultTypeName?: string | null;
@@ -24,6 +49,7 @@ export interface TestResult {
   resultAt?: string | null;
   status?: TestResultStatus | null;
   createdAt?: string | null;
+  detail?: TestResultDetailData | null;
 }
 
 export interface TestResultSearchParams {

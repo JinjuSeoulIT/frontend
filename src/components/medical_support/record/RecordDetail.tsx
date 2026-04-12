@@ -217,7 +217,7 @@ export default function RecordDetail() {
             <Stack direction="row" spacing={1} flexWrap="wrap">
               <Link href="/medical_support/record/list">
                 <Button variant="outlined" size="small">
-                  취소
+                  목록으로
                 </Button>
               </Link>
 

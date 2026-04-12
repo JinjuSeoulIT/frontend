@@ -40,30 +40,22 @@ type DetailFieldConfig = {
 };
 
 const TYPE_DETAIL_FIELDS: Record<string, DetailFieldConfig[]> = {
-  IMAGING: [
-    { key: "readingSummary", label: "판독 요약" },
-    { key: "readingDetail", label: "판독 상세" },
-  ],
+  IMAGING: [],
   SPECIMEN: [
     { key: "resultItemCode", label: "결과 항목 코드" },
-    { key: "resultValue", label: "결과값" },
     { key: "unit", label: "단위" },
     { key: "referenceRange", label: "참고범위" },
     { key: "judgement", label: "판정" },
   ],
   PATHOLOGY: [
-    { key: "resultSummary", label: "결과 요약" },
     { key: "judgedAt", label: "판정일시", formatter: formatDetailDateTime },
-    { key: "readerId", label: "판독자 ID" },
     { key: "diagnosisName", label: "진단명" },
   ],
   ENDOSCOPY: [
-    { key: "finding", label: "소견" },
     { key: "biopsyYn", label: "생검 여부", formatter: formatDetailYn },
     { key: "readerId", label: "판독자 ID" },
   ],
   PHYSIOLOGICAL: [
-    { key: "resultValue", label: "결과값" },
     { key: "report", label: "보고서" },
     { key: "measuredItemCode", label: "측정 항목 코드" },
   ],
@@ -282,6 +274,18 @@ export default function TestResultDetail() {
   }
 
   const detailFields = buildDetailFieldConfigs(resultType, detail.detail);
+  const isSpecimenResult = resultType === "SPECIMEN";
+  const isImagingResult = resultType === "IMAGING";
+  const isEndoscopyResult = resultType === "ENDOSCOPY";
+  const isPathologyResult = resultType === "PATHOLOGY";
+  const isPhysiologicalResult = resultType === "PHYSIOLOGICAL";
+  const hideResultSummary =
+    isSpecimenResult ||
+    isImagingResult ||
+    isEndoscopyResult ||
+    isPathologyResult ||
+    isPhysiologicalResult;
+  const showTypeDetailSection = !isImagingResult || detailFields.length > 0;
 
   return (
     <Box sx={{ px: 3, py: 3, maxWidth: 1100, mx: "auto" }}>
@@ -361,7 +365,12 @@ export default function TestResultDetail() {
                   label="검사결과관리자명"
                   value={safeValue(detail.resultManagerName)}
                 />
-                <DetailField label="검사일시" value={formatDateTime(detail.resultAt)} />
+                {!isSpecimenResult ? (
+                  <DetailField
+                    label="검사일시"
+                    value={formatDateTime(detail.resultAt)}
+                  />
+                ) : null}
                 <DetailField label="생성일시" value={formatDateTime(detail.createdAt)} />
                 <DetailField
                   label="상태"
@@ -374,36 +383,42 @@ export default function TestResultDetail() {
                     />
                   }
                 />
-                <DetailField label="결과 요약" value={safeValue(detail.summary)} />
+                {!hideResultSummary ? (
+                  <DetailField label="결과 요약" value={safeValue(detail.summary)} />
+                ) : null}
               </DetailGrid>
             </Box>
 
-            <Divider />
+            {showTypeDetailSection ? (
+              <>
+                <Divider />
 
-            <Box>
-              <Typography variant="subtitle1" fontWeight={700}>
-                타입별 상세 정보
-              </Typography>
-              {detailFields.length > 0 ? (
-                <DetailGrid>
-                  {detailFields.map((field) => (
-                    <DetailField
-                      key={field.key}
-                      label={field.label}
-                      value={
-                        field.formatter
-                          ? field.formatter(detail.detail?.[field.key])
-                          : formatDetailValue(detail.detail?.[field.key])
-                      }
-                    />
-                  ))}
-                </DetailGrid>
-              ) : (
-                <Typography color="text.secondary" sx={{ mt: 1.5 }}>
-                  타입별 상세 정보가 없습니다.
-                </Typography>
-              )}
-            </Box>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    타입별 상세 정보
+                  </Typography>
+                  {detailFields.length > 0 ? (
+                    <DetailGrid>
+                      {detailFields.map((field) => (
+                        <DetailField
+                          key={field.key}
+                          label={field.label}
+                          value={
+                            field.formatter
+                              ? field.formatter(detail.detail?.[field.key])
+                              : formatDetailValue(detail.detail?.[field.key])
+                          }
+                        />
+                      ))}
+                    </DetailGrid>
+                  ) : (
+                    <Typography color="text.secondary" sx={{ mt: 1.5 }}>
+                      타입별 상세 정보가 없습니다.
+                    </Typography>
+                  )}
+                </Box>
+              </>
+            ) : null}
           </Stack>
         </Box>
       </Paper>

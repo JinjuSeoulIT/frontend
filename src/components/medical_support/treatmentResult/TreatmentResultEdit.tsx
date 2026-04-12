@@ -303,17 +303,13 @@ export default function TreatmentResultEdit() {
                   gap: 1.75,
                   gridTemplateColumns: {
                     xs: "1fr 1fr",
-                    lg: "repeat(5, minmax(0, 1fr))",
+                    lg: "repeat(4, minmax(0, 1fr))",
                   },
                 }}
               >
                 <SummaryItem
                   label="처치결과 ID"
                   value={displayValue(form.treatmentResultId)}
-                />
-                <SummaryItem
-                  label="처치/수술 ID"
-                  value={displayValue(form.procedureResultId)}
                 />
                 <SummaryItem
                   label="처치일시"

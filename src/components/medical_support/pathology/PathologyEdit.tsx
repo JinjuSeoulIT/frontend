@@ -37,8 +37,14 @@ type PathologyEditForm = {
   specimenId: string;
   resultSummary: string;
   reportDocId: string;
+  tissueStatus: string;
+  tissueSite: string;
+  tissueType: string;
+  collectionMethod: string;
+  collectedAt: string;
   performerId: string;
   performerName: string;
+  reexamYn: string;
   progressStatus: string;
   status: string;
   createdAt: string;
@@ -55,6 +61,28 @@ const ACTIVE_STATUS_OPTIONS = [
   { value: "INACTIVE", label: "비활성화" },
 ];
 
+const YES_NO_OPTIONS = [
+  { value: "Y", label: "예" },
+  { value: "N", label: "아니오" },
+];
+
+const toDateTimeInputValue = (value?: string | null) => {
+  const normalized = value?.trim();
+  if (!normalized) return "";
+  return normalized.replace(" ", "T").slice(0, 16);
+};
+
+const toNullableText = (value: string) => {
+  const normalized = value.trim();
+  return normalized ? normalized : null;
+};
+
+const toNullableDateTime = (value: string) => {
+  const normalized = value.trim();
+  if (!normalized) return null;
+  return normalized.length === 16 ? `${normalized}:00` : normalized;
+};
+
 const toPathologyFormData = (
   item?: Partial<PathologyEditForm>
 ): PathologyEditForm => ({
@@ -67,8 +95,14 @@ const toPathologyFormData = (
   specimenId: item?.specimenId ?? "",
   resultSummary: item?.resultSummary ?? "",
   reportDocId: item?.reportDocId ?? "",
+  tissueStatus: item?.tissueStatus ?? "",
+  tissueSite: item?.tissueSite ?? "",
+  tissueType: item?.tissueType ?? "",
+  collectionMethod: item?.collectionMethod ?? "",
+  collectedAt: item?.collectedAt ?? "",
   performerId: item?.performerId ?? "",
   performerName: item?.performerName ?? "",
+  reexamYn: item?.reexamYn ?? "",
   progressStatus: item?.progressStatus ?? "",
   status: item?.status ?? "",
   createdAt: item?.createdAt ?? "",
@@ -164,8 +198,14 @@ export default function PathologyEdit() {
         selected.reportDocId === null || selected.reportDocId === undefined
           ? ""
           : String(selected.reportDocId),
+      tissueStatus: selected.tissueStatus ?? "",
+      tissueSite: selected.tissueSite ?? "",
+      tissueType: selected.tissueType ?? "",
+      collectionMethod: selected.collectionMethod ?? "",
+      collectedAt: toDateTimeInputValue(selected.collectedAt),
       performerId: String(selected.performerId ?? ""),
       performerName: selected.performerName ?? "",
+      reexamYn: selected.reexamYn ?? "",
       progressStatus: selected.progressStatus ?? "",
       status: selected.status ?? "",
       createdAt: selected.createdAt ?? "",
@@ -207,8 +247,14 @@ export default function PathologyEdit() {
           specimenId: form.specimenId,
           resultSummary: form.resultSummary,
           reportDocId: form.reportDocId,
+          tissueStatus: toNullableText(form.tissueStatus),
+          tissueSite: toNullableText(form.tissueSite),
+          tissueType: toNullableText(form.tissueType),
+          collectionMethod: toNullableText(form.collectionMethod),
+          collectedAt: toNullableDateTime(form.collectedAt),
           performerId: form.performerId,
           performerName: form.performerName,
+          reexamYn: toNullableText(form.reexamYn),
           progressStatus: nextProgressStatus,
           status: form.status,
         },
@@ -375,6 +421,135 @@ export default function PathologyEdit() {
             }}
           >
             <Typography variant="subtitle1" fontWeight={700}>
+              조직 및 채취 정보
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              조직 상태와 채취 정보를 등록할 수 있습니다.
+            </Typography>
+          </Box>
+
+          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 1.75,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                },
+              }}
+            >
+              <TextField
+                label="조직 상태"
+                size="small"
+                value={form.tissueStatus}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    tissueStatus: e.target.value,
+                  })
+                }
+                fullWidth
+              />
+
+              <TextField
+                label="조직 부위"
+                size="small"
+                value={form.tissueSite}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    tissueSite: e.target.value,
+                  })
+                }
+                fullWidth
+              />
+
+              <TextField
+                label="조직 종류"
+                size="small"
+                value={form.tissueType}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    tissueType: e.target.value,
+                  })
+                }
+                fullWidth
+              />
+
+              <TextField
+                label="채취 방법"
+                size="small"
+                value={form.collectionMethod}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    collectionMethod: e.target.value,
+                  })
+                }
+                fullWidth
+              />
+
+              <TextField
+                label="채취 일시"
+                type="datetime-local"
+                size="small"
+                value={form.collectedAt}
+                InputLabelProps={{ shrink: true }}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    collectedAt: e.target.value,
+                  })
+                }
+                fullWidth
+              />
+
+              <TextField
+                select
+                label="재검 여부"
+                size="small"
+                value={form.reexamYn}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    reexamYn: e.target.value,
+                  })
+                }
+                fullWidth
+              >
+                <MenuItem value="">선택 안 함</MenuItem>
+                {YES_NO_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            mb: 2,
+            borderRadius: 3,
+            border: "1px solid",
+            borderColor: "grey.200",
+            backgroundColor: "#fff",
+          }}
+        >
+          <Box
+            sx={{
+              px: { xs: 2, md: 3 },
+              py: 2,
+              borderBottom: "1px solid",
+              borderColor: "grey.200",
+              backgroundColor: "#fafafa",
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={700}>
               수행 정보
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
@@ -485,51 +660,6 @@ export default function PathologyEdit() {
                 fullWidth
                 InputProps={{ readOnly: true }}
               />
-
-              <TextField
-                label="검체 ID"
-                size="small"
-                value={form.specimenId}
-                onChange={(e) =>
-                  setDraftForm({
-                    ...form,
-                    specimenId: e.target.value,
-                  })
-                }
-                fullWidth
-              />
-
-              <Box sx={{ gridColumn: { md: "1 / -1" } }}>
-                <TextField
-                  label="결과 요약"
-                  size="small"
-                  value={form.resultSummary}
-                  onChange={(e) =>
-                    setDraftForm({
-                      ...form,
-                      resultSummary: e.target.value,
-                    })
-                  }
-                  fullWidth
-                  multiline
-                  minRows={3}
-                />
-              </Box>
-
-              <Box sx={{ gridColumn: { md: "1 / -1" } }}>
-                <TextField
-                  label="판독문서 ID"
-                  size="small"
-                  value={form.reportDocId}
-                  onChange={(e) =>
-                    setDraftForm({
-                      ...form,
-                      reportDocId: e.target.value,
-                    })
-                  }
-                  fullWidth
-                />
-              </Box>
             </Box>
           </CardContent>
         </Card>

@@ -52,30 +52,22 @@ type DraftState = {
 };
 
 const TYPE_DETAIL_FIELDS: Record<string, DetailFieldConfig[]> = {
-  IMAGING: [
-    { key: "readingSummary", label: "판독 요약", inputType: "textarea" },
-    { key: "readingDetail", label: "판독 상세", inputType: "textarea" },
-  ],
+  IMAGING: [],
   SPECIMEN: [
     { key: "resultItemCode", label: "결과 항목 코드" },
-    { key: "resultValue", label: "결과값" },
     { key: "unit", label: "단위" },
     { key: "referenceRange", label: "참고범위" },
     { key: "judgement", label: "판정" },
   ],
   PATHOLOGY: [
-    { key: "resultSummary", label: "결과 요약", inputType: "textarea" },
     { key: "judgedAt", label: "판정일시", inputType: "datetime-local" },
-    { key: "readerId", label: "판독자 ID" },
     { key: "diagnosisName", label: "진단명" },
   ],
   ENDOSCOPY: [
-    { key: "finding", label: "소견", inputType: "textarea" },
     { key: "biopsyYn", label: "생검 여부", inputType: "biopsyYn" },
     { key: "readerId", label: "판독자 ID" },
   ],
   PHYSIOLOGICAL: [
-    { key: "resultValue", label: "결과값" },
     { key: "report", label: "보고서", inputType: "textarea" },
     { key: "measuredItemCode", label: "측정 항목 코드" },
   ],
@@ -260,6 +252,17 @@ export default function TestResultEdit() {
   const nextStatus = draftStatus === "INACTIVE" ? "ACTIVE" : "INACTIVE";
   const toggleStatusLabel =
     nextStatus === "INACTIVE" ? "비활성화" : "활성화";
+  const isSpecimenResult = resultType === "SPECIMEN";
+  const isImagingResult = resultType === "IMAGING";
+  const isEndoscopyResult = resultType === "ENDOSCOPY";
+  const isPathologyResult = resultType === "PATHOLOGY";
+  const isPhysiologicalResult = resultType === "PHYSIOLOGICAL";
+  const hideResultSummary =
+    isSpecimenResult ||
+    isImagingResult ||
+    isEndoscopyResult ||
+    isPathologyResult ||
+    isPhysiologicalResult;
 
   useEffect(() => {
     if (!resultId || !resultType) {
@@ -366,7 +369,11 @@ export default function TestResultEdit() {
       form.status = draftStatus;
     }
 
-    if (confirmedAtValue && confirmedAtValue !== confirmedAtInitial) {
+    if (
+      !isSpecimenResult &&
+      confirmedAtValue &&
+      confirmedAtValue !== confirmedAtInitial
+    ) {
       form.confirmedAt = confirmedAtValue;
     }
 
@@ -522,7 +529,7 @@ export default function TestResultEdit() {
                 검사 결과 수정
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                검사 결과의 확정 일시와 타입별 상세 정보를 수정합니다.
+                검사 결과의 관리 정보와 타입별 상세 정보를 수정합니다.
               </Typography>
             </Box>
 
@@ -582,11 +589,15 @@ export default function TestResultEdit() {
                     />
                   }
                 />
-                <InfoField
-                  label="현재 검사일시"
-                  value={formatDateTime(detail.resultAt)}
-                />
-                <InfoField label="결과 요약" value={safeValue(detail.summary)} />
+                {!isSpecimenResult ? (
+                  <InfoField
+                    label="현재 검사일시"
+                    value={formatDateTime(detail.resultAt)}
+                  />
+                ) : null}
+                {!hideResultSummary ? (
+                  <InfoField label="결과 요약" value={safeValue(detail.summary)} />
+                ) : null}
               </FieldGrid>
             </Box>
 
@@ -597,18 +608,20 @@ export default function TestResultEdit() {
                 수정 정보
               </Typography>
               <FieldGrid>
-                <TextField
-                  fullWidth
-                  size="small"
-                  type="datetime-local"
-                  label="결과 확정 일시"
-                  value={confirmedAtValue}
-                  InputLabelProps={{ shrink: true }}
-                  onChange={(event) =>
-                    updateDraftValue("confirmedAt", event.target.value)
-                  }
-                  disabled={updateLoading}
-                />
+                {!isSpecimenResult ? (
+                  <TextField
+                    fullWidth
+                    size="small"
+                    type="datetime-local"
+                    label="결과 확정 일시"
+                    value={confirmedAtValue}
+                    InputLabelProps={{ shrink: true }}
+                    onChange={(event) =>
+                      updateDraftValue("confirmedAt", event.target.value)
+                    }
+                    disabled={updateLoading}
+                  />
+                ) : null}
                 <TextField
                   fullWidth
                   size="small"

@@ -536,6 +536,47 @@ export default function TestResultList() {
     () => rows.filter((row) => isInactiveStatus(row.status)).length,
     [rows]
   );
+  const isSpecimenResultView =
+    searchCriteria.searchType === "resultType" &&
+    normalizeValue(searchCriteria.searchValue) === "SPECIMEN";
+  const isImagingResultView =
+    searchCriteria.searchType === "resultType" &&
+    normalizeValue(searchCriteria.searchValue) === "IMAGING";
+  const isEndoscopyResultView =
+    searchCriteria.searchType === "resultType" &&
+    normalizeValue(searchCriteria.searchValue) === "ENDOSCOPY";
+  const isPathologyResultView =
+    searchCriteria.searchType === "resultType" &&
+    normalizeValue(searchCriteria.searchValue) === "PATHOLOGY";
+  const isPhysiologicalResultView =
+    searchCriteria.searchType === "resultType" &&
+    normalizeValue(searchCriteria.searchValue) === "PHYSIOLOGICAL";
+  const hideSummaryColumn =
+    isSpecimenResultView ||
+    isImagingResultView ||
+    isEndoscopyResultView ||
+    isPathologyResultView ||
+    isPhysiologicalResultView;
+  const tableHeaders = React.useMemo(
+    () =>
+      TABLE_HEADERS.filter((header) => {
+        if (isSpecimenResultView && header === LABELS.resultAt) {
+          return false;
+        }
+
+        if (hideSummaryColumn && header === LABELS.summary) {
+          return false;
+        }
+
+        return true;
+      }),
+    [hideSummaryColumn, isSpecimenResultView]
+  );
+  const tableMinWidth = isSpecimenResultView
+    ? 1300
+    : hideSummaryColumn
+      ? 1420
+      : 1540;
 
   const inactiveStatusSearch =
     searchCriteria.searchType === "status" &&
@@ -737,10 +778,14 @@ export default function TestResultList() {
               }}
             >
               <TableContainer>
-                <Table size="small" stickyHeader sx={{ minWidth: 1540 }}>
+                <Table
+                  size="small"
+                  stickyHeader
+                  sx={{ minWidth: tableMinWidth }}
+                >
                   <TableHead>
                     <TableRow>
-                      {TABLE_HEADERS.map((header) => (
+                      {tableHeaders.map((header) => (
                         <TableCell
                           key={header}
                           align="center"
@@ -761,7 +806,7 @@ export default function TestResultList() {
                     {paginatedRows.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={TABLE_HEADERS.length}
+                          colSpan={tableHeaders.length}
                           align="center"
                           sx={{ py: 5 }}
                         >
@@ -772,6 +817,16 @@ export default function TestResultList() {
 
                     {paginatedRows.map((row, index) => {
                       const inactive = isInactiveStatus(row.status);
+                      const specimenRow =
+                        normalizeValue(row.resultType) === "SPECIMEN";
+                      const imagingRow =
+                        normalizeValue(row.resultType) === "IMAGING";
+                      const endoscopyRow =
+                        normalizeValue(row.resultType) === "ENDOSCOPY";
+                      const pathologyRow =
+                        normalizeValue(row.resultType) === "PATHOLOGY";
+                      const physiologicalRow =
+                        normalizeValue(row.resultType) === "PHYSIOLOGICAL";
                       const canOpenDetail = Boolean(
                         String(row.resultId ?? "").trim() &&
                           normalizeValue(row.resultType)
@@ -836,9 +891,11 @@ export default function TestResultList() {
                           <TableCell align="center">
                             {safeValue(row.resultManagerName)}
                           </TableCell>
-                          <TableCell align="center">
-                            {formatDateTime(row.resultAt)}
-                          </TableCell>
+                          {!isSpecimenResultView ? (
+                            <TableCell align="center">
+                              {specimenRow ? "-" : formatDateTime(row.resultAt)}
+                            </TableCell>
+                          ) : null}
                           <TableCell align="center">
                             <Chip
                               label={formatStatus(row.status)}
@@ -855,17 +912,25 @@ export default function TestResultList() {
                               }}
                             />
                           </TableCell>
-                          <TableCell
-                            align="left"
-                            sx={{
-                              maxWidth: 320,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {safeValue(row.summary)}
-                          </TableCell>
+                          {!hideSummaryColumn ? (
+                            <TableCell
+                              align="left"
+                              sx={{
+                                maxWidth: 320,
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}
+                            >
+                              {specimenRow ||
+                              imagingRow ||
+                              endoscopyRow ||
+                              pathologyRow ||
+                              physiologicalRow
+                                ? "-"
+                                : safeValue(row.summary)}
+                            </TableCell>
+                          ) : null}
                           <TableCell align="center">
                             {formatDateTime(row.createdAt)}
                           </TableCell>

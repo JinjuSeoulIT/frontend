@@ -15,6 +15,18 @@ type PathologyExamApiRaw = PathologyExam & {
   DETAIL_CODE?: string | null;
   PERFORMER_NAME?: string | null;
   performer_name?: string | null;
+  TISSUE_STATUS?: string | null;
+  tissue_status?: string | null;
+  TISSUE_SITE?: string | null;
+  tissue_site?: string | null;
+  TISSUE_TYPE?: string | null;
+  tissue_type?: string | null;
+  COLLECTION_METHOD?: string | null;
+  collection_method?: string | null;
+  COLLECTED_AT?: string | null;
+  collected_at?: string | null;
+  REEXAM_YN?: string | null;
+  reexam_yn?: string | null;
 };
 
 const normalizePathologyExam = (item: PathologyExamApiRaw): PathologyExam => ({
@@ -22,6 +34,17 @@ const normalizePathologyExam = (item: PathologyExamApiRaw): PathologyExam => ({
   detailCode: item.detailCode ?? item.DETAIL_CODE ?? null,
   performerName:
     item.performerName ?? item.PERFORMER_NAME ?? item.performer_name ?? null,
+  tissueStatus:
+    item.tissueStatus ?? item.TISSUE_STATUS ?? item.tissue_status ?? null,
+  tissueSite: item.tissueSite ?? item.TISSUE_SITE ?? item.tissue_site ?? null,
+  tissueType: item.tissueType ?? item.TISSUE_TYPE ?? item.tissue_type ?? null,
+  collectionMethod:
+    item.collectionMethod ??
+    item.COLLECTION_METHOD ??
+    item.collection_method ??
+    null,
+  collectedAt: item.collectedAt ?? item.COLLECTED_AT ?? item.collected_at ?? null,
+  reexamYn: item.reexamYn ?? item.REEXAM_YN ?? item.reexam_yn ?? null,
 });
 
 export const fetchPathologyExamsApi = async (): Promise<PathologyExam[]> => {

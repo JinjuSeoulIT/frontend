@@ -276,15 +276,6 @@ export default function TestResultDetail() {
   const detailFields = buildDetailFieldConfigs(resultType, detail.detail);
   const isSpecimenResult = resultType === "SPECIMEN";
   const isImagingResult = resultType === "IMAGING";
-  const isEndoscopyResult = resultType === "ENDOSCOPY";
-  const isPathologyResult = resultType === "PATHOLOGY";
-  const isPhysiologicalResult = resultType === "PHYSIOLOGICAL";
-  const hideResultSummary =
-    isSpecimenResult ||
-    isImagingResult ||
-    isEndoscopyResult ||
-    isPathologyResult ||
-    isPhysiologicalResult;
   const showTypeDetailSection = !isImagingResult || detailFields.length > 0;
 
   return (
@@ -383,9 +374,6 @@ export default function TestResultDetail() {
                     />
                   }
                 />
-                {!hideResultSummary ? (
-                  <DetailField label="결과 요약" value={safeValue(detail.summary)} />
-                ) : null}
               </DetailGrid>
             </Box>
 

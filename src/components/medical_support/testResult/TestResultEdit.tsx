@@ -253,16 +253,6 @@ export default function TestResultEdit() {
   const toggleStatusLabel =
     nextStatus === "INACTIVE" ? "비활성화" : "활성화";
   const isSpecimenResult = resultType === "SPECIMEN";
-  const isImagingResult = resultType === "IMAGING";
-  const isEndoscopyResult = resultType === "ENDOSCOPY";
-  const isPathologyResult = resultType === "PATHOLOGY";
-  const isPhysiologicalResult = resultType === "PHYSIOLOGICAL";
-  const hideResultSummary =
-    isSpecimenResult ||
-    isImagingResult ||
-    isEndoscopyResult ||
-    isPathologyResult ||
-    isPhysiologicalResult;
 
   useEffect(() => {
     if (!resultId || !resultType) {
@@ -594,9 +584,6 @@ export default function TestResultEdit() {
                     label="현재 검사일시"
                     value={formatDateTime(detail.resultAt)}
                   />
-                ) : null}
-                {!hideResultSummary ? (
-                  <InfoField label="결과 요약" value={safeValue(detail.summary)} />
                 ) : null}
               </FieldGrid>
             </Box>

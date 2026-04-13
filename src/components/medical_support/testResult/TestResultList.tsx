@@ -45,7 +45,6 @@ import type { AppDispatch, RootState } from "@/store/store";
 type TestResultSearchType =
   | "resultType"
   | "patientName"
-  | "detailCode"
   | "departmentName"
   | "status"
   | "resultAt";
@@ -64,7 +63,7 @@ type SearchControlsProps = {
   onReset: () => void;
 };
 
-const DEFAULT_SEARCH_TYPE: TestResultSearchType = "resultType";
+const DEFAULT_SEARCH_TYPE: TestResultSearchType = "patientName";
 
 const INITIAL_SEARCH_CRITERIA: TestResultSearchCriteria = {
   searchType: DEFAULT_SEARCH_TYPE,
@@ -80,12 +79,12 @@ const LABELS = {
   searchType: "\uAC80\uC0C9\uAD6C\uBD84",
   resultType: "\uAC80\uC0AC\uC885\uB958",
   resultTypeSelect: "\uAC80\uC0AC\uC885\uB958 \uC120\uD0DD",
+  resultId: "\uACB0\uACFC ID",
   patientName: "\uD658\uC790\uBA85",
   patientNameInput: "\uD658\uC790\uBA85 \uC785\uB825",
-  detailCode: "\uC0C1\uC138\uCF54\uB4DC",
-  detailCodeInput: "\uC0C1\uC138\uCF54\uB4DC \uC785\uB825",
   departmentName: "\uC9C4\uB8CC\uACFC",
   departmentNameInput: "\uC9C4\uB8CC\uACFC \uC785\uB825",
+  performer: "\uAC80\uC0AC\uC218\uD589\uC790\uBA85",
   status: "\uC0C1\uD0DC",
   statusSelect: "\uC0C1\uD0DC \uC120\uD0DD",
   resultAt: "\uAC80\uC0AC\uC77C\uC2DC",
@@ -101,13 +100,6 @@ const LABELS = {
   inactive: "\uBE44\uD65C\uC131",
   cases: "\uAC74",
   rowNumber: "\uBC88\uD638",
-  resultId: "\uACB0\uACFC ID",
-  examId: "\uAC80\uC0AC ID",
-  testExecutionId: "\uAC80\uC0AC \uC218\uD589 ID",
-  performer: "\uAC80\uC0AC\uC218\uD589\uC790\uBA85",
-  resultManagerName: "\uAC80\uC0AC\uACB0\uACFC\uAD00\uB9AC\uC790\uBA85",
-  summary: "\uACB0\uACFC \uC694\uC57D",
-  createdAt: "\uC0DD\uC131\uC77C\uC2DC",
   rowsPerPage: "\uD398\uC774\uC9C0\uB2F9 \uD589",
   empty:
     "\uAC80\uC0C9 \uC870\uAC74\uC5D0 \uB9DE\uB294 \uAC80\uC0AC \uACB0\uACFC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
@@ -127,9 +119,8 @@ const SEARCH_TYPE_OPTIONS: Array<{
   value: TestResultSearchType;
   label: string;
 }> = [
-  { value: "resultType", label: LABELS.resultType },
   { value: "patientName", label: LABELS.patientName },
-  { value: "detailCode", label: LABELS.detailCode },
+  { value: "resultType", label: LABELS.resultType },
   { value: "departmentName", label: LABELS.departmentName },
   { value: "status", label: LABELS.status },
   { value: "resultAt", label: LABELS.resultAt },
@@ -159,17 +150,11 @@ const TABLE_HEADERS = [
   LABELS.rowNumber,
   LABELS.resultType,
   LABELS.resultId,
-  LABELS.examId,
-  LABELS.testExecutionId,
-  LABELS.detailCode,
   LABELS.patientName,
   LABELS.departmentName,
   LABELS.performer,
-  LABELS.resultManagerName,
   LABELS.resultAt,
   LABELS.status,
-  LABELS.summary,
-  LABELS.createdAt,
 ];
 
 const safeValue = (value?: string | number | null) => {
@@ -351,9 +336,7 @@ function TestResultSearchControls({
   const textLabel =
     criteria.searchType === "patientName"
       ? LABELS.patientNameInput
-      : criteria.searchType === "detailCode"
-        ? LABELS.detailCodeInput
-        : LABELS.departmentNameInput;
+      : LABELS.departmentNameInput;
 
   return (
     <Stack spacing={1.5}>
@@ -536,48 +519,6 @@ export default function TestResultList() {
     () => rows.filter((row) => isInactiveStatus(row.status)).length,
     [rows]
   );
-  const isSpecimenResultView =
-    searchCriteria.searchType === "resultType" &&
-    normalizeValue(searchCriteria.searchValue) === "SPECIMEN";
-  const isImagingResultView =
-    searchCriteria.searchType === "resultType" &&
-    normalizeValue(searchCriteria.searchValue) === "IMAGING";
-  const isEndoscopyResultView =
-    searchCriteria.searchType === "resultType" &&
-    normalizeValue(searchCriteria.searchValue) === "ENDOSCOPY";
-  const isPathologyResultView =
-    searchCriteria.searchType === "resultType" &&
-    normalizeValue(searchCriteria.searchValue) === "PATHOLOGY";
-  const isPhysiologicalResultView =
-    searchCriteria.searchType === "resultType" &&
-    normalizeValue(searchCriteria.searchValue) === "PHYSIOLOGICAL";
-  const hideSummaryColumn =
-    isSpecimenResultView ||
-    isImagingResultView ||
-    isEndoscopyResultView ||
-    isPathologyResultView ||
-    isPhysiologicalResultView;
-  const tableHeaders = React.useMemo(
-    () =>
-      TABLE_HEADERS.filter((header) => {
-        if (isSpecimenResultView && header === LABELS.resultAt) {
-          return false;
-        }
-
-        if (hideSummaryColumn && header === LABELS.summary) {
-          return false;
-        }
-
-        return true;
-      }),
-    [hideSummaryColumn, isSpecimenResultView]
-  );
-  const tableMinWidth = isSpecimenResultView
-    ? 1300
-    : hideSummaryColumn
-      ? 1420
-      : 1540;
-
   const inactiveStatusSearch =
     searchCriteria.searchType === "status" &&
     searchCriteria.searchValue === "INACTIVE";
@@ -781,11 +722,11 @@ export default function TestResultList() {
                 <Table
                   size="small"
                   stickyHeader
-                  sx={{ minWidth: tableMinWidth }}
+                  sx={{ minWidth: 1120 }}
                 >
                   <TableHead>
                     <TableRow>
-                      {tableHeaders.map((header) => (
+                      {TABLE_HEADERS.map((header) => (
                         <TableCell
                           key={header}
                           align="center"
@@ -806,7 +747,7 @@ export default function TestResultList() {
                     {paginatedRows.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={tableHeaders.length}
+                          colSpan={TABLE_HEADERS.length}
                           align="center"
                           sx={{ py: 5 }}
                         >
@@ -817,16 +758,6 @@ export default function TestResultList() {
 
                     {paginatedRows.map((row, index) => {
                       const inactive = isInactiveStatus(row.status);
-                      const specimenRow =
-                        normalizeValue(row.resultType) === "SPECIMEN";
-                      const imagingRow =
-                        normalizeValue(row.resultType) === "IMAGING";
-                      const endoscopyRow =
-                        normalizeValue(row.resultType) === "ENDOSCOPY";
-                      const pathologyRow =
-                        normalizeValue(row.resultType) === "PATHOLOGY";
-                      const physiologicalRow =
-                        normalizeValue(row.resultType) === "PHYSIOLOGICAL";
                       const canOpenDetail = Boolean(
                         String(row.resultId ?? "").trim() &&
                           normalizeValue(row.resultType)
@@ -871,15 +802,6 @@ export default function TestResultList() {
                             {safeValue(row.resultId)}
                           </TableCell>
                           <TableCell align="center">
-                            {safeValue(row.examId)}
-                          </TableCell>
-                          <TableCell align="center">
-                            {safeValue(row.testExecutionId)}
-                          </TableCell>
-                          <TableCell align="center">
-                            {safeValue(row.detailCode)}
-                          </TableCell>
-                          <TableCell align="center">
                             {safeValue(row.patientName)}
                           </TableCell>
                           <TableCell align="center">
@@ -889,13 +811,8 @@ export default function TestResultList() {
                             {safeValue(row.performerName)}
                           </TableCell>
                           <TableCell align="center">
-                            {safeValue(row.resultManagerName)}
+                            {formatDateTime(row.resultAt)}
                           </TableCell>
-                          {!isSpecimenResultView ? (
-                            <TableCell align="center">
-                              {specimenRow ? "-" : formatDateTime(row.resultAt)}
-                            </TableCell>
-                          ) : null}
                           <TableCell align="center">
                             <Chip
                               label={formatStatus(row.status)}
@@ -911,28 +828,6 @@ export default function TestResultList() {
                                   : {}),
                               }}
                             />
-                          </TableCell>
-                          {!hideSummaryColumn ? (
-                            <TableCell
-                              align="left"
-                              sx={{
-                                maxWidth: 320,
-                                whiteSpace: "nowrap",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                              }}
-                            >
-                              {specimenRow ||
-                              imagingRow ||
-                              endoscopyRow ||
-                              pathologyRow ||
-                              physiologicalRow
-                                ? "-"
-                                : safeValue(row.summary)}
-                            </TableCell>
-                          ) : null}
-                          <TableCell align="center">
-                            {formatDateTime(row.createdAt)}
                           </TableCell>
                         </TableRow>
                       );

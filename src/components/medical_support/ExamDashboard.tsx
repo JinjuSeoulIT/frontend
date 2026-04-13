@@ -47,9 +47,17 @@ const ExamDashboard = () => {
     },
     {
       key: "physiological",
-      label: "생리 기능 검사",
-      desc: "생리 기능 검사 관리",
+      label: "생리기능 검사",
+      desc: "생리기능 검사 관리",
       path: "/medical_support/physiological/list",
+      tone:
+        "linear-gradient(135deg, rgba(23, 162, 142, 0.22), rgba(23, 162, 142, 0))",
+    },
+     {
+      key: "testResult",
+      label: "검사 결과",
+      desc: "검사 결과 관리",
+      path: "/medical_support/testResult/list",
       tone:
         "linear-gradient(135deg, rgba(23, 162, 142, 0.22), rgba(23, 162, 142, 0))",
     },

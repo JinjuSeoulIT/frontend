@@ -11,7 +11,9 @@ import {
   Chip,
   CircularProgress,
   Divider,
+  FormControlLabel,
   Paper,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -31,8 +33,8 @@ import TestExecutionSearch, {
   type TestExecutionSearchCriteria,
 } from "./TestExecutionSearch";
 
-const DONE_STATUSES = ["COMPLETED"];
 const ACTIVE_STATUSES = ["IN_PROGRESS"];
+const DEFAULT_VISIBLE_STATUSES = ["WAITING", "IN_PROGRESS"] as const;
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return "-";
@@ -64,6 +66,12 @@ const safeValue = (value?: string | number | null) => {
 const normalizeStatus = (value?: string | null) =>
   value?.trim().toUpperCase() ?? "";
 
+const normalizeActiveStatus = (value?: string | null) =>
+  value?.trim().toUpperCase() === "INACTIVE" ? "INACTIVE" : "ACTIVE";
+
+const isInactiveExecution = (value?: { status?: string | null } | null) =>
+  normalizeActiveStatus(value?.status) === "INACTIVE";
+
 const formatProgressStatusLabel = (status?: string | null) => {
   const normalized = normalizeStatus(status);
 
@@ -77,10 +85,11 @@ const formatProgressStatusLabel = (status?: string | null) => {
 
 const getStatusColor = (
   status?: string | null
-): "default" | "info" | "success" => {
+): "default" | "info" | "success" | "warning" => {
   const normalized = normalizeStatus(status);
 
-  if (DONE_STATUSES.includes(normalized)) return "success";
+  if (normalized === "WAITING") return "warning";
+  if (normalized === "COMPLETED") return "success";
   if (ACTIVE_STATUSES.includes(normalized)) return "info";
 
   return "default";
@@ -115,6 +124,7 @@ const TABLE_HEADERS = [
   "환자명",
   "진료과",
   "검사유형",
+  "검사명",
   "진행상태",
   "생성일시",
   "검사수행 ID",
@@ -158,6 +168,7 @@ export default function TestExecutionList() {
   const router = useRouter();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [includeInactive, setIncludeInactive] = useState(false);
   const [searchCriteria, setSearchCriteria] = useState<TestExecutionSearchCriteria>(
     INITIAL_SEARCH_CRITERIA
   );
@@ -170,52 +181,68 @@ export default function TestExecutionList() {
     dispatch(TestExecutionActions.fetchTestExecutionsRequest(undefined));
   }, [dispatch]);
 
-  const filteredItems = useMemo(
-    () =>
-      items.filter((item) => {
-        if (searchCriteria.searchType === "createdAt") {
-          if (!searchCriteria.startDate && !searchCriteria.endDate) {
-            return true;
-          }
+  const filteredItems = useMemo(() => {
+    const hasExplicitProgressStatusSearch =
+      searchCriteria.searchType === "progressStatus" &&
+      Boolean(searchCriteria.searchValue.trim());
 
-          const createdDate = getDateOnlyValue(item.createdAt);
-          if (!createdDate) {
-            return false;
-          }
+    return items.filter((item) => {
+      const normalizedItemStatus = normalizeStatus(item.progressStatus);
 
-          return (
-            createdDate >= searchCriteria.startDate &&
-            createdDate <= searchCriteria.endDate
-          );
-        }
+      if (
+        !hasExplicitProgressStatusSearch &&
+        !DEFAULT_VISIBLE_STATUSES.includes(
+          normalizedItemStatus as (typeof DEFAULT_VISIBLE_STATUSES)[number]
+        )
+      ) {
+        return false;
+      }
 
-        const normalizedValue = searchCriteria.searchValue.trim();
-        if (!normalizedValue) {
+      if (!includeInactive && isInactiveExecution(item)) {
+        return false;
+      }
+
+      if (searchCriteria.searchType === "createdAt") {
+        if (!searchCriteria.startDate && !searchCriteria.endDate) {
           return true;
         }
 
-        if (searchCriteria.searchType === "executionType") {
-          return (
-            String(item.executionType ?? "").trim().toUpperCase() ===
-            normalizedValue
-          );
+        const createdDate = getDateOnlyValue(item.createdAt);
+        if (!createdDate) {
+          return false;
         }
 
-        if (searchCriteria.searchType === "progressStatus") {
-          return normalizeStatus(item.progressStatus) === normalizedValue;
-        }
-
-        return normalizeText(item.patientName).includes(
-          normalizedValue.toLowerCase()
+        return (
+          createdDate >= searchCriteria.startDate &&
+          createdDate <= searchCriteria.endDate
         );
-      }),
-    [items, searchCriteria]
-  );
+      }
 
-  const completedCount = useMemo(
+      const normalizedValue = searchCriteria.searchValue.trim();
+      if (!normalizedValue) {
+        return true;
+      }
+
+      if (searchCriteria.searchType === "executionType") {
+        return (
+          String(item.executionType ?? "").trim().toUpperCase() === normalizedValue
+        );
+      }
+
+      if (searchCriteria.searchType === "progressStatus") {
+        return normalizedItemStatus === normalizedValue;
+      }
+
+      return normalizeText(item.patientName).includes(
+        normalizedValue.toLowerCase()
+      );
+    });
+  }, [includeInactive, items, searchCriteria]);
+
+  const waitingCount = useMemo(
     () =>
-      filteredItems.filter((item) =>
-        DONE_STATUSES.includes(normalizeStatus(item.progressStatus))
+      filteredItems.filter(
+        (item) => normalizeStatus(item.progressStatus) === "WAITING"
       ).length,
     [filteredItems]
   );
@@ -225,6 +252,11 @@ export default function TestExecutionList() {
       filteredItems.filter((item) =>
         ACTIVE_STATUSES.includes(normalizeStatus(item.progressStatus))
       ).length,
+    [filteredItems]
+  );
+
+  const inactiveCount = useMemo(
+    () => filteredItems.filter((item) => isInactiveExecution(item)).length,
     [filteredItems]
   );
 
@@ -278,27 +310,43 @@ export default function TestExecutionList() {
                 검사 수행 목록
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                검사실 담당자가 환자, 진료과, 상태를 빠르게 확인할 수 있는
-                운영용 목록입니다.
+                검사 시작 전 대기중이거나 검사중인 작업을 확인하는 업무 목록입니다.
               </Typography>
             </Box>
 
             <Box
               sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}
             >
+              <FormControlLabel
+                control={
+                  <Switch
+                    size="small"
+                    checked={includeInactive}
+                    onChange={(event) => {
+                      setIncludeInactive(event.target.checked);
+                      setPage(0);
+                    }}
+                  />
+                }
+                label="비활성 포함"
+                sx={{ mr: 0.5 }}
+              />
               <Chip label={`총 ${filteredItems.length}건`} size="small" />
+              <Chip
+                label={`대기 ${waitingCount}건`}
+                size="small"
+                color="warning"
+                variant="outlined"
+              />
               <Chip
                 label={`진행 중 ${inProgressCount}건`}
                 size="small"
                 color="info"
                 variant="outlined"
               />
-              <Chip
-                label={`완료 ${completedCount}건`}
-                size="small"
-                color="success"
-                variant="outlined"
-              />
+              {includeInactive && inactiveCount > 0 ? (
+                <Chip label={`비활성 ${inactiveCount}건`} size="small" variant="outlined" />
+              ) : null}
               <Button
                 variant="outlined"
                 size="small"
@@ -354,7 +402,7 @@ export default function TestExecutionList() {
               }}
             >
               <TableContainer>
-                <Table size="small" stickyHeader sx={{ minWidth: 980 }}>
+                <Table size="small" stickyHeader sx={{ minWidth: 1080 }}>
                   <TableHead>
                     <TableRow>
                       {TABLE_HEADERS.map((label) => (
@@ -387,49 +435,84 @@ export default function TestExecutionList() {
                       </TableRow>
                     )}
 
-                    {paginatedItems.map((item, index) => (
-                      <TableRow
-                        key={String(item.testExecutionId)}
-                        hover
-                        sx={{
-                          cursor: "pointer",
-                          "& td": { py: 1.25, whiteSpace: "nowrap" },
-                          "&:hover": { backgroundColor: "#f9fbff" },
-                        }}
-                        onClick={() =>
-                          router.push(
-                            `/medical_support/testExecution/edit/${item.testExecutionId}`
-                          )
-                        }
-                      >
-                        <TableCell align="center">
-                          {currentPage * rowsPerPage + index + 1}
-                        </TableCell>
-                        <TableCell align="center">
-                          {safeValue(item.patientName)}
-                        </TableCell>
-                        <TableCell align="center">
-                          {safeValue(item.departmentName)}
-                        </TableCell>
-                        <TableCell align="center">
-                          {safeValue(item.executionType)}
-                        </TableCell>
-                        <TableCell align="center">
-                          <Chip
-                            label={formatProgressStatusLabel(item.progressStatus)}
-                            color={getStatusColor(item.progressStatus)}
-                            size="small"
-                            sx={getStatusSx(item.progressStatus)}
-                          />
-                        </TableCell>
-                        <TableCell align="center">
-                          {formatDateTime(item.createdAt)}
-                        </TableCell>
-                        <TableCell align="center">
-                          {safeValue(item.testExecutionId)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {paginatedItems.map((item, index) => {
+                      const inactive = isInactiveExecution(item);
+
+                      return (
+                        <TableRow
+                          key={String(item.testExecutionId)}
+                          hover
+                          sx={{
+                            cursor: "pointer",
+                            backgroundColor: inactive ? "#fcfcfc" : undefined,
+                            "& td": {
+                              py: 1.25,
+                              whiteSpace: "nowrap",
+                              color: inactive ? "text.secondary" : undefined,
+                            },
+                            "&:hover": {
+                              backgroundColor: inactive ? "#f4f6f8" : "#f9fbff",
+                            },
+                          }}
+                          onClick={() =>
+                            router.push(
+                              `/medical_support/testExecution/edit/${item.testExecutionId}`
+                            )
+                          }
+                        >
+                          <TableCell align="center">
+                            {currentPage * rowsPerPage + index + 1}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(item.patientName)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(item.departmentName)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(item.executionType)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(item.detailCode)}
+                          </TableCell>
+                          <TableCell align="center">
+                            <Box
+                              sx={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 0.75,
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <Chip
+                                label={formatProgressStatusLabel(item.progressStatus)}
+                                color={getStatusColor(item.progressStatus)}
+                                size="small"
+                                sx={getStatusSx(item.progressStatus)}
+                              />
+                              {inactive ? (
+                                <Chip
+                                  label="비활성"
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{
+                                    borderColor: "grey.400",
+                                    color: "text.secondary",
+                                  }}
+                                />
+                              ) : null}
+                            </Box>
+                          </TableCell>
+                          <TableCell align="center">
+                            {formatDateTime(item.createdAt)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(item.testExecutionId)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>

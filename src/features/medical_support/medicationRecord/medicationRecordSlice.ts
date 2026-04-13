@@ -2,6 +2,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type {
   MedicationRecord,
   MedicationRecordCreatePayload,
+  MedicationRecordSearchParams,
   MedicationRecordUpdatePayload,
 } from "@/features/medical_support/medicationRecord/medicationRecordType";
 
@@ -31,10 +32,19 @@ const medicationRecordSlice = createSlice({
   name: "medicationRecords",
   initialState,
   reducers: {
-    fetchMedicationRecordsRequest: (state) => {
-      state.loading = true;
-      state.error = null;
-      state.createSuccess = false;
+    fetchMedicationRecordsRequest: {
+      reducer: (
+        state,
+        action: PayloadAction<MedicationRecordSearchParams | undefined>
+      ) => {
+        void action;
+        state.loading = true;
+        state.error = null;
+        state.createSuccess = false;
+      },
+      prepare: (params?: MedicationRecordSearchParams) => ({
+        payload: params,
+      }),
     },
     fetchMedicationRecordsSuccess: (
       state,

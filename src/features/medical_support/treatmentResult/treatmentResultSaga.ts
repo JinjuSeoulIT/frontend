@@ -6,6 +6,7 @@ import { TreatmentResultActions as actions } from "./treatmentResultSlice";
 import type {
   TreatmentResult,
   TreatmentResultCreatePayload,
+  TreatmentResultSearchParams,
   TreatmentResultUpdatePayload,
 } from "@/features/medical_support/treatmentResult/treatmentResultType";
 
@@ -17,9 +18,21 @@ const getErrorMessage = (err: unknown, fallback: string) => {
   return fallback;
 };
 
-function* fetchTreatmentResultsSaga(): SagaIterator {
+const hasSearchParams = (
+  params?: TreatmentResultSearchParams
+): params is TreatmentResultSearchParams =>
+  Boolean(
+    params &&
+      Object.values(params).some((value) => value != null && value.trim() !== "")
+  );
+
+function* fetchTreatmentResultsSaga(
+  action: PayloadAction<TreatmentResultSearchParams | undefined>
+): SagaIterator {
   try {
-    const items: TreatmentResult[] = yield call(api.fetchTreatmentResultsApi);
+    const items: TreatmentResult[] = hasSearchParams(action.payload)
+      ? yield call(api.searchTreatmentResultsApi, action.payload)
+      : yield call(api.fetchTreatmentResultsApi);
     yield put(actions.fetchTreatmentResultsSuccess(items));
   } catch (err: unknown) {
     yield put(

@@ -16,13 +16,19 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import type { TreatmentResult } from "@/features/medical_support/treatmentResult/treatmentResultType";
-import { safeValue } from "@/components/medical_support/common/ExamDisplay";
 import {
-  formatTreatmentResultStatus,
-  getTreatmentResultStatusColor,
-  getTreatmentResultStatusSx,
+  formatDateTime,
+  safeValue,
+} from "@/components/medical_support/common/ExamDisplay";
+import {
+  formatTreatmentResultActiveStatus,
+  formatTreatmentResultProgressStatus,
+  getTreatmentResultActiveStatusColor,
+  getTreatmentResultActiveStatusSx,
+  getTreatmentResultProgressStatusColor,
+  getTreatmentResultProgressStatusSx,
 } from "@/components/medical_support/treatmentResult/treatmentResultDisplay";
+import type { TreatmentResult } from "@/features/medical_support/treatmentResult/treatmentResultType";
 
 type TreatmentResultDetailDialogProps = {
   open: boolean;
@@ -45,7 +51,9 @@ function DetailField({ label, value }: DetailFieldProps) {
       </Typography>
       <Box sx={{ mt: 0.5 }}>
         {typeof value === "string" || typeof value === "number" ? (
-          <Typography sx={{ fontWeight: 600, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+          <Typography
+            sx={{ fontWeight: 600, whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+          >
             {value}
           </Typography>
         ) : (
@@ -104,24 +112,37 @@ export default function TreatmentResultDetailDialog({
                     value={safeValue(item.treatmentResultId)}
                   />
                   <DetailField
-                    label="상태"
+                    label="진행상태"
                     value={
                       <Chip
-                        label={formatTreatmentResultStatus(item.status)}
-                        color={getTreatmentResultStatusColor(item.status)}
+                        label={formatTreatmentResultProgressStatus(item.progressStatus)}
+                        color={getTreatmentResultProgressStatusColor(
+                          item.progressStatus
+                        )}
                         size="small"
-                        sx={getTreatmentResultStatusSx(item.status)}
+                        sx={getTreatmentResultProgressStatusSx()}
                       />
                     }
                   />
                   <DetailField
-                    label="간호사 ID"
-                    value={safeValue(item.nursingId)}
+                    label="활성여부"
+                    value={
+                      <Chip
+                        label={formatTreatmentResultActiveStatus(item.status)}
+                        color={getTreatmentResultActiveStatusColor(item.status)}
+                        size="small"
+                        sx={getTreatmentResultActiveStatusSx(item.status)}
+                      />
+                    }
                   />
                   <DetailField
-                    label="처치내용"
-                    value={safeValue(item.detail)}
+                    label="처치일시"
+                    value={formatDateTime(item.treatmentAt)}
                   />
+                  <DetailField label="간호사명" value={safeValue(item.nurseName)} />
+                  <DetailField label="간호사 ID" value={safeValue(item.nursingId)} />
+                  <DetailField label="처치내용" value={safeValue(item.detail)} />
+                  <DetailField label="진료과" value={safeValue(item.departmentName)} />
                 </Box>
               </Box>
 
@@ -143,18 +164,8 @@ export default function TreatmentResultDetailDialog({
                     },
                   }}
                 >
-                  <DetailField
-                    label="환자명"
-                    value={safeValue(item.patientName)}
-                  />
-                  <DetailField
-                    label="환자 ID"
-                    value={safeValue(item.patientId)}
-                  />
-                  <DetailField
-                    label="진료과"
-                    value={safeValue(item.departmentName)}
-                  />
+                  <DetailField label="환자명" value={safeValue(item.patientName)} />
+                  <DetailField label="환자 ID" value={safeValue(item.patientId)} />
                 </Box>
               </Box>
             </>

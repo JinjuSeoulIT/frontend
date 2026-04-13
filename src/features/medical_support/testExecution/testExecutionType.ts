@@ -1,9 +1,12 @@
 export interface TestExecution {
   testExecutionId: string | number;
   orderItemId?: string | number | null;
+  detailCode?: string | null;
   executionType?: string | null;
   progressStatus?: string | null;
+  status?: string | null;
   retryNo?: number | null;
+  patientId?: string | number | null;
   patientName?: string | null;
   departmentName?: string | null;
   createdAt?: string | null;
@@ -11,6 +14,18 @@ export interface TestExecution {
   startedAt?: string | null;
   completedAt?: string | null;
   performerId?: string | number | null;
+  performerName?: string | null;
+}
+
+export interface TestExecutionUpdatePayload {
+  progressStatus?: string | null;
+  status?: string | null;
+  retryNo?: number | null;
+  patientId?: string | number | null;
+  patientName?: string | null;
+  departmentName?: string | null;
+  performerId?: string | number | null;
+  performerName?: string | null;
 }
 
 export type TestExecutionSearchType = "executionType";

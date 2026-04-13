@@ -1,5 +1,8 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { TestExecution } from "@/features/medical_support/testExecution/testExecutionType";
+import type {
+  TestExecution,
+  TestExecutionUpdatePayload,
+} from "@/features/medical_support/testExecution/testExecutionType";
 
 type TestExecutionState = {
   list: TestExecution[];
@@ -81,7 +84,10 @@ const testexecutionSlice = createSlice({
 
     updateTestExecutionRequest: (
       state,
-      action: PayloadAction<{ testExecutionId: string; form: TestExecution }>
+      action: PayloadAction<{
+        testExecutionId: string;
+        form: TestExecutionUpdatePayload;
+      }>
     ) => {
       void action;
       state.loading = true;

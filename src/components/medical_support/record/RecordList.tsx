@@ -1,7 +1,7 @@
 "use client";
 
-import type { ChangeEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import type { ChangeEvent, MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -15,7 +15,9 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  FormControlLabel,
   Paper,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -55,16 +57,20 @@ const formatDateTime = (value?: string | null) => {
   }).format(date);
 };
 
+const normalizeRecordStatus = (status?: string | null) => {
+  const normalized = status?.trim().toUpperCase();
+  return normalized === "INACTIVE" ? "INACTIVE" : "ACTIVE";
+};
+
+const isInactiveRecord = (record: Pick<RecordFormType, "status">) =>
+  normalizeRecordStatus(record.status) === "INACTIVE";
+
 const getStatusLabel = (status?: string | null) => {
-  if (status === "ACTIVE") return "활성화";
-  if (status === "INACTIVE") return "비활성화";
-  return "-";
+  return normalizeRecordStatus(status) === "INACTIVE" ? "비활성" : "활성";
 };
 
 const getStatusColor = (status?: string | null) => {
-  if (status === "ACTIVE") return "success";
-  if (status === "INACTIVE") return "default";
-  return "default";
+  return normalizeRecordStatus(status) === "INACTIVE" ? "default" : "success";
 };
 
 const getReceptionStatusLabel = (status?: string | null) => {
@@ -116,7 +122,7 @@ export default function RecordList() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
 
-  const { list, loading, error } = useSelector(
+  const { list, loading, error, statusToggleSuccess } = useSelector(
     (state: RootState) => state.records
   );
   const {
@@ -125,22 +131,72 @@ export default function RecordList() {
     error: receptionsError,
   } = useSelector((state: RootState) => state.receptions);
 
-const [page, setPage] = useState(0);
-const [rowsPerPage, setRowsPerPage] = useState(10);
-const [selectedReceptionId, setSelectedReceptionId] = useState<number | null>(null);
-const [isReceptionDialogOpen, setIsReceptionDialogOpen] = useState(false);
-const [selectedReceptionDetail, setSelectedReceptionDetail] = useState<Reception | null>(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [includeInactive, setIncludeInactive] = useState(false);
+  const [selectedReceptionId, setSelectedReceptionId] = useState<number | null>(
+    null
+  );
+  const [isReceptionDialogOpen, setIsReceptionDialogOpen] = useState(false);
+  const [selectedReceptionDetail, setSelectedReceptionDetail] =
+    useState<Reception | null>(null);
+  const [pendingStatusRecordId, setPendingStatusRecordId] = useState<
+    string | null
+  >(null);
+  const pendingStatusActionRef = useRef<"ACTIVE" | "INACTIVE" | null>(null);
 
   useEffect(() => {
     dispatch(RecActions.fetchRecordsRequest());
     dispatch(receptionActions.fetchReceptionsRequest());
   }, [dispatch]);
 
-  const maxPage = Math.max(0, Math.ceil(list.length / rowsPerPage) - 1);
+  useEffect(() => {
+    if (!statusToggleSuccess) return;
+
+    if (pendingStatusActionRef.current === "INACTIVE") {
+      alert("간호 기록이 비활성화되었습니다.");
+    } else if (pendingStatusActionRef.current === "ACTIVE") {
+      alert("간호 기록이 활성화되었습니다.");
+    }
+
+    pendingStatusActionRef.current = null;
+    setPendingStatusRecordId(null);
+    dispatch(RecActions.resetStatusToggleSuccess());
+  }, [dispatch, statusToggleSuccess]);
+
+  useEffect(() => {
+    if (!error) return;
+    if (!pendingStatusActionRef.current) return;
+
+    if (error === "Network Error") {
+      alert("서버에 연결할 수 없습니다.\n잠시 후 다시 시도해주세요.");
+    } else {
+      alert("상태 변경에 실패했습니다.\n다시 시도해주세요.");
+    }
+
+    pendingStatusActionRef.current = null;
+    setPendingStatusRecordId(null);
+  }, [error]);
+
+  const visibleRecords = useMemo(
+    () => (includeInactive ? list : list.filter((item) => !isInactiveRecord(item))),
+    [includeInactive, list]
+  );
+
+  const inactiveCount = useMemo(
+    () => visibleRecords.filter((item) => isInactiveRecord(item)).length,
+    [visibleRecords]
+  );
+
+  const maxPage = Math.max(0, Math.ceil(visibleRecords.length / rowsPerPage) - 1);
   const currentPage = Math.min(page, maxPage);
-  const paginatedList = list.slice(
-    currentPage * rowsPerPage,
-    currentPage * rowsPerPage + rowsPerPage
+  const paginatedList = useMemo(
+    () =>
+      visibleRecords.slice(
+        currentPage * rowsPerPage,
+        currentPage * rowsPerPage + rowsPerPage
+      ),
+    [currentPage, rowsPerPage, visibleRecords]
   );
 
   const receptionList = useMemo(
@@ -159,15 +215,6 @@ const [selectedReceptionDetail, setSelectedReceptionDetail] = useState<Reception
     [receptions]
   );
 
-  // const selectedReception = useMemo(
-  //   () =>
-  //     receptionList.find((item) => item.receptionId === selectedReceptionId) ??
-  //     null,
-  //   [receptionList, selectedReceptionId]
-  // );
-
-  // const activeReception = selectedReception ?? receptionList[0] ?? null;
-
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
@@ -183,37 +230,68 @@ const [selectedReceptionDetail, setSelectedReceptionDetail] = useState<Reception
     router.push(`/medical_support/record/detail/${record.recordId}`);
   };
 
-  const handleReceptionClick = async (reception: Reception) => {
-  setSelectedReceptionId(reception.receptionId);
+  const handleToggleStatus = (
+    event: MouseEvent<HTMLButtonElement>,
+    record: RecordFormType
+  ) => {
+    event.stopPropagation();
 
-  try {
-    const res = await fetch(
-      `http://192.168.1.55:8283/api/receptions/${reception.receptionId}`
+    const isActive = !isInactiveRecord(record);
+    const nextStatus = isActive ? "INACTIVE" : "ACTIVE";
+    const confirmMessage = isActive
+      ? "정말 비활성화하시겠습니까?"
+      : "정말 활성화하시겠습니까?";
+
+    if (!window.confirm(confirmMessage)) return;
+
+    pendingStatusActionRef.current = nextStatus;
+    setPendingStatusRecordId(record.recordId);
+
+    dispatch(
+      RecActions.toggleRecordStatusRequest({
+        recordId: record.recordId,
+        status: nextStatus,
+      })
     );
-    const data = await res.json();
+  };
 
-    if (!data.success) {
-      throw new Error(data.message || "접수 상세 조회 실패");
+  const handleReceptionClick = async (reception: Reception) => {
+    setSelectedReceptionId(reception.receptionId);
+
+    try {
+      const res = await fetch(
+        `http://192.168.1.55:8283/api/receptions/${reception.receptionId}`
+      );
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.message || "접수 상세 조회 실패");
+      }
+
+      setSelectedReceptionDetail(data.result);
+      setIsReceptionDialogOpen(true);
+    } catch {
+      alert("접수 상세 정보를 불러오지 못했습니다.");
+    }
+  };
+
+  const handleCreateWithReception = () => {
+    if (!selectedReceptionDetail) return;
+
+    const params = new URLSearchParams({
+      receptionId: String(selectedReceptionDetail.receptionId),
+      patientName: selectedReceptionDetail.patientName ?? "",
+      departmentName: selectedReceptionDetail.departmentName ?? "",
+    });
+
+    if (selectedReceptionDetail.patientId != null) {
+      params.set("patientId", String(selectedReceptionDetail.patientId));
     }
 
-    setSelectedReceptionDetail(data.result);
-    setIsReceptionDialogOpen(true);
-  } catch {
-    alert("접수 상세 정보를 불러오지 못했습니다.");
-  }
-};
+    router.push(`/medical_support/record/create?${params.toString()}`);
+  };
 
-const handleCreateWithReception = () => {
-  if (!selectedReceptionDetail) return;
-
-  const params = new URLSearchParams({
-    receptionId: String(selectedReceptionDetail.receptionId),
-    patientName: selectedReceptionDetail.patientName ?? "",
-    departmentName: selectedReceptionDetail.departmentName ?? "",
-  });
-
-  router.push(`/medical_support/record/create?${params.toString()}`);
-};
+  const showInitialLoading = loading && list.length === 0;
 
   return (
     <Box
@@ -275,7 +353,7 @@ const handleCreateWithReception = () => {
                     whiteSpace: { xs: "normal", sm: "nowrap" },
                   }}
                 >
-                  간호 기록 목록을 조회하고 상세 페이지로 이동할 수 있습니다.
+                  간호 기록 목록을 조회하고 상세 페이지로 이동하거나, 목록에서 바로 활성 상태를 변경할 수 있습니다.
                 </Typography>
               </Box>
 
@@ -287,7 +365,30 @@ const handleCreateWithReception = () => {
                   flexWrap: "wrap",
                 }}
               >
-                <Chip label={`총 ${list.length}건`} size="small" />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      size="small"
+                      checked={includeInactive}
+                      onChange={(event) => {
+                        setIncludeInactive(event.target.checked);
+                        setPage(0);
+                      }}
+                    />
+                  }
+                  label="비활성 포함"
+                  sx={{ mr: 0.5 }}
+                />
+
+                <Chip label={`총 ${visibleRecords.length}건`} size="small" />
+
+                {includeInactive && inactiveCount > 0 ? (
+                  <Chip
+                    label={`비활성 ${inactiveCount}건`}
+                    size="small"
+                    variant="outlined"
+                  />
+                ) : null}
 
                 <Button
                   variant="outlined"
@@ -301,103 +402,8 @@ const handleCreateWithReception = () => {
                 >
                   새로고침
                 </Button>
-
-               {/* <Button
-                  variant="contained"
-                  size="small"
-                  color="secondary"
-                  startIcon={<AddIcon />}
-                  onClick={handleCreateWithReception}
-                  disabled={!activeReception}
-                  sx={{
-                    whiteSpace: "nowrap",
-                    borderRadius: 2,
-                    px: 1.75,
-                    height: 36,
-                    flexShrink: 0,
-                  }}
-                >
-                  간호 기록 등록
-                </Button> */}
               </Box>
             </Box>
-
-            {/* <Box
-              sx={{
-                mt: 2,
-                px: 2,
-                py: 1.5,
-                borderRadius: 2,
-                border: "1px solid",
-                borderColor: activeReception ? "#bfdbfe" : "grey.200",
-                backgroundColor: activeReception ? "#f8fbff" : "#fff",
-              }}
-            >
-              <Typography variant="subtitle2" fontWeight={700}>
-                선택된 접수 환자
-              </Typography>
-              {!activeReception && (
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 0.75 }}
-                >
-                  오른쪽 접수 환자 목록에서 환자를 선택하면 여기서 정보를 확인할 수 있습니다.
-                </Typography>
-              )}
-              {activeReception && (
-                <Box
-                  sx={{
-                    mt: 1,
-                    display: "grid",
-                    gap: 1,
-                    gridTemplateColumns: {
-                      xs: "1fr",
-                      sm: "repeat(2, minmax(0, 1fr))",
-                    },
-                  }}
-                >
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      접수번호
-                    </Typography>
-                    <Typography fontWeight={700}>
-                      {activeReception.receptionNo ?? "-"}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      환자명
-                    </Typography>
-                    <Typography fontWeight={700}>
-                      {activeReception.patientName ?? "-"}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      진료과
-                    </Typography>
-                    <Typography fontWeight={700}>
-                      {activeReception.departmentName ?? "-"}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      상태
-                    </Typography>
-                    <Box sx={{ mt: 0.5 }}>
-                      <Chip
-                        label={getReceptionStatusLabel(activeReception.status)}
-                        size="small"
-                        color={getReceptionStatusChipColor(
-                          activeReception.status
-                        )}
-                      />
-                    </Box>
-                  </Box>
-                </Box>
-              )}
-            </Box> */}
           </Box>
 
           <Divider />
@@ -407,19 +413,19 @@ const handleCreateWithReception = () => {
               <RecordSearch />
             </Box>
 
-            {loading && (
+            {showInitialLoading ? (
               <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
                 <CircularProgress size={28} />
               </Box>
-            )}
+            ) : null}
 
-            {error && (
+            {error ? (
               <Alert severity="error" sx={{ mb: 2 }}>
                 {error}
               </Alert>
-            )}
+            ) : null}
 
-            {!loading && !error && (
+            {!showInitialLoading ? (
               <Paper
                 elevation={0}
                 sx={{
@@ -519,56 +525,68 @@ const handleCreateWithReception = () => {
                     </TableHead>
 
                     <TableBody>
-                      {list.length === 0 && (
+                      {paginatedList.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
-                            데이터가 없습니다.
+                            조회된 데이터가 없습니다.
                           </TableCell>
                         </TableRow>
-                      )}
+                      ) : null}
 
-                      {paginatedList.map((record, index) => (
-                        <TableRow
-                          key={record.recordId}
-                          hover
-                          sx={{
-                            cursor: "pointer",
-                            "& td": { py: 1.25 },
-                            "&:hover": { backgroundColor: "#f9fbff" },
-                          }}
-                          onClick={() => handleRowClick(record)}
-                        >
-                          <TableCell align="center">
-                            {currentPage * rowsPerPage + index + 1}
-                          </TableCell>
-                          <TableCell align="center">
-                            {record.nurseName ?? "-"}
-                          </TableCell>
-                          <TableCell align="center">
-                            {record.patientName ?? "-"}
-                          </TableCell>
-                          <TableCell align="center">
-                            {record.departmentName ?? "-"}
-                          </TableCell>
-                          <TableCell align="center">
-                            {formatDateTime(record.createdAt ?? record.recordedAt)}
-                          </TableCell>
-                          <TableCell align="center">
-                            <Chip
-                              label={getStatusLabel(record.status)}
-                              color={getStatusColor(record.status)}
-                              size="small"
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {paginatedList.map((record, index) => {
+                        const inactive = isInactiveRecord(record);
+                        const isPending =
+                          pendingStatusRecordId === record.recordId && loading;
+
+                        return (
+                          <TableRow
+                            key={record.recordId}
+                            hover
+                            sx={{
+                              cursor: "pointer",
+                              backgroundColor: inactive ? "#fcfcfc" : undefined,
+                              "& td": {
+                                py: 1.25,
+                                color: inactive ? "text.secondary" : undefined,
+                              },
+                              "&:hover": {
+                                backgroundColor: inactive ? "#f4f6f8" : "#f9fbff",
+                              },
+                            }}
+                            onClick={() => handleRowClick(record)}
+                          >
+                            <TableCell align="center">
+                              {currentPage * rowsPerPage + index + 1}
+                            </TableCell>
+                            <TableCell align="center">
+                              {record.nurseName ?? "-"}
+                            </TableCell>
+                            <TableCell align="center">
+                              {record.patientName ?? "-"}
+                            </TableCell>
+                            <TableCell align="center">
+                              {record.departmentName ?? "-"}
+                            </TableCell>
+                            <TableCell align="center">
+                              {formatDateTime(record.createdAt ?? record.recordedAt)}
+                            </TableCell>
+                            <TableCell align="center">
+                              <Chip
+                                label={getStatusLabel(record.status)}
+                                color={getStatusColor(record.status)}
+                                size="small"
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </TableContainer>
 
                 <TablePagination
                   component="div"
-                  count={list.length}
+                  count={visibleRecords.length}
                   page={currentPage}
                   onPageChange={handleChangePage}
                   rowsPerPage={rowsPerPage}
@@ -580,7 +598,7 @@ const handleCreateWithReception = () => {
                   }
                 />
               </Paper>
-            )}
+            ) : null}
           </CardContent>
         </Card>
 
@@ -622,17 +640,17 @@ const handleCreateWithReception = () => {
           <Divider />
 
           <CardContent sx={{ p: 2 }}>
-            {receptionsLoading && (
+            {receptionsLoading ? (
               <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
                 <CircularProgress size={28} />
               </Box>
-            )}
+            ) : null}
 
-            {!receptionsLoading && receptionsError && (
+            {!receptionsLoading && receptionsError ? (
               <Alert severity="error">{receptionsError}</Alert>
-            )}
+            ) : null}
 
-            {!receptionsLoading && !receptionsError && (
+            {!receptionsLoading && !receptionsError ? (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
                 {receptionList.map((reception) => (
                   <Box
@@ -678,20 +696,20 @@ const handleCreateWithReception = () => {
                   </Box>
                 ))}
 
-                {receptionList.length === 0 && (
+                {receptionList.length === 0 ? (
                   <Typography
                     color="text.secondary"
                     sx={{ py: 4, textAlign: "center" }}
                   >
                     오늘 표시할 접수 환자가 없습니다.
                   </Typography>
-                )}
+                ) : null}
               </Box>
-            )}
+            ) : null}
           </CardContent>
         </Card>
       </Box>
-      
+
       <Dialog
         open={isReceptionDialogOpen}
         onClose={() => setIsReceptionDialogOpen(false)}
@@ -743,7 +761,7 @@ const handleCreateWithReception = () => {
 
               <Box>
                 <Typography variant="caption" color="text.secondary">
-                  활성 여부
+                  현재 상태
                 </Typography>
                 <Typography fontWeight={700}>
                   {getReceptionStatusLabel(selectedReceptionDetail.status)}

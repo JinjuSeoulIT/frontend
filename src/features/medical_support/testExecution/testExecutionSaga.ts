@@ -1,7 +1,10 @@
 import { call, put, takeLatest } from "redux-saga/effects";
 import type { SagaIterator } from "redux-saga";
 import type { PayloadAction } from "@reduxjs/toolkit";
-import type { TestExecution } from "@/features/medical_support/testExecution/testExecutionType";
+import type {
+  TestExecution,
+  TestExecutionUpdatePayload,
+} from "@/features/medical_support/testExecution/testExecutionType";
 import * as api from "@/lib/medical_support/testExecutionApi";
 import { TestExecutionActions as actions } from "./testExecutionSlice";
 
@@ -61,7 +64,10 @@ function* createTestExecutionSaga(
 }
 
 function* updateTestExecutionSaga(
-  action: PayloadAction<{ testExecutionId: string; form: TestExecution }>
+  action: PayloadAction<{
+    testExecutionId: string;
+    form: TestExecutionUpdatePayload;
+  }>
 ): SagaIterator {
   try {
     const { testExecutionId, form } = action.payload;

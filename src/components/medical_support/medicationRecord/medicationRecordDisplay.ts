@@ -1,49 +1,39 @@
-import type { ChipProps } from "@mui/material";
+import {
+  formatActiveStatus,
+  formatProgressStatus,
+  getActiveStatusColor,
+  getActiveStatusSx,
+  getProgressStatusColor,
+  normalizeActiveStatus,
+  normalizeProgressStatus,
+} from "@/components/medical_support/common/ExamDisplay";
 
-export const normalizeMedicationRecordStatus = (value?: string | null) =>
-  value?.trim().toUpperCase() ?? "";
+const progressStatusSx = {
+  fontWeight: 600,
+} as const;
 
-export const formatMedicationRecordStatus = (value?: string | null) => {
-  const normalized = normalizeMedicationRecordStatus(value);
+export const normalizeMedicationRecordProgressStatus = (value?: string | null) =>
+  normalizeProgressStatus(value);
 
-  if (normalized === "REQUESTED") return "요청";
-  if (normalized === "IN_PROGRESS") return "진행 중";
-  if (normalized === "COMPLETED") return "완료";
-  if (normalized === "ACTIVE") return "활성";
-  if (normalized === "INACTIVE") return "비활성";
-  if (normalized === "CANCELLED") return "취소";
+export const formatMedicationRecordProgressStatus = (value?: string | null) =>
+  formatProgressStatus(value);
 
-  return value?.trim() || "-";
-};
+export const getMedicationRecordProgressStatusColor = (value?: string | null) =>
+  getProgressStatusColor(value);
 
-export const getMedicationRecordStatusColor = (
-  value?: string | null
-): ChipProps["color"] => {
-  const normalized = normalizeMedicationRecordStatus(value);
+export const getMedicationRecordProgressStatusSx = () => progressStatusSx;
 
-  if (normalized === "REQUESTED") return "warning";
-  if (normalized === "IN_PROGRESS") return "info";
-  if (normalized === "COMPLETED" || normalized === "ACTIVE") return "success";
-  if (normalized === "INACTIVE" || normalized === "CANCELLED") return "default";
+export const normalizeMedicationRecordActiveStatus = (value?: string | null) =>
+  normalizeActiveStatus(value);
 
-  return "default";
-};
+export const formatMedicationRecordActiveStatus = (value?: string | null) =>
+  formatActiveStatus(value);
 
-export const getMedicationRecordStatusSx = (value?: string | null) => {
-  const normalized = normalizeMedicationRecordStatus(value);
+export const getMedicationRecordActiveStatusColor = (value?: string | null) =>
+  getActiveStatusColor(value);
 
-  if (normalized === "INACTIVE" || normalized === "CANCELLED") {
-    return {
-      backgroundColor: "#eeeeee",
-      color: "#616161",
-      fontWeight: 500,
-    };
-  }
-
-  return {
-    fontWeight: 600,
-  };
-};
+export const getMedicationRecordActiveStatusSx = (value?: string | null) =>
+  getActiveStatusSx(value);
 
 export const formatMedicationDose = (
   doseNumber?: string | number | null,
@@ -64,11 +54,13 @@ export const formatMedicationDose = (
   return `${numberText} ${unitText}`;
 };
 
-export const MEDICATION_RECORD_STATUS_OPTIONS = [
+export const MEDICATION_RECORD_PROGRESS_STATUS_OPTIONS = [
   { value: "REQUESTED", label: "요청" },
   { value: "IN_PROGRESS", label: "진행 중" },
   { value: "COMPLETED", label: "완료" },
+] as const;
+
+export const MEDICATION_RECORD_ACTIVE_STATUS_OPTIONS = [
   { value: "ACTIVE", label: "활성" },
   { value: "INACTIVE", label: "비활성" },
-  { value: "CANCELLED", label: "취소" },
 ] as const;

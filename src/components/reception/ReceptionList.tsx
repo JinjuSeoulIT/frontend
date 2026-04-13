@@ -382,7 +382,7 @@ export default function ReceptionList({
   autoSearch = false,
 }: ReceptionListProps) {
   const dispatch = useDispatch<AppDispatch>();
-  const { list, loading, error, selected } = useSelector(
+  const { list, loading: receptionLoading, error, selected } = useSelector(
     (s: RootState) => s.receptions
   );
 
@@ -1196,7 +1196,7 @@ export default function ReceptionList({
                 variant="contained"
                 startIcon={<SearchIcon />}
                 onClick={onSearch}
-                disabled={loading}
+                disabled={patientCatalogLoading}
                 sx={{
                   px: 2.1,
                   borderRadius: 2,
@@ -1211,7 +1211,6 @@ export default function ReceptionList({
                 variant="outlined"
                 startIcon={<RefreshIcon />}
                 onClick={onReset}
-                disabled={loading}
                 sx={{
                   px: 1.8,
                   borderRadius: 2,
@@ -1230,7 +1229,6 @@ export default function ReceptionList({
                 variant="outlined"
                 startIcon={<ListAltIcon />}
                 onClick={onOpenPatientListModal}
-                disabled={loading}
                 sx={{
                   px: 1.8,
                   borderRadius: 2,
@@ -1763,14 +1761,18 @@ export default function ReceptionList({
             />
 
             <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ pt: 1 }}>
-              <Button variant="text" onClick={onCreateModalClose} disabled={loading}>
+              <Button
+                variant="text"
+                onClick={onCreateModalClose}
+                disabled={receptionLoading}
+              >
                 {"취소"}
               </Button>
               <Button
                 variant="contained"
                 onClick={onCreateModalSubmit}
                 disabled={
-                  loading ||
+                  receptionLoading ||
                   masterDataLoading ||
                   !createTargetPatient.patientName.trim() ||
                   !createModalForm.departmentId

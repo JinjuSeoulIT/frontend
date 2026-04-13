@@ -1,16 +1,71 @@
 "use client";
 
 import * as React from "react";
-import { Box, Button, Chip, Stack, TextField, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Chip,
+  Divider,
+  Stack,
+  Tab,
+  Tabs,
+  TextField,
+  Typography,
+} from "@mui/material";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
-import { cancelClinicalOrderApi, type ClinicalOrder } from "@/lib/clinical/clinicalOrderApi";
+import {
+  cancelClinicalOrderApi,
+  type ClinicalOrder,
+  type LabOrderType,
+} from "@/lib/clinical/clinicalOrderApi";
 import type { ClinicalOrderDialogVariant } from "./dialogs/ClinicalOrderDialog";
+import {
+  ClinicalOrderResultDialog,
+  type OrderResultCategory,
+} from "./dialogs/ClinicalOrderResultDialog";
 import { ORDER_TYPE_LABELS, orderStatusView } from "./clinicalDocumentation";
+
+const EXAM_ORDER_TYPES: LabOrderType[] = [
+  "BLOOD",
+  "IMAGING",
+  "PATHOLOGY",
+  "SPECIMEN",
+  "ENDOSCOPY",
+  "PHYSIOLOGICAL",
+];
+
+function partitionOrdersByCategory(orders: ClinicalOrder[]) {
+  const exam: ClinicalOrder[] = [];
+  const procedure: ClinicalOrder[] = [];
+  const medication: ClinicalOrder[] = [];
+  for (const o of orders) {
+    if (EXAM_ORDER_TYPES.includes(o.orderType)) {
+      exam.push(o);
+    } else if (o.orderType === "PROCEDURE") {
+      procedure.push(o);
+    } else if (o.orderType === "MEDICATION") {
+      medication.push(o);
+    } else {
+      exam.push(o);
+    }
+  }
+  return { exam, procedure, medication };
+}
 
 function normalizedOrderStatus(s: string | null | undefined): string {
   const u = (s ?? "").trim().toUpperCase();
   if (u === "REQUEST") return "REQUESTED";
   return u || "REQUESTED";
+}
+
+function orderDisplayName(ord: ClinicalOrder): string {
+  if (
+    ord.orderName &&
+    !(Object.keys(ORDER_TYPE_LABELS) as string[]).includes(ord.orderName)
+  ) {
+    return ord.orderName;
+  }
+  return ORDER_TYPE_LABELS[ord.orderType];
 }
 
 type Props = {
@@ -30,6 +85,7 @@ type Props = {
   onOrdersRefresh: () => void;
   onOrdersReplace: (updater: (prev: ClinicalOrder[]) => ClinicalOrder[]) => void;
   onOpenOrderDialog: (variant: ClinicalOrderDialogVariant) => void;
+  contextPatientName?: string | null;
 };
 
 export function ClinicalRightPanel({
@@ -49,7 +105,203 @@ export function ClinicalRightPanel({
   onOrdersRefresh,
   onOrdersReplace,
   onOpenOrderDialog,
+  contextPatientName,
 }: Props) {
+  const [orderTab, setOrderTab] = React.useState(0);
+  const [resultDialog, setResultDialog] = React.useState<{
+    order: ClinicalOrder;
+    category: OrderResultCategory;
+  } | null>(null);
+  const { exam: examOrders, procedure: procedureOrders, medication: medicationOrders } =
+    React.useMemo(() => partitionOrdersByCategory(orders), [orders]);
+  const tabOrders = [examOrders, procedureOrders, medicationOrders][orderTab] ?? [];
+
+  React.useEffect(() => {
+    setOrderTab(0);
+  }, [visitId]);
+
+  const orderGridColumns = "4rem minmax(0, 1fr) auto minmax(6.75rem, auto)";
+
+  const orderCategoryForTab = (): OrderResultCategory =>
+    orderTab === 0 ? "exam" : orderTab === 1 ? "procedure" : "medication";
+
+  const renderOrderList = (list: ClinicalOrder[], category: OrderResultCategory) => (
+    <Box
+      sx={{
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 1,
+        bgcolor: "#fff",
+        overflow: "hidden",
+      }}
+    >
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: orderGridColumns,
+          columnGap: 0.5,
+          alignItems: "center",
+          px: 1,
+          py: 0.625,
+          bgcolor: "action.hover",
+          borderBottom: "1px solid",
+          borderColor: "divider",
+        }}
+      >
+        <Typography component="span" sx={{ fontSize: 10, fontWeight: 700, color: "text.secondary", lineHeight: 1.2 }}>
+          분류
+        </Typography>
+        <Typography component="span" sx={{ fontSize: 10, fontWeight: 700, color: "text.secondary", lineHeight: 1.2 }}>
+          오더명
+        </Typography>
+        <Typography
+          component="span"
+          sx={{ fontSize: 10, fontWeight: 700, color: "text.secondary", lineHeight: 1.2, textAlign: "center" }}
+        >
+          상태
+        </Typography>
+        <Typography
+          component="span"
+          sx={{ fontSize: 10, fontWeight: 700, color: "text.secondary", lineHeight: 1.2, textAlign: "right" }}
+        >
+          작업
+        </Typography>
+      </Box>
+      <Box sx={{ maxHeight: 200, overflow: "auto" }}>
+        {list.length === 0 ? (
+          <Box sx={{ py: 2.5, px: 1, textAlign: "center" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>등록된 오더가 없습니다.</Typography>
+          </Box>
+        ) : (
+          list.map((ord, idx) => {
+            const st = normalizedOrderStatus(ord.status);
+            const chip = orderStatusView(ord.status);
+            const canCancel = visitId != null && st !== "COMPLETED" && st !== "CANCELLED";
+            return (
+              <Box
+                key={ord.id}
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: orderGridColumns,
+                  columnGap: 0.5,
+                  alignItems: "center",
+                  px: 1,
+                  py: 0.75,
+                  borderTop: idx === 0 ? "none" : "1px solid",
+                  borderColor: "divider",
+                  "&:hover": { bgcolor: "action.hover" },
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "text.secondary",
+                    lineHeight: 1.3,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {ORDER_TYPE_LABELS[ord.orderType]}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: 11,
+                    lineHeight: 1.35,
+                    overflow: "hidden",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {orderDisplayName(ord)}
+                </Typography>
+                <Box sx={{ display: "flex", justifyContent: "center" }}>
+                  <Chip
+                    size="small"
+                    label={chip.label}
+                    color={chip.color}
+                    variant="outlined"
+                    sx={{ height: 22, fontSize: 10, "& .MuiChip-label": { px: 0.75 } }}
+                  />
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "flex-end",
+                    flexWrap: "nowrap",
+                    gap: 0,
+                    minWidth: 0,
+                  }}
+                >
+                  <Button
+                    size="small"
+                    variant="text"
+                    color="primary"
+                    sx={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      minWidth: 0,
+                      px: 0.4,
+                      py: 0.25,
+                      minHeight: 28,
+                      lineHeight: 1.2,
+                      textTransform: "none",
+                    }}
+                    onClick={() => setResultDialog({ order: ord, category })}
+                  >
+                    조회
+                  </Button>
+                  {canCancel ? (
+                    <>
+                      <Divider orientation="vertical" flexItem sx={{ my: 0.5, borderColor: "divider" }} />
+                      <Button
+                        size="small"
+                        color="error"
+                        variant="text"
+                        disabled={updatingOrderId != null}
+                        sx={{
+                          fontSize: 10,
+                          fontWeight: 600,
+                          minWidth: 0,
+                          px: 0.4,
+                          py: 0.25,
+                          minHeight: 28,
+                          textTransform: "none",
+                        }}
+                        onClick={async () => {
+                          if (visitId == null) return;
+                          onUpdatingOrderId(ord.id);
+                          try {
+                            const updated = await cancelClinicalOrderApi(visitId, ord.id);
+                            onOrdersReplace((prev) =>
+                              prev.map((o) => (o.id === ord.id ? { ...o, status: updated.status } : o))
+                            );
+                          } catch (err) {
+                            window.alert(err instanceof Error ? err.message : "오더 취소에 실패했습니다.");
+                            onOrdersRefresh();
+                          } finally {
+                            onUpdatingOrderId(null);
+                          }
+                        }}
+                      >
+                        취소
+                      </Button>
+                    </>
+                  ) : null}
+                </Box>
+              </Box>
+            );
+          })
+        )}
+      </Box>
+    </Box>
+  );
+
   return (
     <Box
       sx={{
@@ -119,96 +371,80 @@ export function ClinicalRightPanel({
         />
       </Box>
       <Box>
-        <Typography fontWeight={700} sx={{ fontSize: 13, mb: 0.5 }}>
-          오더
+        <Typography fontWeight={700} sx={{ fontSize: 13, mb: 0.75 }}>
+          오더 조회
         </Typography>
+        <Divider sx={{ mb: 1 }} />
         {ordersLoading ? (
-          <Typography sx={{ fontSize: 12, color: "var(--muted)" }}>조회 중…</Typography>
-        ) : orders.length === 0 ? (
-          <Typography sx={{ fontSize: 12, color: "var(--muted)" }}>등록된 검사 오더가 없습니다.</Typography>
+          <Typography sx={{ fontSize: 12, color: "text.secondary", py: 1 }}>조회 중…</Typography>
+        ) : visitId == null ? (
+          <Typography sx={{ fontSize: 12, color: "text.secondary", py: 0.5 }}>
+            진료를 시작한 뒤 조회할 수 있습니다.
+          </Typography>
         ) : (
-          <Stack spacing={1} sx={{ mt: 0.5 }}>
-            {orders.map((ord) => {
-              const st = normalizedOrderStatus(ord.status);
-              const chip = orderStatusView(ord.status);
-              const canCancel =
-                visitId != null && st !== "COMPLETED" && st !== "CANCELLED";
-              return (
-                <Box
-                  key={ord.id}
-                  sx={{
-                    p: 1,
-                    borderRadius: 1,
-                    border: "1px solid var(--line)",
-                    bgcolor: "rgba(255,255,255,0.8)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 1,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <Typography sx={{ fontSize: 12, fontWeight: 600 }}>
-                    {ord.orderName &&
-                    !(Object.keys(ORDER_TYPE_LABELS) as string[]).includes(ord.orderName)
-                      ? ord.orderName
-                      : ORDER_TYPE_LABELS[ord.orderType]}
-                  </Typography>
-                  <Stack direction="row" alignItems="center" spacing={0.75} flexWrap="wrap">
-                    <Chip size="small" label={chip.label} color={chip.color} sx={{ height: 24, fontSize: 11 }} />
-                    {canCancel ? (
-                      <Button
-                        size="small"
-                        color="error"
-                        variant="outlined"
-                        disabled={updatingOrderId != null}
-                        sx={{ fontSize: 11, minHeight: 28, py: 0 }}
-                        onClick={async () => {
-                          if (visitId == null) return;
-                          onUpdatingOrderId(ord.id);
-                          try {
-                            const updated = await cancelClinicalOrderApi(visitId, ord.id);
-                            onOrdersReplace((prev) =>
-                              prev.map((o) => (o.id === ord.id ? { ...o, status: updated.status } : o))
-                            );
-                          } catch (err) {
-                            window.alert(err instanceof Error ? err.message : "오더 취소에 실패했습니다.");
-                            onOrdersRefresh();
-                          } finally {
-                            onUpdatingOrderId(null);
-                          }
-                        }}
-                      >
-                        요청 취소
-                      </Button>
-                    ) : null}
-                  </Stack>
-                </Box>
-              );
-            })}
-          </Stack>
+          <>
+            <Tabs
+              value={orderTab}
+              onChange={(_, v) => setOrderTab(v)}
+              variant="scrollable"
+              scrollButtons="auto"
+              allowScrollButtonsMobile
+              sx={{
+                minHeight: 34,
+                mb: 1,
+                borderBottom: 1,
+                borderColor: "divider",
+                "& .MuiTabs-indicator": { height: 2 },
+                "& .MuiTab-root": {
+                  minHeight: 34,
+                  py: 0.5,
+                  px: 1,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  textTransform: "none",
+                  minWidth: 72,
+                },
+              }}
+            >
+              <Tab label={`검사 ${examOrders.length}`} />
+              <Tab label={`처치 ${procedureOrders.length}`} />
+              <Tab label={`투약 ${medicationOrders.length}`} />
+            </Tabs>
+            {renderOrderList(tabOrders, orderCategoryForTab())}
+          </>
         )}
-        <Button
-          size="small"
-          variant="outlined"
-          fullWidth
-          sx={{ mt: 1 }}
-          onClick={() => onOpenOrderDialog("exam")}
-          disabled={visitId == null}
-        >
-          검사 오더
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          fullWidth
-          sx={{ mt: 0.5 }}
-          onClick={() => onOpenOrderDialog("treatment")}
-          disabled={visitId == null}
-        >
-          치료 오더
-        </Button>
+        <Stack direction="row" spacing={0.75} sx={{ mt: 1 }}>
+          <Button
+            size="small"
+            variant="outlined"
+            fullWidth
+            disabled={visitId == null}
+            onClick={() => onOpenOrderDialog("exam")}
+            sx={{ fontSize: 11, py: 0.5, minHeight: 34, textTransform: "none" }}
+          >
+            검사 오더
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            fullWidth
+            disabled={visitId == null}
+            onClick={() => onOpenOrderDialog("treatment")}
+            sx={{ fontSize: 11, py: 0.5, minHeight: 34, textTransform: "none" }}
+          >
+            치료 오더
+          </Button>
+        </Stack>
       </Box>
+
+      <ClinicalOrderResultDialog
+        open={resultDialog != null}
+        onClose={() => setResultDialog(null)}
+        order={resultDialog?.order ?? null}
+        category={resultDialog?.category ?? "exam"}
+        patientName={contextPatientName}
+        orderStatusNorm={resultDialog ? normalizedOrderStatus(resultDialog.order.status) : undefined}
+      />
     </Box>
   );
 }

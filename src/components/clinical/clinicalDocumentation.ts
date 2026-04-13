@@ -100,12 +100,19 @@ export function parseNurseInterviewPhx(a: AssessmentRes | null) {
 export function formatVitalsSummaryLine(v: VitalSignsRes | null): string {
   if (!v) return "";
   const parts: string[] = [];
+  const ht = v.heightCm != null && String(v.heightCm).trim() !== "" ? String(v.heightCm).trim() : "";
+  const wt = v.weightKg != null && String(v.weightKg).trim() !== "" ? String(v.weightKg).trim() : "";
+  if (ht || wt) parts.push([ht && `키 ${ht}cm`, wt && `체중 ${wt}kg`].filter(Boolean).join(" "));
   if (v.temperature != null) parts.push(`체온 ${v.temperature}℃`);
   if (v.pulse != null) parts.push(`맥박 ${v.pulse}/min`);
   if (v.bpSystolic != null && v.bpDiastolic != null) parts.push(`BP ${v.bpSystolic}/${v.bpDiastolic}`);
   else if (v.bpSystolic != null) parts.push(`수축기 ${v.bpSystolic}`);
   else if (v.bpDiastolic != null) parts.push(`이완기 ${v.bpDiastolic}`);
   if (v.respiratoryRate != null) parts.push(`호흡 ${v.respiratoryRate}/min`);
+  if (v.spo2 != null && String(v.spo2).trim() !== "") parts.push(`SpO₂ ${String(v.spo2).trim()}%`);
+  if (v.painScore != null && String(v.painScore).trim() !== "") parts.push(`통증 ${String(v.painScore).trim()}`);
+  const cl = (v.consciousnessLevel ?? "").trim();
+  if (cl) parts.push(`의식 ${cl}`);
   return parts.join(" · ");
 }
 

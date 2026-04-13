@@ -11,7 +11,7 @@ const DEFAULT_GROUP: Partial<Record<LabOrderType, string>> = {
   PATHOLOGY: "PATHOLOGY",
   SPECIMEN: "SPECIMEN",
   ENDOSCOPY: "ENDOSCOPY",
-  PHYSIOLOGICAL: "PHYSIOLOGY",
+  PHYSIOLOGICAL: "PHYSIOLOGICAL",
 };
 
 function envGroup(orderType: LabOrderType): string | undefined {

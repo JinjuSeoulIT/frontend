@@ -326,7 +326,7 @@ export function ClinicalOrderDialog({
               {!examLoading && visitId != null && examOptions.length === 0 ? (
                 <FormHelperText sx={{ mx: 0 }}>
                   코드가 없습니다. 관리자 코드 화면의 GROUP_CODE(IMAGING, PATHOLOGY 등)와 검사 유형 매핑을
-                  확인하거나, .env에 NEXT_PUBLIC_EXAM_CODE_GROUP_PHYSIOLOGICAL=PHYSIOLOGY 처럼 지정하세요.
+                  확인하거나, .env에 NEXT_PUBLIC_EXAM_CODE_GROUP_PHYSIOLOGICAL=PHYSIOLOGICAL 처럼 지정하세요.
                 </FormHelperText>
               ) : null}
             </>

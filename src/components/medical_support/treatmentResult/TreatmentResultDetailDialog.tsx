@@ -109,7 +109,7 @@ export default function TreatmentResultDetailDialog({
                 >
                   <DetailField
                     label="처치결과 ID"
-                    value={safeValue(item.treatmentResultId)}
+                    value={safeValue(item.procedureResultId)}
                   />
                   <DetailField
                     label="진행상태"

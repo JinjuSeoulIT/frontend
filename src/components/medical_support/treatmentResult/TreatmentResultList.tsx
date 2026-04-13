@@ -367,7 +367,7 @@ export function TreatmentResultListSection() {
                             {currentPage * rowsPerPage + index + 1}
                           </TableCell>
                           <TableCell align="center">
-                            {safeValue(row.treatmentResultId)}
+                            {safeValue(row.procedureResultId)}
                           </TableCell>
                           <TableCell align="center">{safeValue(row.patientName)}</TableCell>
                           <TableCell align="center">

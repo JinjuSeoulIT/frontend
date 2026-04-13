@@ -309,7 +309,7 @@ export default function TreatmentResultEdit() {
               >
                 <SummaryItem
                   label="처치결과 ID"
-                  value={displayValue(form.treatmentResultId)}
+                  value={displayValue(form.procedureResultId)}
                 />
                 <SummaryItem
                   label="처치일시"

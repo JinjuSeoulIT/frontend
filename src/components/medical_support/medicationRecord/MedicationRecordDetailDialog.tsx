@@ -110,7 +110,7 @@ export default function MedicationRecordDetailDialog({
                 >
                   <DetailField
                     label="투약기록 ID"
-                    value={safeValue(item.medicationRecordId)}
+                    value={safeValue(item.medicationId)}
                   />
                   <DetailField
                     label="진행상태"

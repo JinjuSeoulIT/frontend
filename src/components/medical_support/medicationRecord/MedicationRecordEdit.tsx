@@ -312,7 +312,7 @@ export default function MedicationRecordEdit() {
               >
                 <SummaryItem
                   label="투약기록 ID"
-                  value={displayValue(form.medicationRecordId)}
+                  value={displayValue(form.medicationId)}
                 />
                 <SummaryItem
                   label="현재 투약일시"

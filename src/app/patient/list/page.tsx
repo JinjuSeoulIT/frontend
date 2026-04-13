@@ -22,7 +22,7 @@ function resolveErrorMessage(err: unknown, fallback: string) {
   return fallback;
 }
 
-export default function PatientsPage() {
+function PatientsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useDispatch<AppDispatch>();
@@ -243,5 +243,13 @@ export default function PatientsPage() {
         />
       </Box>
     </MainLayout>
+  );
+}
+
+export default function PatientsPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <PatientsPageContent />
+    </React.Suspense>
   );
 }

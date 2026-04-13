@@ -6,6 +6,7 @@ import { MedicationRecordActions as actions } from "./medicationRecordSlice";
 import type {
   MedicationRecord,
   MedicationRecordCreatePayload,
+  MedicationRecordSearchParams,
   MedicationRecordUpdatePayload,
 } from "@/features/medical_support/medicationRecord/medicationRecordType";
 
@@ -17,9 +18,21 @@ const getErrorMessage = (err: unknown, fallback: string) => {
   return fallback;
 };
 
-function* fetchMedicationRecordsSaga(): SagaIterator {
+const hasSearchParams = (
+  params?: MedicationRecordSearchParams
+): params is MedicationRecordSearchParams =>
+  Boolean(
+    params &&
+      Object.values(params).some((value) => value != null && value.trim() !== "")
+  );
+
+function* fetchMedicationRecordsSaga(
+  action: PayloadAction<MedicationRecordSearchParams | undefined>
+): SagaIterator {
   try {
-    const items: MedicationRecord[] = yield call(api.fetchMedicationRecordsApi);
+    const items: MedicationRecord[] = hasSearchParams(action.payload)
+      ? yield call(api.searchMedicationRecordsApi, action.payload)
+      : yield call(api.fetchMedicationRecordsApi);
     yield put(actions.fetchMedicationRecordsSuccess(items));
   } catch (err: unknown) {
     yield put(
@@ -69,20 +82,20 @@ function* createMedicationRecordSaga(
 
 function* updateMedicationRecordSaga(
   action: PayloadAction<{
-    medicationId: string;
+    medicationRecordId: string;
     form: MedicationRecordUpdatePayload;
   }>
 ): SagaIterator {
   try {
-    const { medicationId, form } = action.payload;
+    const { medicationRecordId, form } = action.payload;
     const item: MedicationRecord = yield call(
       api.updateMedicationRecordApi,
-      medicationId,
+      medicationRecordId,
       form
     );
     yield put(actions.updateMedicationRecordSuccess(item));
     yield put(actions.fetchMedicationRecordsRequest());
-    yield put(actions.fetchMedicationRecordRequest(medicationId));
+    yield put(actions.fetchMedicationRecordRequest(medicationRecordId));
   } catch (err: unknown) {
     yield put(
       actions.updateMedicationRecordFailure(

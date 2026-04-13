@@ -1,6 +1,7 @@
 export interface RecordFormType {
   recordId: string;
   receptionId?: number | null;
+  patientId?: number | null;
   nursingId: string;
   recordedAt: string;
   systolicBp: string;
@@ -30,13 +31,9 @@ export type RecordTextSearchType =
   | "patientName"
   | "departmentName";
 
-/*
-// ❌ 기록일시 검색 안 쓸 때 기존 타입
-export type RecordSearchType = RecordTextSearchType | "recordedAt";
-*/
+export type RecordDateSearchType = "createdAt";
 
-// ✅ 기록일시 검색 제외
-export type RecordSearchType = RecordTextSearchType;
+export type RecordSearchType = RecordTextSearchType | RecordDateSearchType;
 
 export type RecordTextSearchPayload = {
   searchType: RecordTextSearchType;
@@ -45,22 +42,13 @@ export type RecordTextSearchPayload = {
   endDate?: never;
 };
 
-/*
-// ❌ 기록일시 검색 안 쓸 때 기존 payload
 export type RecordDateSearchPayload = {
-  searchType: "recordedAt";
+  searchType: RecordDateSearchType;
   searchValue?: never;
   startDate: string;
   endDate: string;
 };
-*/
 
-/*
-// ❌ 기록일시 검색 포함했을 때 기존 union
 export type RecordSearchPayload =
   | RecordTextSearchPayload
   | RecordDateSearchPayload;
-*/
-
-// ✅ 기록일시 검색 제외
-export type RecordSearchPayload = RecordTextSearchPayload;

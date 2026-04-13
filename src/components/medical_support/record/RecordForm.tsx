@@ -20,6 +20,8 @@ interface Props {
   form: RecordFormType;
   onChange: (form: RecordFormType) => void;
   onSubmit: () => void;
+  onCancel?: () => void;
+  onNavigateDetail?: () => void;
   loading: boolean;
 }
 
@@ -30,6 +32,8 @@ const RecordForm: React.FC<Props> = ({
   form,
   onChange,
   onSubmit,
+  onCancel,
+  onNavigateDetail,
   loading,
 }) => {
   const [errors, setErrors] = useState<RecordFormErrors>({});
@@ -178,25 +182,38 @@ const RecordForm: React.FC<Props> = ({
           borderColor: "grey.200",
         }}
       >
-        <Box
-          sx={{
-            px: 3,
-            py: 2.5,
-            backgroundColor: "#fafafa",
-          }}
-        >
-          <Typography variant="h6" fontWeight={700}>
-            {isEditMode ? "간호 기록 수정" : "간호 기록 등록"}
-          </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mt: 0.5 }}
+        <Box sx={{ px: 3, py: 2.5, backgroundColor: "#fafafa" }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            justifyContent="space-between"
+            alignItems={{ xs: "flex-start", sm: "center" }}
+            spacing={2}
           >
-            {isEditMode
-              ? "간호 기록 정보를 수정하고 저장할 수 있습니다."
-              : "간호 기록 정보를 입력하고 저장할 수 있습니다."}
-          </Typography>
+            <Box>
+              <Typography variant="h6" fontWeight={700}>
+                {isEditMode ? "간호 기록 수정" : "간호 기록 등록"}
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                {isEditMode
+                  ? "간호 기록 정보를 수정하고 저장할 수 있습니다."
+                  : "간호 기록 정보를 입력하고 저장할 수 있습니다."}
+              </Typography>
+            </Box>
+
+            {isEditMode && onNavigateDetail ? (
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={onNavigateDetail}
+              >
+                상세로
+              </Button>
+            ) : null}
+          </Stack>
         </Box>
 
         <Divider />
@@ -235,8 +252,8 @@ const RecordForm: React.FC<Props> = ({
 
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
-                    label="진료과"
-                    value={toStr(form.departmentName)}
+                    label="환자 ID"
+                    value={toStr(form.patientId)}
                     size="small"
                     fullWidth
                     InputProps={{ readOnly: true }}
@@ -251,6 +268,16 @@ const RecordForm: React.FC<Props> = ({
                     size="small"
                     fullWidth
                     // InputProps={{ readOnly: true }}
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    label="진료과"
+                    value={toStr(form.departmentName)}
+                    size="small"
+                    fullWidth
+                    InputProps={{ readOnly: true }}
                   />
                 </Grid>
 
@@ -554,8 +581,13 @@ const RecordForm: React.FC<Props> = ({
               justifyContent="flex-end"
               sx={{ pt: 1 }}
             >
+              {isEditMode && onCancel ? (
+                <Button variant="outlined" onClick={onCancel}>
+                  취소
+                </Button>
+              ) : null}
               <Button variant="contained" onClick={handleSubmit} disabled={loading}>
-                {loading ? "저장 중..." : isEditMode ? "수정 완료" : "등록"}
+                {loading ? "저장 중..." : isEditMode ? "수정" : "등록"}
               </Button>
             </Stack>
           </Stack>

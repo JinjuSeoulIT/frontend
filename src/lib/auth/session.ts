@@ -93,10 +93,13 @@ export const saveAccessToken = (token: string, persist = false) => {
   if (typeof window === "undefined") return;
   if (!token) {
     removeStored(TOKEN_KEY);
+    clearCookie(AUTH_COOKIE_KEY);
     emitSessionChanged();
     return;
   }
+
   writeStored(TOKEN_KEY, token, persist);
+  writeCookie(AUTH_COOKIE_KEY, token);
   emitSessionChanged();
 };
 
@@ -126,27 +129,45 @@ export const isPasswordChangeRequired = (): boolean => {
 export const saveSession = (
   token: string,
   user: SessionUser,
-  options?: { passwordChangeRequired?: boolean; persist?: boolean }
+  options?: { passwordChangeRequired?: boolean; persist?: boolean; tokenMaxAgeSeconds?: number }
 ) => {
   if (typeof window === "undefined") return;
 
   const persist = Boolean(options?.persist);
   if (token) {
     writeStored(TOKEN_KEY, token, persist);
+    writeCookie(
+      AUTH_COOKIE_KEY,
+      token,
+      persist && typeof options?.tokenMaxAgeSeconds === "number"
+        ? { maxAge: options.tokenMaxAgeSeconds }
+        : undefined
+    );
   } else {
     removeStored(TOKEN_KEY);
+    clearCookie(AUTH_COOKIE_KEY);
   }
 
   writeStored(USER_KEY, JSON.stringify(user), persist);
-  setPasswordChangeRequired(Boolean(options?.passwordChangeRequired), persist);
+  setPasswordChangeRequired(false, persist);
   emitSessionChanged();
+};
+
+const getExistingPersistPreference = () => {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(TOKEN_KEY) !== null || localStorage.getItem(USER_KEY) !== null;
 };
 
 export const saveSessionUserOnly = (
   user: SessionUser,
-  options?: { passwordChangeRequired?: boolean }
+  options?: { passwordChangeRequired?: boolean; persist?: boolean }
 ) => {
-  saveSession("", user, options);
+  if (typeof window === "undefined") return;
+
+  const persist = options?.persist ?? getExistingPersistPreference();
+  writeStored(USER_KEY, JSON.stringify(user), persist);
+  setPasswordChangeRequired(Boolean(options?.passwordChangeRequired), persist);
+  emitSessionChanged();
 };
 
 export const setDevBypassCookie = (enabled: boolean) => {

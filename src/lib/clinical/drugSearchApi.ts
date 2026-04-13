@@ -22,6 +22,17 @@ export type DrugSearchResultDto = {
 type ApiEnvelope<T> = { success?: boolean; message?: string | null; result?: T; data?: T };
 
 const DRUG_PAGE_SIZE = 100;
+
+export function drugSearchParamsFromQuery(raw: string): { itemName?: string; itemSeq?: string } {
+  const t = raw.trim();
+  if (t.length >= 2 && /^\d+$/.test(t)) {
+    return { itemSeq: t };
+  }
+  if (t.length > 0) {
+    return { itemName: t };
+  }
+  return {};
+}
 const CHOSEONG_PAGE_BATCH = 5;
 const CHOSEONG_MAX_PAGES_PER_PREFIX = 50;
 const CHOSEONG_EXTRA_PREFIX_CHUNK = 8;
@@ -180,14 +191,17 @@ export async function searchDrugsForVisit(
   visitId: number,
   params: {
     itemName?: string;
+    itemSeq?: string;
     pageNo?: number;
     numOfRows?: number;
     signal?: AbortSignal;
   }
 ): Promise<DrugSearchResultDto> {
   const q = new URLSearchParams();
+  const seq = (params.itemSeq ?? "").trim();
   const name = (params.itemName ?? "").trim();
-  if (name) q.set("itemName", name);
+  if (seq) q.set("itemSeq", seq);
+  else if (name) q.set("itemName", name);
   if (params.pageNo != null) q.set("pageNo", String(params.pageNo));
   if (params.numOfRows != null) q.set("numOfRows", String(params.numOfRows));
   const qs = q.toString();

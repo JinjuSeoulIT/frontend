@@ -41,6 +41,7 @@ const RecordEdit = () => {
     return {
       recordId: selected.recordId ?? "",
       receptionId: selected.receptionId ?? null,
+      patientId: selected.patientId ?? null,
       nursingId: selected.nursingId ?? "",
       recordedAt: selected.recordedAt ?? "",
       systolicBp: selected.systolicBp ?? "",
@@ -124,6 +125,10 @@ const RecordEdit = () => {
         form={form}
         onChange={setDraftForm}
         onSubmit={handleSubmit}
+        onCancel={() => router.push(`/medical_support/record/detail/${recordId}`)}
+        onNavigateDetail={() =>
+          router.push(`/medical_support/record/detail/${recordId}`)
+        }
         loading={loading}
       />
     </main>

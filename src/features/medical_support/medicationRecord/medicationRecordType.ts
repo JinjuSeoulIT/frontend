@@ -1,28 +1,54 @@
 export interface MedicationRecord {
-  medicationId: string | number;
-  orderItemId?: string | number | null;
+  medicationRecordId?: string | null;
+  medicationId?: string | null;
   administeredAt?: string | null;
   doseNumber?: number | string | null;
   doseUnit?: string | null;
-  nurseId?: string | number | null;
+  doseKind?: string | null;
+  nursingId?: string | null;
+  nurseName?: string | null;
+  progressStatus?: string | null;
   status?: string | null;
+  createdAt?: string | null;
+  patientId?: number | null;
+  patientName?: string | null;
+  departmentName?: string | null;
 }
 
 export interface MedicationRecordCreatePayload {
-  medicationId?: string | number | null;
-  orderItemId?: string | number | null;
+  medicationId?: string | null;
   administeredAt?: string | null;
   doseNumber?: number | string | null;
   doseUnit?: string | null;
-  nurseId?: string | number | null;
+  doseKind?: string | null;
+  nursingId?: string | null;
+  nurseName?: string | null;
+  progressStatus?: string | null;
   status?: string | null;
+  patientId?: number | null;
+  patientName?: string | null;
+  departmentName?: string | null;
 }
 
 export interface MedicationRecordUpdatePayload {
-  orderItemId?: string | number | null;
+  medicationId?: string | null;
   administeredAt?: string | null;
   doseNumber?: number | string | null;
   doseUnit?: string | null;
-  nurseId?: string | number | null;
+  doseKind?: string | null;
+  nursingId?: string | null;
+  nurseName?: string | null;
+  progressStatus?: string | null;
   status?: string | null;
+  patientId?: number | null;
+  patientName?: string | null;
+  departmentName?: string | null;
+}
+
+export interface MedicationRecordSearchParams {
+  patientName?: string;
+  departmentName?: string;
+  progressStatus?: string;
+  startDate?: string;
+  endDate?: string;
 }

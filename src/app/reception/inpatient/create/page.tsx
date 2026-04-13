@@ -10,7 +10,7 @@ import { inpatientReceptionActions } from "@/features/InpatientReception/Inpatie
 import type { InpatientReceptionForm as InpatientReceptionFormPayload } from "@/features/InpatientReception/InpatientReceptionTypes";
 import InpatientReceptionForm from "@/components/reception/InpatientReceptionForm";
 
-export default function NewInpatientReceptionPage() {
+function NewInpatientReceptionPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useDispatch<AppDispatch>();
@@ -47,5 +47,13 @@ export default function NewInpatientReceptionPage() {
         onCancel={() => router.push("/reception/inpatient/list")}
       />
     </MainLayout>
+  );
+}
+
+export default function NewInpatientReceptionPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <NewInpatientReceptionPageContent />
+    </React.Suspense>
   );
 }

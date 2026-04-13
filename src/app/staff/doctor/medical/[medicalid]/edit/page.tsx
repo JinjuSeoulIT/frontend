@@ -1,10 +1,15 @@
 import MainLayout from "@/components/layout/MainLayout";
-import MedicalUpdate from "@/components/staff/doctorDashboard/MedicalSpecialty/medicalUpdate";
+import FeaturePlaceholder from "@/components/layout/FeaturePlaceholder";
 
 export default function MedicalEditPage() {
   return (
     <MainLayout showSidebar={false}>
-      <MedicalUpdate />
+      <FeaturePlaceholder
+        title="진료과 마스터 수정 준비 중"
+        description="기존 진료과 마스터 수정 화면은 현재 정리 중입니다. 우선 의사 목록으로 이동해 주세요."
+        primaryHref="/staff/doctor/list"
+        primaryLabel="의사 목록으로"
+      />
     </MainLayout>
   );
 }

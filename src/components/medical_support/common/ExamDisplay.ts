@@ -37,15 +37,15 @@ export const formatYn = (value?: string | null) => {
   return safeValue(value);
 };
 
-export const normalizeProgressStatus = (value?: string | null) =>
-  normalizeValue(value);
+export const normalizeProgressStatus = (value?: string | null) => normalizeValue(value);
 
 export const formatProgressStatus = (value?: string | null) => {
   const normalized = normalizeProgressStatus(value);
 
-  if (normalized === "WAITING") return "대기";
+  if (normalized === "WAITING" || normalized === "REQUESTED") return "요청";
   if (normalized === "IN_PROGRESS") return "진행 중";
   if (normalized === "COMPLETED") return "완료";
+  if (normalized === "CANCELLED") return "취소";
 
   return safeValue(value);
 };
@@ -55,18 +55,21 @@ export const getProgressStatusColor = (
 ): ChipProps["color"] => {
   const normalized = normalizeProgressStatus(value);
 
-  if (normalized === "WAITING") return "warning";
+  if (normalized === "WAITING" || normalized === "REQUESTED") return "warning";
   if (normalized === "IN_PROGRESS") return "info";
   if (normalized === "COMPLETED") return "success";
+  if (normalized === "CANCELLED") return "default";
 
   return "default";
 };
 
-export const formatActiveStatus = (value?: string | null) => {
-  const normalized = normalizeValue(value);
+export const normalizeActiveStatus = (value?: string | null) => normalizeValue(value);
 
-  if (normalized === "ACTIVE") return "활성화";
-  if (normalized === "INACTIVE") return "비활성화";
+export const formatActiveStatus = (value?: string | null) => {
+  const normalized = normalizeActiveStatus(value);
+
+  if (normalized === "ACTIVE") return "활성";
+  if (normalized === "INACTIVE") return "비활성";
 
   return safeValue(value);
 };
@@ -74,7 +77,7 @@ export const formatActiveStatus = (value?: string | null) => {
 export const getActiveStatusColor = (
   value?: string | null
 ): ChipProps["color"] => {
-  const normalized = normalizeValue(value);
+  const normalized = normalizeActiveStatus(value);
 
   if (normalized === "ACTIVE") return "success";
 
@@ -82,7 +85,7 @@ export const getActiveStatusColor = (
 };
 
 export const getActiveStatusSx = (value?: string | null) => {
-  const normalized = normalizeValue(value);
+  const normalized = normalizeActiveStatus(value);
 
   if (normalized === "ACTIVE") {
     return {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BILLING_API_BASE_URL } from "@/lib/common/env";
 
@@ -25,7 +25,7 @@ interface TossPaymentContext {
   orderId: string;
 }
 
-export default function TossSuccessPage() {
+function TossSuccessPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const hasRequestedRef = useRef(false);
@@ -340,5 +340,13 @@ export default function TossSuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TossSuccessPage() {
+  return (
+    <Suspense fallback={null}>
+      <TossSuccessPageContent />
+    </Suspense>
   );
 }

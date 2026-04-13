@@ -317,6 +317,21 @@ export default function ClinicalPage() {
     return listForLeft.slice(start, start + LEFT_LIST_PAGE_SIZE);
   }, [listForLeft, leftPage, LEFT_LIST_PAGE_SIZE]);
 
+  const blockStartVisitOtherInProgress = React.useMemo(() => {
+    if (!selectedReception) return false;
+    const inProg = (s: string | null | undefined) => (s ?? "").trim().toUpperCase() === "IN_PROGRESS";
+    if (inProg(selectedReception.status)) return false;
+    const sid = selectedReception.doctorId;
+    return listForLeft.some((r) => {
+      if (r.receptionId === selectedReception.receptionId) return false;
+      if (!inProg(r.status)) return false;
+      if (sid != null) {
+        return r.doctorId != null && Number(r.doctorId) === Number(sid);
+      }
+      return true;
+    });
+  }, [listForLeft, selectedReception]);
+
   const handleSelectReception = React.useCallback((r: ReceptionQueueItem) => {
     setSelectedReception(r);
     setSelectedPatientId(r.patientId);
@@ -601,12 +616,16 @@ export default function ClinicalPage() {
       window.alert("접수 환자를 먼저 선택해 주세요.");
       return;
     }
-    if (creatingClinicalRef.current) return;
-    creatingClinicalRef.current = true;
+    if (blockStartVisitOtherInProgress) {
+      window.alert("다른 환자가 진료 중입니다. 진료 완료 후 다시 시도해 주세요.");
+      return;
+    }
+    if (creatingClinicalRef.current) return;  //중복 실행 차단-->if(조건):조건이 true면 실행, return:함수 즉시 종료. 즉, "이미 실행 중이면 여기서 끝내"
+    creatingClinicalRef.current = true; // 
     setCreatingClinical(true);
-    startVisitPatientIdRef.current = selectedReception.patientId;
-    dispatch(clinicalActions.startVisitRequest({ receptionId: selectedReception.receptionId }));
-  }, [selectedReception, dispatch]);
+    startVisitPatientIdRef.current = selectedReception.patientId; //지금 선택된 환자 ID 저장해둔다.
+    dispatch(clinicalActions.startVisitRequest({ receptionId: selectedReception.receptionId }));  // 진료시작을 하려면 해당 접수환자가 누군지 알아야 하니까 접수ID를 파라미터로 보낸다.
+  }, [selectedReception, dispatch, blockStartVisitOtherInProgress]); 
 
   const openVitalDialog = React.useCallback(
     (mode: "new" | "edit") => {
@@ -720,6 +739,7 @@ export default function ClinicalPage() {
           creatingClinical={creatingClinical}
           selectedPatient={selectedReception ? selectedPatient : null}
           onStartNewClinical={handleStartNewClinical}
+          blockStartVisitOtherInProgress={blockStartVisitOtherInProgress}
         />
 
         <Box
@@ -727,8 +747,8 @@ export default function ClinicalPage() {
             display: "grid",
             gridTemplateColumns: {
               xs: "1fr",
-              lg: "minmax(200px, 15rem) minmax(0, 1fr) minmax(176px, 13.5rem)",
-              xl: "minmax(188px, 14rem) minmax(0, 1fr) minmax(168px, 12.5rem)",
+              lg: "minmax(200px, 15rem) minmax(0, 1fr) minmax(228px, 18.5rem)",
+              xl: "minmax(188px, 14rem) minmax(0, 1fr) minmax(248px, 21rem)",
             },
             minHeight: "calc(100vh - 120px)",
             alignItems: "stretch",
@@ -839,6 +859,9 @@ export default function ClinicalPage() {
               setOrderDialogVariant(variant);
               setOrderDialogOpen(true);
             }}
+            contextPatientName={
+              selectedReception?.patientName?.trim() ?? selectedPatient?.name?.trim() ?? null
+            }
           />
         </Box>
       </Stack>
@@ -848,6 +871,10 @@ export default function ClinicalPage() {
         variant={orderDialogVariant}
         onClose={() => setOrderDialogOpen(false)}
         visitId={currentClinicalId}
+        contextPatientName={
+          selectedReception?.patientName?.trim() ?? selectedPatient?.name?.trim() ?? null
+        }
+        contextDepartmentName={selectedReception?.departmentName?.trim() ?? null}
         onCreated={async () => {
           if (currentClinicalId != null) await loadOrders(currentClinicalId);
         }}

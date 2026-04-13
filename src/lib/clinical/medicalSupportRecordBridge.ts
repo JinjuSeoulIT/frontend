@@ -57,7 +57,7 @@ async function fetchSupportRecordList(): Promise<RecordFormType[] | null> {
 }
 
 function visitIdMatches(record: RecordFormType, clinicalVisitId: number): boolean {
-  const v = record.visitId;
+  const v = (record as RecordFormType & { visitId?: string | number | null }).visitId;
   if (v == null) return false;
   const s = String(v).trim();
   if (!s) return false;
@@ -108,6 +108,10 @@ function parseNum(v: string | number | undefined | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function trimPresent(v: string | number | null | undefined): boolean {
+  return v != null && String(v).trim() !== "";
+}
+
 function supportRecordToVitals(
   record: RecordFormType,
   clinicalVisitId: number
@@ -117,13 +121,32 @@ function supportRecordToVitals(
   const bpSystolic = parseNum(record.systolicBp);
   const bpDiastolic = parseNum(record.diastolicBp);
   const respiratoryRate = parseNum(record.respiration);
-  const has =
+  const hasCore =
     temperature != null ||
     pulse != null ||
     bpSystolic != null ||
     bpDiastolic != null ||
     respiratoryRate != null;
-  if (!has) return null;
+
+  const heightCm = trimPresent(record.heightCm) ? record.heightCm! : null;
+  const weightKg = trimPresent(record.weightKg) ? record.weightKg! : null;
+  const spo2Num = parseNum(record.spo2);
+  const spo2: string | number | null =
+    spo2Num != null ? spo2Num : String(record.spo2 ?? "").trim() || null;
+  const painRaw = String(record.painScore ?? "").trim();
+  const painScore = painRaw || null;
+  const consciousnessRaw = String(record.consciousnessLevel ?? "").trim();
+  const consciousnessLevel = consciousnessRaw || null;
+
+  const hasExt =
+    heightCm != null ||
+    weightKg != null ||
+    spo2 != null ||
+    painScore != null ||
+    consciousnessLevel != null;
+
+  if (!hasCore && !hasExt) return null;
+
   const measuredAt = record.recordedAt?.trim() ? record.recordedAt : null;
   return {
     vitalSignsId: 0,
@@ -136,6 +159,11 @@ function supportRecordToVitals(
     measuredAt,
     createdAt: null,
     updatedAt: null,
+    heightCm: heightCm ?? undefined,
+    weightKg: weightKg ?? undefined,
+    spo2: spo2 ?? undefined,
+    painScore: painScore ?? undefined,
+    consciousnessLevel: consciousnessLevel ?? undefined,
   };
 }
 
@@ -196,6 +224,11 @@ function mergeVitals(
     measuredAt: clinical.measuredAt ?? support.measuredAt,
     createdAt: clinical.createdAt ?? support.createdAt,
     updatedAt: clinical.updatedAt ?? support.updatedAt,
+    heightCm: trimPresent(clinical.heightCm) ? clinical.heightCm! : support.heightCm,
+    weightKg: trimPresent(clinical.weightKg) ? clinical.weightKg! : support.weightKg,
+    spo2: trimPresent(clinical.spo2) ? clinical.spo2! : support.spo2,
+    painScore: trimPresent(clinical.painScore) ? clinical.painScore! : support.painScore,
+    consciousnessLevel: nonEmpty(clinical.consciousnessLevel) ?? nonEmpty(support.consciousnessLevel) ?? undefined,
   };
 }
 

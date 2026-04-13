@@ -215,6 +215,12 @@ export default function RecordDetail() {
             </Box>
 
             <Stack direction="row" spacing={1} flexWrap="wrap">
+              <Link href="/medical_support/record/list">
+                <Button variant="outlined" size="small">
+                  목록으로
+                </Button>
+              </Link>
+
               <Link href={`/medical_support/record/edit/${recordId}`}>
                 <Button variant="outlined" size="small">
                   수정
@@ -255,6 +261,9 @@ export default function RecordDetail() {
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem label="간호사명" value={record.nurseName || "-"} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <DetailItem label="환자 ID" value={record.patientId ?? "-"} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem label="간호사 ID" value={record.nursingId || "-"} />

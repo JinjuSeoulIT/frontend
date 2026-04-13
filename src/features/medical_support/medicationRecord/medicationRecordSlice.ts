@@ -2,6 +2,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type {
   MedicationRecord,
   MedicationRecordCreatePayload,
+  MedicationRecordSearchParams,
   MedicationRecordUpdatePayload,
 } from "@/features/medical_support/medicationRecord/medicationRecordType";
 
@@ -9,7 +10,9 @@ type MedicationRecordState = {
   list: MedicationRecord[];
   selected: MedicationRecord | null;
   loading: boolean;
+  detailLoading: boolean;
   error: string | null;
+  detailError: string | null;
   createSuccess: boolean;
   updateSuccess: boolean;
 };
@@ -18,7 +21,9 @@ const initialState: MedicationRecordState = {
   list: [],
   selected: null,
   loading: false,
+  detailLoading: false,
   error: null,
+  detailError: null,
   createSuccess: false,
   updateSuccess: false,
 };
@@ -27,10 +32,19 @@ const medicationRecordSlice = createSlice({
   name: "medicationRecords",
   initialState,
   reducers: {
-    fetchMedicationRecordsRequest: (state) => {
-      state.loading = true;
-      state.error = null;
-      state.createSuccess = false;
+    fetchMedicationRecordsRequest: {
+      reducer: (
+        state,
+        action: PayloadAction<MedicationRecordSearchParams | undefined>
+      ) => {
+        void action;
+        state.loading = true;
+        state.error = null;
+        state.createSuccess = false;
+      },
+      prepare: (params?: MedicationRecordSearchParams) => ({
+        payload: params,
+      }),
     },
     fetchMedicationRecordsSuccess: (
       state,
@@ -46,20 +60,25 @@ const medicationRecordSlice = createSlice({
 
     fetchMedicationRecordRequest: (state, action: PayloadAction<string>) => {
       void action;
-      state.loading = true;
-      state.error = null;
+      state.detailLoading = true;
+      state.detailError = null;
       state.selected = null;
     },
     fetchMedicationRecordSuccess: (
       state,
       action: PayloadAction<MedicationRecord>
     ) => {
-      state.loading = false;
+      state.detailLoading = false;
       state.selected = action.payload;
     },
     fetchMedicationRecordFailure: (state, action: PayloadAction<string>) => {
-      state.loading = false;
-      state.error = action.payload;
+      state.detailLoading = false;
+      state.detailError = action.payload;
+    },
+    clearMedicationRecordSelection: (state) => {
+      state.selected = null;
+      state.detailLoading = false;
+      state.detailError = null;
     },
 
     createMedicationRecordRequest: (
@@ -91,7 +110,7 @@ const medicationRecordSlice = createSlice({
     updateMedicationRecordRequest: (
       state,
       action: PayloadAction<{
-        medicationId: string;
+        medicationRecordId: string;
         form: MedicationRecordUpdatePayload;
       }>
     ) => {
@@ -108,7 +127,8 @@ const medicationRecordSlice = createSlice({
       state.updateSuccess = true;
       state.selected = action.payload;
       state.list = state.list.map((item) =>
-        String(item.medicationId) === String(action.payload.medicationId)
+        String(item.medicationRecordId) ===
+        String(action.payload.medicationRecordId)
           ? action.payload
           : item
       );

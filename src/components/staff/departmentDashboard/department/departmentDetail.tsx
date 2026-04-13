@@ -27,7 +27,7 @@ import { DepartmentNumber, DeptTypeLabel } from "@/features/staff/department/dep
 
   
   useEffect(() => {
-    if (deptId) dispatch(departmentDetailRequest(deptId));
+    if (deptId) dispatch(departmentDetailRequest(Number(deptId)));
     return () => { dispatch(resetDepartmentState()); };
   }, [dispatch, deptId]);
 

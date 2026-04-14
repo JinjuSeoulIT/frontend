@@ -58,6 +58,7 @@ async function parseJson<T>(res: Response): Promise<T> {
 type OrderItemRaw = {
   orderItemId?: number;
   itemName?: string | null;
+  itemDetailCode?: string | null;
   itemCode?: string | null;
 };
 type OrderRaw = {
@@ -80,11 +81,23 @@ const KNOWN_ORDER_TYPES: LabOrderType[] = [
   "MEDICATION",
 ];
 
+const TEST_ORDER_TYPES: ReadonlySet<LabOrderType> = new Set([
+  "IMAGING",
+  "PATHOLOGY",
+  "SPECIMEN",
+  "ENDOSCOPY",
+  "PHYSIOLOGICAL",
+]);
+
 function mapOrderToClinical(o: OrderRaw): ClinicalOrder {
   const raw = (o.orderType ?? "SPECIMEN") as string;
   const orderType = (KNOWN_ORDER_TYPES.includes(raw as LabOrderType) ? raw : "SPECIMEN") as LabOrderType;
   const visitId = o.visitId ?? o.clinicalId ?? 0;
-  const orderName = o.items?.[0]?.itemName ?? o.items?.[0]?.itemCode ?? orderType;
+  const orderName =
+    o.items?.[0]?.itemName ??
+    o.items?.[0]?.itemDetailCode ??
+    o.items?.[0]?.itemCode ??
+    orderType;
   return {
     id: o.orderId,
     clinicalId: visitId,
@@ -116,10 +129,18 @@ export async function createClinicalOrderApi(
   payload: ClinicalOrderCreatePayload
 ): Promise<ClinicalOrder> {
   const orderName = payload.orderName.trim();
-  const itemCode = deriveItemCode(payload.orderCode ?? null, orderName);
+  const itemDetailCode =
+    (payload.orderCode ?? "").trim() || deriveItemCode(payload.orderCode ?? null, orderName);
+  const itemRow =
+    TEST_ORDER_TYPES.has(payload.orderType) ?
+      { itemDetailCode }
+    : (() => {
+        const itemCode = deriveItemCode(payload.orderCode ?? null, orderName);
+        return { itemCode, itemDetailCode: itemDetailCode || itemCode };
+      })();
   const body = {
     orderType: payload.orderType,
-    items: [{ itemCode, itemName: orderName }],
+    items: [itemRow],
   };
   const res = await fetch(
     `${CLINICAL_API_BASE}/api/visits/${clinicalId}/orders`,

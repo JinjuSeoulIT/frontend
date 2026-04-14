@@ -29,6 +29,11 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-, "src/components/medical_support/record/RecordList.tsx_B", "src/features/medical_support/record/recordSlice.ts_B", "src/components/medical_support/record/RecordCreate.tsx_B", "src/lib/recordApi.ts_B"  ],
-  "exclude": ["node_modules"]
+  ],
+  "exclude": [
+    "node_modules",
+    "src/components/unused/**/*",
+    "src/components/staff/doctorDashboard/MedicalSpecialty/**/*",
+    "src/lib/admin/staffApi.ts"
+  ]
 }

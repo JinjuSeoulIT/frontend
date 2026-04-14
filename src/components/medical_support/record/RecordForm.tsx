@@ -13,11 +13,6 @@ import {
   Divider,
   Grid,
 } from "@mui/material";
-import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import dayjs from "dayjs";
-import "dayjs/locale/ko";
 import { RecordFormType } from "@/features/medical_support/record/recordTypes";
 
 interface Props {
@@ -25,6 +20,8 @@ interface Props {
   form: RecordFormType;
   onChange: (form: RecordFormType) => void;
   onSubmit: () => void;
+  onCancel?: () => void;
+  onNavigateDetail?: () => void;
   loading: boolean;
 }
 
@@ -35,6 +32,8 @@ const RecordForm: React.FC<Props> = ({
   form,
   onChange,
   onSubmit,
+  onCancel,
+  onNavigateDetail,
   loading,
 }) => {
   const [errors, setErrors] = useState<RecordFormErrors>({});
@@ -46,20 +45,6 @@ const RecordForm: React.FC<Props> = ({
     (field: keyof RecordFormType) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       onChange({ ...form, [field]: e.target.value });
-
-      setErrors((prev) => ({
-        ...prev,
-        [field]: "",
-      }));
-    };
-
-  const handleDateTimeChange =
-    (field: "recordedAt") =>
-    (newValue: dayjs.Dayjs | null) => {
-      onChange({
-        ...form,
-        [field]: newValue ? newValue.format("YYYY-MM-DDTHH:mm:ss") : "",
-      });
 
       setErrors((prev) => ({
         ...prev,
@@ -88,7 +73,6 @@ const RecordForm: React.FC<Props> = ({
   const validateForm = () => {
     const newErrors: RecordFormErrors = {};
 
-    const recordedAt = toStr(form.recordedAt).trim();
     const systolicBp = toStr(form.systolicBp).trim();
     const diastolicBp = toStr(form.diastolicBp).trim();
     const pulse = toStr(form.pulse).trim();
@@ -98,11 +82,6 @@ const RecordForm: React.FC<Props> = ({
     const painScore = toStr(form.painScore).trim();
     const heightCm = toStr(form.heightCm).trim();
     const weightKg = toStr(form.weightKg).trim();
-
-    // 기록일시만 필수
-    if (!recordedAt) {
-      newErrors.recordedAt = "기록일시는 필수 입력입니다.";
-    }
 
     if (heightCm) {
       if (!isInteger(heightCm)) {
@@ -203,25 +182,38 @@ const RecordForm: React.FC<Props> = ({
           borderColor: "grey.200",
         }}
       >
-        <Box
-          sx={{
-            px: 3,
-            py: 2.5,
-            backgroundColor: "#fafafa",
-          }}
-        >
-          <Typography variant="h6" fontWeight={700}>
-            {isEditMode ? "간호 기록 수정" : "간호 기록 등록"}
-          </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mt: 0.5 }}
+        <Box sx={{ px: 3, py: 2.5, backgroundColor: "#fafafa" }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            justifyContent="space-between"
+            alignItems={{ xs: "flex-start", sm: "center" }}
+            spacing={2}
           >
-            {isEditMode
-              ? "간호 기록 정보를 수정하고 저장할 수 있습니다."
-              : "간호 기록 정보를 입력하고 저장할 수 있습니다."}
-          </Typography>
+            <Box>
+              <Typography variant="h6" fontWeight={700}>
+                {isEditMode ? "간호 기록 수정" : "간호 기록 등록"}
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                {isEditMode
+                  ? "간호 기록 정보를 수정하고 저장할 수 있습니다."
+                  : "간호 기록 정보를 입력하고 저장할 수 있습니다."}
+              </Typography>
+            </Box>
+
+            {isEditMode && onNavigateDetail ? (
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={onNavigateDetail}
+              >
+                상세로
+              </Button>
+            ) : null}
+          </Stack>
         </Box>
 
         <Divider />
@@ -260,8 +252,8 @@ const RecordForm: React.FC<Props> = ({
 
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
-                    label="진료과"
-                    value={toStr(form.departmentName)}
+                    label="환자 ID"
+                    value={toStr(form.patientId)}
                     size="small"
                     fullWidth
                     InputProps={{ readOnly: true }}
@@ -279,10 +271,20 @@ const RecordForm: React.FC<Props> = ({
                   />
                 </Grid>
 
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    label="진료과"
+                    value={toStr(form.departmentName)}
+                    size="small"
+                    fullWidth
+                    InputProps={{ readOnly: true }}
+                  />
+                </Grid>
+
                 {/* <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     label="진료 ID"
-                    value={toStr(form.visitId)}
+                    value=""
                     size="small"
                     fullWidth
                     InputProps={{ readOnly: true }}
@@ -290,35 +292,24 @@ const RecordForm: React.FC<Props> = ({
                 </Grid> */}
 
                 <Grid size={{ xs: 12, md: 6 }}>
-                  <LocalizationProvider
-                    dateAdapter={AdapterDayjs}
-                    adapterLocale="ko"
-                  >
-                    <DateTimePicker
-                      label="기록일시"
-                      value={
-                        toStr(form.recordedAt)
-                          ? dayjs(toStr(form.recordedAt))
-                          : null
-                      }
-                      onChange={handleDateTimeChange("recordedAt")}
-                      timeSteps={{ minutes: 1 }}
-                      slotProps={{
-                        textField: {
-                          size: "small",
-                          fullWidth: true,
-                          error: !!errors.recordedAt,
-                          helperText: errors.recordedAt,
-                        },
-                      }}
-                    />
-                  </LocalizationProvider>
+                  <TextField
+                    label="생성일시"
+                    value={toStr(form.createdAt)}
+                    size="small"
+                    fullWidth
+                    InputProps={{ readOnly: true }}
+                    helperText={
+                      isEditMode
+                        ? "생성일시는 수정할 수 없습니다."
+                        : "저장 후 자동 생성됩니다."
+                    }
+                  />
                 </Grid>
 
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
                     select
-                    label="상태"
+                    label="활성 여부"
                     value={toStr(form.status || "ACTIVE")}
                     onChange={handleFieldChange("status")}
                     size="small"
@@ -326,12 +317,12 @@ const RecordForm: React.FC<Props> = ({
                     disabled={!isEditMode}
                     helperText={
                       isEditMode
-                        ? "수정 모드에서만 상태를 변경할 수 있습니다."
-                        : "등록 시 기본값은 ACTIVE입니다."
+                        ? "수정 모드에서만 활성 여부를 변경할 수 있습니다."
+                        : "등록 시 기본값은 활성화입니다."
                     }
                   >
-                    <MenuItem value="ACTIVE">ACTIVE</MenuItem>
-                    <MenuItem value="INACTIVE">INACTIVE</MenuItem>
+                    <MenuItem value="ACTIVE">활성화</MenuItem>
+                    <MenuItem value="INACTIVE">비활성화</MenuItem>
                   </TextField>
                 </Grid>
               </Grid>
@@ -560,6 +551,18 @@ const RecordForm: React.FC<Props> = ({
 
                 <Grid size={{ xs: 12 }}>
                   <TextField
+                    label="과거력"
+                    value={toStr(form.pastMedicalHistory)}
+                    onChange={handleFieldChange("pastMedicalHistory")}
+                    size="small"
+                    fullWidth
+                    multiline
+                    minRows={3}
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12 }}>
+                  <TextField
                     label="간호 관찰 내용"
                     value={toStr(form.observation)}
                     onChange={handleFieldChange("observation")}
@@ -578,8 +581,13 @@ const RecordForm: React.FC<Props> = ({
               justifyContent="flex-end"
               sx={{ pt: 1 }}
             >
+              {isEditMode && onCancel ? (
+                <Button variant="outlined" onClick={onCancel}>
+                  취소
+                </Button>
+              ) : null}
               <Button variant="contained" onClick={handleSubmit} disabled={loading}>
-                {loading ? "저장 중..." : isEditMode ? "수정 완료" : "등록"}
+                {loading ? "저장 중..." : isEditMode ? "수정" : "등록"}
               </Button>
             </Stack>
           </Stack>

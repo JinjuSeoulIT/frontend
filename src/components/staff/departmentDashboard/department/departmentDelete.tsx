@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   Alert,
   Button,
@@ -23,7 +23,7 @@ import { DepartmentNumber } from "@/features/staff/department/departmentType";
 
   useEffect(() => {
   if (deptId) {
-  dispatch(departmentDetailRequest(deptId));
+  dispatch(departmentDetailRequest(Number(deptId)));
   }
   }, [dispatch, deptId]);
 

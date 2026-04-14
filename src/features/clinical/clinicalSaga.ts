@@ -133,7 +133,7 @@ function* startVisitSaga(action: PayloadAction<{ receptionId: number }>) {
 }
 
 export function* watchClinicalSaga() {
-  yield takeLatest(actions.fetchClinicalBootstrapRequest.type, fetchClinicalBootstrapSaga);
+  yield takeLatest(actions.fetchClinicalBootstrapRequest.type, fetchClinicalBootstrapSaga); //액션객체를 받음.
   yield takeLatest(actions.fetchReceptionQueueRequest.type, fetchReceptionQueueSaga);
   yield takeEvery(actions.persistVisitNoteRequest.type, persistVisitNoteSaga);
   yield takeLatest(actions.endVisitRequest.type, endVisitSaga);

@@ -92,7 +92,7 @@ const STATUS_FILTER_ITEMS: Array<{ key: StatusFilterKey; label: string }> = [
 ];
 
 const statusLabel = (value?: string | null) => {
-  switch (value) {
+  switch (normalizeStatus(value)) {
     case "WAITING":
       return "대기";
     case "CALLED":
@@ -132,14 +132,15 @@ const normalizeStatus = (value?: string | null) => {
     case "진료중":
       return "IN_PROGRESS";
     case "진료완료":
-      return "PAYMENT_WAIT";
+      return "TREATMENT_COMPLETED";
     case "수납중":
     case "수납대기":
-      return "PAYMENT_WAIT";
+      return "TREATMENT_COMPLETED";
     case "수납완료":
       return "COMPLETED";
     case "PAYMENT_IN_PROGRESS":
-      return "PAYMENT_WAIT";
+    case "PAYMENT_WAIT":
+      return "TREATMENT_COMPLETED";
     case "PAYMENT_COMPLETED":
       return "COMPLETED";
     case "완료":
@@ -167,12 +168,12 @@ const matchesStatusFilter = (
       normalized === "WAITING" ||
       normalized === "CALLED" ||
       normalized === "IN_PROGRESS" ||
-      normalized === "PAYMENT_WAIT" ||
+      normalized === "TREATMENT_COMPLETED" ||
       normalized === "COMPLETED"
     );
   }
   if (filter === "TREATMENT_COMPLETED") {
-    return normalized === "PAYMENT_WAIT";
+    return normalized === "TREATMENT_COMPLETED";
   }
   if (filter === "PAYMENT_COMPLETED") {
     return normalized === "COMPLETED";
@@ -202,7 +203,7 @@ const statusChipSx = (value?: string | null) => {
         color: "#ffffff",
         bgcolor: "#455a64",
       };
-    case "PAYMENT_WAIT":
+    case "TREATMENT_COMPLETED":
       return {
         color: "#ffffff",
         bgcolor: "#ef6c00",
@@ -333,7 +334,7 @@ const resolveOutpatientDepartmentName = (
 ) => {
   const byId =
     item.departmentId != null
-      ? departments.find((department) => department.departmentId === item.departmentId)
+      ? departments.find((department) => String(department.departmentId) === String(item.departmentId))
           ?.departmentName
       : undefined;
   if (byId) return byId;
@@ -381,7 +382,7 @@ export default function ReceptionList({
   autoSearch = false,
 }: ReceptionListProps) {
   const dispatch = useDispatch<AppDispatch>();
-  const { list, loading, error, selected } = useSelector(
+  const { list, loading: receptionLoading, error, selected } = useSelector(
     (s: RootState) => s.receptions
   );
 
@@ -766,7 +767,7 @@ export default function ReceptionList({
     if (!createModalOpen) return;
     const defaultDepartmentId = departments[0]?.departmentId ?? "";
     const defaultDoctorId =
-      doctors.find((doctor) => (doctor.departmentId ?? "") === defaultDepartmentId)?.doctorId ??
+      doctors.find((doctor) => String(doctor.departmentId ?? "") === String(defaultDepartmentId))?.doctorId ??
       null;
     setCreateModalForm({
       departmentId: defaultDepartmentId,
@@ -948,7 +949,7 @@ export default function ReceptionList({
   const doctorsForSelectedDepartment = React.useMemo(() => {
     if (!createModalForm.departmentId) return doctors;
     return doctors.filter(
-      (doctor) => (doctor.departmentId ?? "") === createModalForm.departmentId
+      (doctor) => String(doctor.departmentId ?? "") === String(createModalForm.departmentId)
     );
   }, [createModalForm.departmentId, doctors]);
 
@@ -960,13 +961,13 @@ export default function ReceptionList({
     }
 
     const department = departments.find(
-      (item) => item.departmentId === createModalForm.departmentId
+      (item) => String(item.departmentId) === String(createModalForm.departmentId)
     );
     if (!department) return;
 
     const doctor =
       doctors.find((item) => item.doctorId === createModalForm.doctorId) ??
-      doctors.find((item) => (item.departmentId ?? "") === department.departmentId) ??
+      doctors.find((item) => String(item.departmentId ?? "") === String(department.departmentId)) ??
       null;
     const arrivedTime = createModalForm.arrivedTime || "00:00";
     const arrivedAt = `${todayKey}T${arrivedTime}`;
@@ -1195,7 +1196,7 @@ export default function ReceptionList({
                 variant="contained"
                 startIcon={<SearchIcon />}
                 onClick={onSearch}
-                disabled={loading}
+                disabled={patientCatalogLoading}
                 sx={{
                   px: 2.1,
                   borderRadius: 2,
@@ -1210,7 +1211,6 @@ export default function ReceptionList({
                 variant="outlined"
                 startIcon={<RefreshIcon />}
                 onClick={onReset}
-                disabled={loading}
                 sx={{
                   px: 1.8,
                   borderRadius: 2,
@@ -1229,7 +1229,6 @@ export default function ReceptionList({
                 variant="outlined"
                 startIcon={<ListAltIcon />}
                 onClick={onOpenPatientListModal}
-                disabled={loading}
                 sx={{
                   px: 1.8,
                   borderRadius: 2,
@@ -1666,7 +1665,7 @@ export default function ReceptionList({
               onChange={(e) => {
                 const departmentId = e.target.value;
                 const nextDoctorId =
-                  doctors.find((doctor) => (doctor.departmentId ?? "") === departmentId)
+                  doctors.find((doctor) => String(doctor.departmentId ?? "") === String(departmentId))
                     ?.doctorId ?? null;
                 setCreateModalForm((prev) => ({
                   ...prev,
@@ -1694,7 +1693,7 @@ export default function ReceptionList({
                 setCreateModalForm((prev) => ({
                   ...prev,
                   doctorId,
-                  departmentId: doctor?.departmentId ?? prev.departmentId,
+                  departmentId: doctor?.departmentId ? String(doctor.departmentId) : prev.departmentId,
                 }));
               }}
               fullWidth
@@ -1762,14 +1761,18 @@ export default function ReceptionList({
             />
 
             <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ pt: 1 }}>
-              <Button variant="text" onClick={onCreateModalClose} disabled={loading}>
+              <Button
+                variant="text"
+                onClick={onCreateModalClose}
+                disabled={receptionLoading}
+              >
                 {"취소"}
               </Button>
               <Button
                 variant="contained"
                 onClick={onCreateModalSubmit}
                 disabled={
-                  loading ||
+                  receptionLoading ||
                   masterDataLoading ||
                   !createTargetPatient.patientName.trim() ||
                   !createModalForm.departmentId

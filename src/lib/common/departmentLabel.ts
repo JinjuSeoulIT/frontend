@@ -15,15 +15,21 @@ const DEPARTMENT_BY_NAME: Record<string, string> = {
 
 export function formatDepartmentName(
   departmentName?: string | null,
-  departmentId?:  | null
+  departmentId?: string | number | null
 ): string {
   const trimmed = departmentName?.trim();
   if (trimmed) {
     const mapped = DEPARTMENT_BY_NAME[trimmed.toLowerCase()];
     return mapped ?? trimmed;
   }
+
   if (departmentId != null) {
-    return DEPARTMENT_BY_ID[departmentId] ?? `진료과 ${departmentId}`;
+    const normalizedDepartmentId = Number(departmentId);
+    if (Number.isFinite(normalizedDepartmentId)) {
+      return DEPARTMENT_BY_ID[normalizedDepartmentId] ?? `진료과 ${normalizedDepartmentId}`;
+    }
+    return String(departmentId);
   }
+
   return "-";
 }

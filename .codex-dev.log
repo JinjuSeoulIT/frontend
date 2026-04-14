@@ -1,0 +1,42 @@
+
+> hospital@0.1.0 dev
+> next dev -p 3001
+
+▲ Next.js 16.1.1 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://172.24.64.1:3001
+- Environments: .env.local
+
+✓ Starting...
+✓ Ready in 2.3s
+⚠ Blocked cross-origin request from 192.168.1.54 to /_next/* resource. To allow this, configure "allowedDevOrigins" in next.config
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+ GET /login?next=%2F 200 in 1465ms (compile: 943ms, render: 522ms)
+ GET /medical_support/testExecution/edit/TEST_EXECUTION_1775626387345 200 in 1148ms (compile: 720ms, proxy.ts: 51ms, render: 377ms)
+ GET /medical_support/testExecution/edit/TEST_EXECUTION_1775626387345 200 in 270ms (compile: 28ms, proxy.ts: 16ms, render: 226ms)
+ GET /login 200 in 136ms (compile: 7ms, render: 129ms)
+(node:21432) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ POST /api/session/auth 200 in 973ms (compile: 930ms, render: 42ms)
+ GET / 200 in 524ms (compile: 295ms, proxy.ts: 181ms, render: 48ms)
+ GET /medical_support/dashboard 200 in 623ms (compile: 128ms, proxy.ts: 143ms, render: 352ms)
+ GET /medical_support/dashboard 200 in 378ms (compile: 10ms, proxy.ts: 127ms, render: 242ms)
+✓ Compiled in 1561ms
+ GET /medical_support/testExecution/edit/TEST_EXECUTION_1775626387345 200 in 1881ms (compile: 323ms, proxy.ts: 14ms, render: 1544ms)
+ GET /medical_support/testExecution/edit/TEST_EXECUTION_1775626387345 200 in 282ms (compile: 22ms, proxy.ts: 14ms, render: 246ms)
+ GET /medical_support/testExecution/edit/TEST_EXECUTION_1775626387345 200 in 221ms (compile: 19ms, proxy.ts: 9ms, render: 193ms)
+ GET /medical_support/testExecution/edit/TEST_EXECUTION_1775626387345 200 in 185ms (compile: 15ms, proxy.ts: 6ms, render: 164ms)
+ GET / 200 in 117ms (compile: 86ms, proxy.ts: 5ms, render: 26ms)
+ GET /medical_support/dashboard 200 in 122ms (compile: 89ms, proxy.ts: 6ms, render: 26ms)
+ GET /medical_support/exam 200 in 103ms (compile: 69ms, proxy.ts: 15ms, render: 19ms)
+ GET /medical_support/exam 200 in 277ms (compile: 4ms, proxy.ts: 4ms, render: 269ms)
+ GET /medical_support/imaging/list 200 in 101ms (compile: 77ms, proxy.ts: 4ms, render: 20ms)
+ GET /medical_support/imaging/edit/IMG_1775631324536 200 in 529ms (compile: 489ms, proxy.ts: 14ms, render: 26ms)
+ GET /medical_support/imaging/list 200 in 28ms (compile: 4ms, proxy.ts: 3ms, render: 21ms)
+ GET /medical_support/testExecution/list 200 in 89ms (compile: 65ms, proxy.ts: 4ms, render: 20ms)
+ GET /medical_support/pathology/list 200 in 150ms (compile: 105ms, proxy.ts: 5ms, render: 41ms)
+ GET /medical_support/testExecution/list 200 in 37ms (compile: 6ms, proxy.ts: 5ms, render: 26ms)
+ GET /medical_support/physiological/list 200 in 118ms (compile: 80ms, proxy.ts: 4ms, render: 34ms)
+ GET /medical_support/exam 200 in 133ms (compile: 5ms, proxy.ts: 7ms, render: 121ms)
+ GET /medical_support/exam 200 in 137ms (compile: 16ms, proxy.ts: 21ms, render: 100ms)
+^C^C

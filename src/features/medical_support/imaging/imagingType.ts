@@ -2,8 +2,14 @@ export interface ImagingExam {
   imagingExamId: string | number;
   testExecutionId?: string | number | null;
   imagingType?: string | null;
-  examStatusYn?: string | null;
-  examAt?: string | null;
+  detailCode?: string | null;
+  patientId?: string | number | null;
+  patientName?: string | null;
+  departmentName?: string | null;
+  performerId?: string | number | null;
+  performerName?: string | null;
+  progressStatus?: string | null;
+  status?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
@@ -11,13 +17,27 @@ export interface ImagingExam {
 export interface ImagingExamCreatePayload {
   testExecutionId?: string | number | null;
   imagingType?: string | null;
-  examStatusYn?: string | null;
-  examAt?: string | null;
+  patientId?: string | number | null;
+  patientName?: string | null;
+  departmentName?: string | null;
+  performerId?: string | number | null;
+  performerName?: string | null;
+  progressStatus?: string | null;
+  status?: string | null;
 }
 
 export interface ImagingExamUpdatePayload {
+  imagingExamId?: string | number | null;
   testExecutionId?: string | number | null;
   imagingType?: string | null;
-  examStatusYn?: string | null;
-  examAt?: string | null;
+  detailCode?: string | null;
+  patientId?: string | number | null;
+  patientName?: string | null;
+  departmentName?: string | null;
+  performerId?: string | number | null;
+  performerName?: string | null;
+  progressStatus?: string | null;
+  status?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }

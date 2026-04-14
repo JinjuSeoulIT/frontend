@@ -200,6 +200,13 @@ function mapClinicalVitalsToRecordVitalsLine(
   if (res.pulse != null) out.pulse = String(res.pulse);
   if (res.respiratoryRate != null) out.respiration = String(res.respiratoryRate);
   if (res.temperature != null) out.temperature = String(res.temperature);
+  if (res.heightCm != null && String(res.heightCm).trim() !== "") out.heightCm = res.heightCm;
+  if (res.weightKg != null && String(res.weightKg).trim() !== "") out.weightKg = res.weightKg;
+  if (res.spo2 != null && String(res.spo2).trim() !== "") out.spo2 = String(res.spo2);
+  if (res.painScore != null && String(res.painScore).trim() !== "") out.painScore = String(res.painScore);
+  if (res.consciousnessLevel != null && String(res.consciousnessLevel).trim() !== "") {
+    out.consciousnessLevel = res.consciousnessLevel;
+  }
   return out;
 }
 

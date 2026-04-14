@@ -56,11 +56,11 @@ function DetailItem({
 
 function StatusChip({ status }: { status?: string | null }) {
   if (status === "ACTIVE") {
-    return <Chip label="ACTIVE" color="success" size="small" />;
+    return <Chip label="활성화" color="success" size="small" />;
   }
 
   if (status === "INACTIVE") {
-    return <Chip label="INACTIVE" color="default" size="small" />;
+    return <Chip label="비활성화" color="default" size="small" />;
   }
 
   return <Chip label={status || "-"} color="default" size="small" />;
@@ -215,6 +215,12 @@ export default function RecordDetail() {
             </Box>
 
             <Stack direction="row" spacing={1} flexWrap="wrap">
+              <Link href="/medical_support/record/list">
+                <Button variant="outlined" size="small">
+                  목록으로
+                </Button>
+              </Link>
+
               <Link href={`/medical_support/record/edit/${recordId}`}>
                 <Button variant="outlined" size="small">
                   수정
@@ -257,18 +263,21 @@ export default function RecordDetail() {
                   <DetailItem label="간호사명" value={record.nurseName || "-"} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
+                  <DetailItem label="환자 ID" value={record.patientId ?? "-"} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem label="간호사 ID" value={record.nursingId || "-"} />
                 </Grid>
                 {/* <Grid size={{ xs: 12, md: 6 }}>
-                  <DetailItem label="진료 ID" value={record.visitId || "-"} />
+                  <DetailItem label="진료 ID" value="-" />
                 </Grid> */}
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem label="진료과" value={record.departmentName || "-"} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem
-                    label="기록일시"
-                    value={formatDateTime(record.recordedAt)}
+                    label="생성일시"
+                    value={formatDateTime(record.createdAt ?? record.recordedAt)}
                   />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
@@ -278,7 +287,7 @@ export default function RecordDetail() {
                       color="text.secondary"
                       sx={{ mb: 0.5, fontWeight: 500 }}
                     >
-                      상태
+                      활성 여부
                     </Typography>
                     <StatusChip status={record.status} />
                   </Box>
@@ -355,7 +364,7 @@ export default function RecordDetail() {
                 간호 평가 및 상태 정보
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                초기 문진, 관찰 내용, 수정일시를 확인할 수 있습니다.
+                초기 문진, 과거력, 관찰 내용, 수정일시를 확인할 수 있습니다.
               </Typography>
 
               <Grid container spacing={2}>
@@ -367,16 +376,16 @@ export default function RecordDetail() {
                 </Grid>
                 <Grid size={{ xs: 12 }}>
                   <DetailItem
+                    label="과거력"
+                    value={record.pastMedicalHistory || "-"}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <DetailItem
                     label="간호 관찰 내용"
                     value={record.observation || "-"}
                   />
                 </Grid>
-                {/* <Grid size={{ xs: 12, md: 6 }}>
-                  <DetailItem
-                    label="생성일시"
-                    value={formatDateTime(record.createdAt)}
-                  />
-                </Grid> */}
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem
                     label="수정일시"

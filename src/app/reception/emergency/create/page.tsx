@@ -10,7 +10,7 @@ import { emergencyReceptionActions } from "@/features/EmergencyReception/Emergen
 import type { EmergencyReceptionForm as EmergencyReceptionFormPayload } from "@/features/EmergencyReception/EmergencyReceptionTypes";
 import EmergencyReceptionForm from "@/components/reception/EmergencyReceptionForm";
 
-export default function NewEmergencyReceptionPage() {
+function NewEmergencyReceptionPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useDispatch<AppDispatch>();
@@ -90,5 +90,13 @@ export default function NewEmergencyReceptionPage() {
         onCancel={() => router.push("/reception/emergency/list")}
       />
     </MainLayout>
+  );
+}
+
+export default function NewEmergencyReceptionPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <NewEmergencyReceptionPageContent />
+    </React.Suspense>
   );
 }

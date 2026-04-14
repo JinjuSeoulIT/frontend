@@ -27,6 +27,11 @@ export type VitalSignsRes = {
   measuredAt?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+  heightCm?: string | number | null;
+  weightKg?: string | number | null;
+  spo2?: string | number | null;
+  painScore?: string | number | null;
+  consciousnessLevel?: string | null;
 };
 
 export type VitalSignsCreatePayload = {

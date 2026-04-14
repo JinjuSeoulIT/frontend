@@ -23,6 +23,7 @@ import endoscopiesReducer from "@/features/medical_support/endoscopy/endoscopySl
 import physiologicalsReducer from "@/features/medical_support/physiological/physiologicalSlice";
 import medicationRecordsReducer from "@/features/medical_support/medicationRecord/medicationRecordSlice";
 import treatmentResultsReducer from "@/features/medical_support/treatmentResult/treatmentResultSlice";
+import testResultsReducer from "@/features/medical_support/testResult/testResultSlice";
 import clinicalReducer from "@/features/clinical/clinicalSlice";
 import { medicalReducer, specialtyReducer } from "@/features/staff/doctor/MedicalSpecialty/medicalSpecialtySlice";
 
@@ -43,6 +44,7 @@ const rootReducer = combineReducers({
   physiologicals: physiologicalsReducer,
   medicationRecords: medicationRecordsReducer,
   treatmentResults: treatmentResultsReducer,
+  testResults: testResultsReducer,
   receptions: receptionsReducer,
   reservations: reservationsReducer,
   nurse: employeeNurseReducer,

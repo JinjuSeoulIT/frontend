@@ -40,8 +40,9 @@ const RecordEdit = () => {
 
     return {
       recordId: selected.recordId ?? "",
+      receptionId: selected.receptionId ?? null,
+      patientId: selected.patientId ?? null,
       nursingId: selected.nursingId ?? "",
-      visitId: selected.visitId ?? "",
       recordedAt: selected.recordedAt ?? "",
       systolicBp: selected.systolicBp ?? "",
       diastolicBp: selected.diastolicBp ?? "",
@@ -53,6 +54,7 @@ const RecordEdit = () => {
       painScore: selected.painScore ?? "",
       consciousnessLevel: selected.consciousnessLevel ?? "",
       initialAssessment: selected.initialAssessment ?? "",
+      pastMedicalHistory: selected.pastMedicalHistory ?? "",
       status: selected.status ?? "",
       createdAt: selected.createdAt ?? "",
       updatedAt: selected.updatedAt ?? "",
@@ -123,6 +125,10 @@ const RecordEdit = () => {
         form={form}
         onChange={setDraftForm}
         onSubmit={handleSubmit}
+        onCancel={() => router.push(`/medical_support/record/detail/${recordId}`)}
+        onNavigateDetail={() =>
+          router.push(`/medical_support/record/detail/${recordId}`)
+        }
         loading={loading}
       />
     </main>

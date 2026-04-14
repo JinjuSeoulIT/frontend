@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 interface ApiResponse<T> {
@@ -24,7 +24,7 @@ interface TossPaymentContext {
   orderId: string;
 }
 
-export default function TossSuccessPage() {
+function TossSuccessPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const hasRequestedRef = useRef(false);
@@ -343,5 +343,13 @@ export default function TossSuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TossSuccessPage() {
+  return (
+    <Suspense fallback={null}>
+      <TossSuccessPageContent />
+    </Suspense>
   );
 }

@@ -104,7 +104,7 @@ const clinicalSlice = createSlice({
     clearEndVisitOutcome: (state) => {
       state.endVisitPhase = "idle";
       state.endVisitError = null;
-    },
+    },                                                                                                                                             
   },
 });
 

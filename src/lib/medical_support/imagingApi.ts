@@ -11,20 +11,36 @@ const api = axios.create({
     process.env.NEXT_PUBLIC_NURSING_API_BASE_URL ?? "http://192.168.1.66:8181",
 });
 
+type ImagingExamApiRaw = ImagingExam & {
+  IMAGING_TYPE?: string | null;
+  imaging_type?: string | null;
+  DETAIL_CODE?: string | null;
+  PERFORMER_NAME?: string | null;
+  performer_name?: string | null;
+};
+
+const normalizeImagingExam = (item: ImagingExamApiRaw): ImagingExam => ({
+  ...item,
+  imagingType: item.imagingType ?? item.IMAGING_TYPE ?? item.imaging_type ?? null,
+  detailCode: item.detailCode ?? item.DETAIL_CODE ?? null,
+  performerName:
+    item.performerName ?? item.PERFORMER_NAME ?? item.performer_name ?? null,
+});
+
 export const fetchImagingExamsApi = async (): Promise<ImagingExam[]> => {
-  const res = await api.get<ApiResponse<ImagingExam[]>>("/api/imaging");
+  const res = await api.get<ApiResponse<ImagingExamApiRaw[]>>("/api/imaging");
 
   if (!res.data.success) {
     throw new Error(res.data.message || "영상 검사 목록 조회에 실패했습니다.");
   }
 
-  return res.data.result;
+  return (res.data.result ?? []).map(normalizeImagingExam);
 };
 
 export const fetchImagingExamApi = async (
   imagingExamId: string | number
 ): Promise<ImagingExam> => {
-  const res = await api.get<ApiResponse<ImagingExam>>(
+  const res = await api.get<ApiResponse<ImagingExamApiRaw>>(
     `/api/imaging/${imagingExamId}`
   );
 
@@ -32,26 +48,29 @@ export const fetchImagingExamApi = async (
     throw new Error(res.data.message || "영상 검사 상세 조회에 실패했습니다.");
   }
 
-  return res.data.result;
+  return normalizeImagingExam((res.data.result ?? {}) as ImagingExamApiRaw);
 };
 
 export const createImagingExamApi = async (
   payload: ImagingExamCreatePayload
 ): Promise<ImagingExam> => {
-  const res = await api.post<ApiResponse<ImagingExam>>("/api/imaging", payload);
+  const res = await api.post<ApiResponse<ImagingExamApiRaw>>(
+    "/api/imaging",
+    payload
+  );
 
   if (!res.data.success) {
     throw new Error(res.data.message || "영상 검사 등록에 실패했습니다.");
   }
 
-  return res.data.result;
+  return normalizeImagingExam((res.data.result ?? {}) as ImagingExamApiRaw);
 };
 
 export const updateImagingExamApi = async (
   imagingExamId: string | number,
   payload: ImagingExamUpdatePayload
 ): Promise<ImagingExam> => {
-  const res = await api.put<ApiResponse<ImagingExam>>(
+  const res = await api.put<ApiResponse<ImagingExamApiRaw>>(
     `/api/imaging/${imagingExamId}`,
     payload
   );
@@ -60,5 +79,5 @@ export const updateImagingExamApi = async (
     throw new Error(res.data.message || "영상 검사 수정에 실패했습니다.");
   }
 
-  return res.data.result;
+  return normalizeImagingExam((res.data.result ?? {}) as ImagingExamApiRaw);
 };

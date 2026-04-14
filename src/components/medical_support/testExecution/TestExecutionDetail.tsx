@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -15,7 +15,10 @@ import {
   Typography,
 } from "@mui/material";
 import type { TestExecution } from "@/features/medical_support/testExecution/testExecutionType";
-import { fetchTestExecutionApi } from "@/lib/medical_support/testExecutionApi";
+import {
+  fetchTestExecutionApi,
+  updateTestExecutionApi,
+} from "@/lib/medical_support/testExecutionApi";
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return "-";
@@ -47,6 +50,20 @@ const safeValue = (value?: string | number | null) => {
 const normalizeStatus = (value?: string | null) =>
   value?.trim().toUpperCase() ?? "";
 
+const normalizeActiveStatus = (value?: string | null) =>
+  value?.trim().toUpperCase() === "INACTIVE" ? "INACTIVE" : "ACTIVE";
+
+const formatProgressStatusLabel = (status?: string | null) => {
+  const normalized = normalizeStatus(status);
+
+  if (normalized === "WAITING") return "대기중";
+  if (normalized === "IN_PROGRESS") return "검사중";
+  if (normalized === "COMPLETED") return "검사완료";
+  if (normalized === "CANCELLED") return "취소";
+
+  return safeValue(status);
+};
+
 const getStatusColor = (
   status?: string | null
 ): "default" | "info" | "warning" | "success" => {
@@ -57,6 +74,15 @@ const getStatusColor = (
   if (normalized === "WAITING") return "warning";
 
   return "default";
+};
+
+const formatActiveStatusLabel = (status?: string | null) =>
+  normalizeActiveStatus(status) === "INACTIVE" ? "비활성" : "활성";
+
+const getActiveStatusColor = (
+  status?: string | null
+): "default" | "success" => {
+  return normalizeActiveStatus(status) === "INACTIVE" ? "default" : "success";
 };
 
 function DetailItem({
@@ -88,31 +114,73 @@ export default function TestExecutionDetail() {
 
   const [item, setItem] = useState<TestExecution | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadDetail = useCallback(async () => {
     if (!testExecutionId) return;
 
-    const loadDetail = async () => {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      try {
-        const data = await fetchTestExecutionApi(testExecutionId);
-        setItem(data);
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "검사수행 상세 데이터를 불러오지 못했습니다."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void loadDetail();
+    try {
+      const data = await fetchTestExecutionApi(testExecutionId);
+      setItem(data);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "검사수행 상세 데이터를 불러오지 못했습니다."
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [testExecutionId]);
+
+  useEffect(() => {
+    void loadDetail();
+  }, [loadDetail]);
+
+  const handleToggleActiveStatus = async () => {
+    if (!testExecutionId || !item || isUpdating) return;
+
+    const currentStatus = normalizeActiveStatus(item.status);
+    const nextStatus = currentStatus === "INACTIVE" ? "ACTIVE" : "INACTIVE";
+    const actionLabel = nextStatus === "INACTIVE" ? "비활성화" : "활성화";
+
+    if (
+      !window.confirm(
+        `활성 여부만 즉시 반영됩니다. 검사 수행을 ${actionLabel}하시겠습니까?`
+      )
+    ) {
+      return;
+    }
+
+    setIsUpdating(true);
+
+    try {
+      await updateTestExecutionApi(testExecutionId, {
+        progressStatus: item.progressStatus ?? null,
+        status: nextStatus,
+        retryNo: item.retryNo ?? null,
+        patientId: item.patientId ?? null,
+        patientName: item.patientName ?? null,
+        departmentName: item.departmentName ?? null,
+        performerId: item.performerId ?? null,
+      });
+
+      alert(`검사 수행이 ${actionLabel}되었습니다.`);
+      await loadDetail();
+    } catch (err) {
+      alert(
+        err instanceof Error
+          ? err.message
+          : `검사 수행 ${actionLabel}에 실패했습니다.`
+      );
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   if (!testExecutionId) {
     return (
@@ -169,7 +237,22 @@ export default function TestExecutionDetail() {
               </Typography>
             </Box>
 
-            <Stack direction="row" spacing={1}>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              <Button
+                variant="outlined"
+                size="small"
+                color={
+                  normalizeActiveStatus(item.status) === "INACTIVE"
+                    ? "success"
+                    : "warning"
+                }
+                onClick={handleToggleActiveStatus}
+                disabled={loading || isUpdating}
+              >
+                {normalizeActiveStatus(item.status) === "INACTIVE"
+                  ? "활성화"
+                  : "비활성화"}
+              </Button>
               <Link href={`/medical_support/testExecution/edit/${item.testExecutionId}`}>
                 <Button variant="contained" size="small">
                   수정
@@ -216,9 +299,30 @@ export default function TestExecutionDetail() {
                       진행상태
                     </Typography>
                     <Chip
-                      label={safeValue(item.progressStatus)}
+                      label={formatProgressStatusLabel(item.progressStatus)}
                       color={getStatusColor(item.progressStatus)}
                       size="small"
+                    />
+                  </Box>
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Box>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 0.5, fontWeight: 500 }}
+                    >
+                      활성 여부
+                    </Typography>
+                    <Chip
+                      label={formatActiveStatusLabel(item.status)}
+                      color={getActiveStatusColor(item.status)}
+                      size="small"
+                      variant={
+                        normalizeActiveStatus(item.status) === "INACTIVE"
+                          ? "outlined"
+                          : "filled"
+                      }
                     />
                   </Box>
                 </Grid>
@@ -239,9 +343,9 @@ export default function TestExecutionDetail() {
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem label="재시도횟수" value={safeValue(item.retryNo)} />
                 </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
+                {/* <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem label="수행자 ID" value={safeValue(item.performerId)} />
-                </Grid>
+                </Grid> */}
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem label="시작일시" value={formatDateTime(item.startedAt)} />
                 </Grid>

@@ -388,7 +388,7 @@ export default function TestExecutionForm({
           >
             {showDetailCodeField ? (
               <TextField
-                label="검사명"
+                label="검사코드"
                 value={form.detailCode}
                 size="small"
                 fullWidth

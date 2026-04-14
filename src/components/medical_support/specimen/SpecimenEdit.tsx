@@ -281,7 +281,7 @@ export default function SpecimenEdit() {
 
                 <Box sx={{ gridColumn: { md: "1 / -1" } }}>
                   <TextField
-                    label="검사명"
+                    label="검사코드"
                     size="small"
                     value={form.detailCode}
                     fullWidth

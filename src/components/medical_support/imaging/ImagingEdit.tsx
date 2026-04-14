@@ -249,7 +249,7 @@ export default function ImagingEdit() {
                 />
 
                 <TextField
-                  label="검사명"
+                  label="검사코드"
                   size="small"
                   value={form.detailCode}
                   fullWidth

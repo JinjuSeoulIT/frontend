@@ -35,6 +35,12 @@ export interface PathologyTestResultDetailData extends BaseTestResultDetailData 
   judgedAt?: string | null;
   readerId?: string | null;
   diagnosisName?: string | null;
+  tissueStatus?: string | null;
+  collectionMethod?: string | null;
+  tissueSite?: string | null;
+  tissueType?: string | null;
+  collectedAt?: string | null;
+  reexamYn?: string | null;
 }
 
 export interface EndoscopyTestResultDetailData extends BaseTestResultDetailData {
@@ -46,6 +52,9 @@ export interface PhysiologicalTestResultDetailData
   extends BaseTestResultDetailData {
   report?: string | null;
   measuredItemCode?: string | null;
+  examEquipmentId?: string | null;
+  rawData?: string | null;
+  reportDocId?: string | null;
 }
 
 export type TestResultDetailData =

@@ -195,7 +195,7 @@ export default function PhysiologicalEdit() {
 
           <Button
             variant="outlined"
-            onClick={() => router.push("/medical_support/physiological/list")}
+            onClick={() => router.push("/medical_support/testResult/list")}
           >
             목록으로
           </Button>

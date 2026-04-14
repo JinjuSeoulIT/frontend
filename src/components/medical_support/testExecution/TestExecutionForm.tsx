@@ -4,10 +4,9 @@ import type { ChangeEvent } from "react";
 import {
   Box,
   Button,
-  Divider,
-  Grid,
+  Card,
+  CardContent,
   MenuItem,
-  Paper,
   Stack,
   TextField,
   Typography,
@@ -226,18 +225,24 @@ export default function TestExecutionForm({
       });
     };
 
+  const showPatientNameField = isEditMode || Boolean(form.patientName);
+  const showDepartmentField = isEditMode || Boolean(form.departmentName);
+  const showDetailCodeField = isEditMode || Boolean(form.detailCode);
+  const showHistorySection = isEditMode;
+
   return (
-    <Box sx={{ px: 3, py: 3, maxWidth: 1040, mx: "auto" }}>
-      <Paper
-        elevation={2}
+    <Box sx={{ maxWidth: 1040, mx: "auto", px: { xs: 2, md: 3 }, py: 3, pb: 2 }}>
+      <Card
+        elevation={0}
         sx={{
-          borderRadius: 3,
-          overflow: "hidden",
+          mb: 2,
+          borderRadius: 2,
           border: "1px solid",
           borderColor: "grey.200",
+          backgroundColor: "#fff",
         }}
       >
-        <Box sx={{ px: 3, py: 2.5, backgroundColor: "#fafafa" }}>
+        <CardContent sx={{ px: { xs: 2, md: 3 }, py: 2.5 }}>
           <Stack
             direction={{ xs: "column", sm: "row" }}
             justifyContent="space-between"
@@ -250,8 +255,8 @@ export default function TestExecutionForm({
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                 {isEditMode
-                  ? "검사 시작 전 식별 정보와 진행 상태를 확인하고 필요한 값만 등록합니다."
-                  : "검사 수행 정보를 입력하고 등록합니다."}
+                  ? "검사 시작 전 필요한 식별 정보와 수행 상태를 확인하고 등록합니다."
+                  : "검사 수행에 필요한 기본 정보와 상태를 입력합니다."}
               </Typography>
             </Box>
 
@@ -276,246 +281,400 @@ export default function TestExecutionForm({
               </Stack>
             ) : null}
           </Stack>
+        </CardContent>
+      </Card>
+
+      <Card
+        elevation={0}
+        sx={{
+          mb: 2,
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: "grey.200",
+          backgroundColor: "#fff",
+        }}
+      >
+        <Box
+          sx={{
+            px: { xs: 2, md: 3 },
+            py: 2,
+            borderBottom: "1px solid",
+            borderColor: "grey.200",
+            backgroundColor: "#fafafa",
+          }}
+        >
+          <Typography variant="subtitle1" fontWeight={700}>
+            기본 식별 정보
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+            검사 수행과 오더를 식별하는 기준 정보를 확인합니다.
+          </Typography>
         </Box>
 
-        <Divider />
+        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+          <Box
+            sx={{
+              display: "grid",
+              gap: 1.75,
+              gridTemplateColumns: {
+                xs: "1fr",
+                md: "repeat(2, minmax(0, 1fr))",
+              },
+            }}
+          >
+            <TextField
+              label="검사수행 ID"
+              value={form.testExecutionId}
+              onChange={handleChange("testExecutionId")}
+              size="small"
+              fullWidth
+              {...(isEditMode ? readOnlyTextFieldProps : {})}
+              helperText={
+                isEditMode
+                  ? "시작 화면에서는 검사수행 ID를 변경하지 않습니다."
+                  : "자동 생성되면 비워둬도 됩니다."
+              }
+            />
 
-        <Box sx={{ p: 3 }}>
-          <Stack spacing={4}>
-            <Box>
-              <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>
-                기본 정보
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                공통 식별 정보와 업무 식별 정보를 확인합니다.
-              </Typography>
+            <TextField
+              label="오더항목 ID"
+              value={form.orderItemId}
+              onChange={handleChange("orderItemId")}
+              size="small"
+              fullWidth
+              {...(isEditMode ? readOnlyTextFieldProps : {})}
+            />
+          </Box>
+        </CardContent>
+      </Card>
 
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    label="검사수행 ID"
-                    value={form.testExecutionId}
-                    onChange={handleChange("testExecutionId")}
-                    size="small"
-                    fullWidth
-                    {...(isEditMode ? readOnlyTextFieldProps : {})}
-                    helperText={
-                      isEditMode
-                        ? "시작 화면에서는 검사수행 ID를 변경하지 않습니다."
-                        : "자동 생성되면 비워둬도 됩니다."
-                    }
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    label="오더항목 ID"
-                    value={form.orderItemId}
-                    onChange={handleChange("orderItemId")}
-                    size="small"
-                    fullWidth
-                    {...(isEditMode ? readOnlyTextFieldProps : {})}
-                  />
-                </Grid>
+      <Card
+        elevation={0}
+        sx={{
+          mb: 2,
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: "grey.200",
+          backgroundColor: "#fff",
+        }}
+      >
+        <Box
+          sx={{
+            px: { xs: 2, md: 3 },
+            py: 2,
+            borderBottom: "1px solid",
+            borderColor: "grey.200",
+            backgroundColor: "#fafafa",
+          }}
+        >
+          <Typography variant="subtitle1" fontWeight={700}>
+            검사 및 환자 정보
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+            검사 종류와 대상 환자 정보를 묶어서 확인합니다.
+          </Typography>
+        </Box>
 
-                {isEditMode || Boolean(form.detailCode) ? (
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      label="검사명"
-                      value={form.detailCode}
-                      size="small"
-                      fullWidth
-                      {...readOnlyTextFieldProps}
-                    />
-                  </Grid>
-                ) : null}
+        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+          <Box
+            sx={{
+              display: "grid",
+              gap: 1.75,
+              gridTemplateColumns: {
+                xs: "1fr",
+                md: "repeat(2, minmax(0, 1fr))",
+              },
+            }}
+          >
+            {showDetailCodeField ? (
+              <TextField
+                label="검사명"
+                value={form.detailCode}
+                size="small"
+                fullWidth
+                {...readOnlyTextFieldProps}
+              />
+            ) : null}
 
-                {isEditMode && (
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      label="환자명"
-                      value={form.patientName}
-                      size="small"
-                      fullWidth
-                      {...readOnlyTextFieldProps}
-                    />
-                  </Grid>
-                )}
+            <TextField
+              select
+              label="검사유형"
+              value={form.executionType}
+              onChange={handleChange("executionType")}
+              size="small"
+              fullWidth
+              disabled={isEditMode}
+            >
+              <MenuItem value="">선택</MenuItem>
+              {TEST_EXECUTION_TYPE_OPTIONS.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </TextField>
 
-                {isEditMode && (
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      label="진료과"
-                      value={form.departmentName}
-                      size="small"
-                      fullWidth
-                      {...readOnlyTextFieldProps}
-                    />
-                  </Grid>
-                )}
+            {showPatientNameField ? (
+              <TextField
+                label="환자명"
+                value={form.patientName}
+                size="small"
+                fullWidth
+                {...readOnlyTextFieldProps}
+              />
+            ) : null}
 
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    select
-                    label="검사유형"
-                    value={form.executionType}
-                    onChange={handleChange("executionType")}
-                    size="small"
-                    fullWidth
-                    disabled={isEditMode}
-                  >
-                    <MenuItem value="">선택</MenuItem>
-                    {TEST_EXECUTION_TYPE_OPTIONS.map((option) => (
-                      <MenuItem key={option} value={option}>
-                        {option}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    select
-                    label="진행상태"
-                    value={form.progressStatus}
-                    onChange={handleChange("progressStatus")}
-                    size="small"
-                    fullWidth
-                  >
-                    <MenuItem value="">선택</MenuItem>
-                    {visibleProgressStatusOptions.map((option) => {
-                      const isReadOnlyStatus =
-                        !editableProgressStatusOptions.includes(
-                          option as (typeof editableProgressStatusOptions)[number]
-                        );
+            {showDepartmentField ? (
+              <TextField
+                label="진료과"
+                value={form.departmentName}
+                size="small"
+                fullWidth
+                {...readOnlyTextFieldProps}
+              />
+            ) : null}
+          </Box>
+        </CardContent>
+      </Card>
 
-                      return (
-                        <MenuItem key={option} value={option} disabled={isReadOnlyStatus}>
-                          {progressStatusOptionLabels[option]}
-                        </MenuItem>
-                      );
-                    })}
-                  </TextField>
-                </Grid>
-                {isEditMode && (
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      select
-                      label="활성여부"
-                      value={form.status}
-                      onChange={handleChange("status")}
-                      size="small"
-                      fullWidth
-                      helperText="비활성 상태에서는 검사 시작이 제한됩니다."
-                    >
-                      <MenuItem value="ACTIVE">활성</MenuItem>
-                      <MenuItem value="INACTIVE">비활성</MenuItem>
-                    </TextField>
-                  </Grid>
-                )}
+      <Card
+        elevation={0}
+        sx={{
+          mb: 2,
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: "grey.200",
+          backgroundColor: "#fff",
+        }}
+      >
+        <Box
+          sx={{
+            px: { xs: 2, md: 3 },
+            py: 2,
+            borderBottom: "1px solid",
+            borderColor: "grey.200",
+            backgroundColor: "#fafafa",
+          }}
+        >
+          <Typography variant="subtitle1" fontWeight={700}>
+            수행 상태 및 담당자 정보
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+            검사 진행 상태와 담당자, 재시도 정보를 함께 관리합니다.
+          </Typography>
+        </Box>
 
-                {isEditMode && (
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      label="검사수행자 ID"
-                      value={form.performerId}
-                      onChange={handleChange("performerId")}
-                      size="small"
-                      fullWidth
-                    />
-                  </Grid>
-                )}
+        <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+          <Box
+            sx={{
+              display: "grid",
+              gap: 1.75,
+              gridTemplateColumns: {
+                xs: "1fr",
+                md: "repeat(2, minmax(0, 1fr))",
+              },
+            }}
+          >
+            <TextField
+              select
+              label="진행상태"
+              value={form.progressStatus}
+              onChange={handleChange("progressStatus")}
+              size="small"
+              fullWidth
+            >
+              <MenuItem value="">선택</MenuItem>
+              {visibleProgressStatusOptions.map((option) => {
+                const isReadOnlyStatus =
+                  !editableProgressStatusOptions.includes(
+                    option as (typeof editableProgressStatusOptions)[number]
+                  );
 
-                {isEditMode && (
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      label="검사수행자명"
-                      value={form.performerName}
-                      onChange={handleChange("performerName")}
-                      size="small"
-                      fullWidth
-                    />
-                  </Grid>
-                )}
-              </Grid>
-            </Box>
+                return (
+                  <MenuItem key={option} value={option} disabled={isReadOnlyStatus}>
+                    {progressStatusOptionLabels[option]}
+                  </MenuItem>
+                );
+              })}
+            </TextField>
 
-            <Divider />
-
-            <Box>
-              <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>
-                처리 및 이력 정보
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                진행상태와 재시도 횟수는 조정할 수 있고, 나머지 이력 컬럼은 읽기 전용으로
-                보여집니다.
-              </Typography>
-
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    label="재시도횟수"
-                    value={form.retryNo}
-                    onChange={handleChange("retryNo")}
-                    size="small"
-                    fullWidth
-                    inputProps={{ inputMode: "numeric", min: 0 }}
-                  />
-                </Grid>
-
-                {isEditMode && (
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      label="생성일시"
-                      value={formatReadOnlyDateTime(form.createdAt)}
-                      size="small"
-                      fullWidth
-                      {...readOnlyTextFieldProps}
-                    />
-                  </Grid>
-                )}
-
-                {isEditMode && (
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      label="수정일시"
-                      value={formatReadOnlyDateTime(form.updatedAt)}
-                      size="small"
-                      fullWidth
-                      {...readOnlyTextFieldProps}
-                      helperText="감사 이력 컬럼으로 시작 화면에서는 읽기 전용입니다."
-                    />
-                  </Grid>
-                )}
-              </Grid>
-            </Box>
-
-            <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ pt: 1 }}>
-              {isEditMode && onCancelExecution ? (
-                <Button
-                  variant="outlined"
-                  color="error"
-                  onClick={onCancelExecution}
-                  disabled={loading || cancelExecutionDisabled}
-                >
-                  검사 취소
-                </Button>
-              ) : null}
-              <Button
-                variant="contained"
-                onClick={onSubmit}
-                disabled={loading || submitDisabled}
+            {isEditMode ? (
+              <TextField
+                select
+                label="활성여부"
+                value={form.status}
+                onChange={handleChange("status")}
+                size="small"
+                fullWidth
+                helperText="비활성 상태에서는 검사 시작이 제한됩니다."
               >
-                {loading
-                  ? isEditMode
-                    ? "검사 시작 준비 중..."
-                    : "등록 중..."
-                  : isEditMode
-                    ? "검사 시작"
-                    : "등록"}
-              </Button>
+                <MenuItem value="ACTIVE">활성</MenuItem>
+                <MenuItem value="INACTIVE">비활성</MenuItem>
+              </TextField>
+            ) : null}
+
+            <TextField
+              label="재시도횟수"
+              value={form.retryNo}
+              onChange={handleChange("retryNo")}
+              size="small"
+              fullWidth
+              inputProps={{ inputMode: "numeric", min: 0 }}
+            />
+
+            {isEditMode ? (
+              <TextField
+                label="검사수행자 ID"
+                value={form.performerId}
+                onChange={handleChange("performerId")}
+                size="small"
+                fullWidth
+              />
+            ) : null}
+
+            {isEditMode ? (
+              <Box sx={{ gridColumn: { md: "1 / -1" } }}>
+                <TextField
+                  label="검사수행자명"
+                  value={form.performerName}
+                  onChange={handleChange("performerName")}
+                  size="small"
+                  fullWidth
+                />
+              </Box>
+            ) : null}
+          </Box>
+        </CardContent>
+      </Card>
+
+      {showHistorySection ? (
+        <Card
+          elevation={0}
+          sx={{
+            borderRadius: 2,
+            border: "1px solid",
+            borderColor: "grey.200",
+            backgroundColor: "#fff",
+          }}
+        >
+          <Box
+            sx={{
+              px: { xs: 2, md: 3 },
+              py: 2,
+              borderBottom: "1px solid",
+              borderColor: "grey.200",
+              backgroundColor: "#fafafa",
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={700}>
+              처리 및 이력 정보
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              생성과 수정 이력은 시작 화면에서 조회 전용으로 제공합니다.
+            </Typography>
+          </Box>
+
+          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 1.75,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                },
+              }}
+            >
+              <TextField
+                label="생성일시"
+                value={formatReadOnlyDateTime(form.createdAt)}
+                size="small"
+                fullWidth
+                {...readOnlyTextFieldProps}
+              />
+
+              <TextField
+                label="수정일시"
+                value={formatReadOnlyDateTime(form.updatedAt)}
+                size="small"
+                fullWidth
+                {...readOnlyTextFieldProps}
+                helperText="감사 이력 컬럼으로 시작 화면에서는 읽기 전용입니다."
+              />
+            </Box>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <Box
+        sx={{
+          position: "sticky",
+          bottom: 16,
+          zIndex: 20,
+          mt: 2,
+        }}
+      >
+        <Card
+          elevation={6}
+          sx={{
+            borderRadius: 2,
+            border: "1px solid",
+            borderColor: "grey.200",
+            backgroundColor: "rgba(255, 255, 255, 0.96)",
+            backdropFilter: "blur(10px)",
+            boxShadow: "0 12px 28px rgba(15, 23, 42, 0.12)",
+          }}
+        >
+          <CardContent
+            sx={{
+              px: { xs: 2, md: 2.5 },
+              py: 1.5,
+              "&:last-child": { pb: 1.5 },
+            }}
+          >
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              justifyContent="space-between"
+              alignItems={{ xs: "stretch", sm: "center" }}
+              gap={1.5}
+            >
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="subtitle2" fontWeight={700}>
+                  작업 실행
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  검사 상태와 담당자 정보를 확인한 뒤 작업을 진행하세요.
+                </Typography>
+              </Box>
+
+              <Stack direction="row" spacing={1} justifyContent="flex-end">
+                {isEditMode && onCancelExecution ? (
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={onCancelExecution}
+                    disabled={loading || cancelExecutionDisabled}
+                  >
+                    검사 취소
+                  </Button>
+                ) : null}
+                <Button
+                  variant="contained"
+                  onClick={onSubmit}
+                  disabled={loading || submitDisabled}
+                >
+                  {loading
+                    ? isEditMode
+                      ? "검사 시작 준비 중..."
+                      : "등록 중..."
+                    : isEditMode
+                      ? "검사 시작"
+                      : "등록"}
+                </Button>
+              </Stack>
             </Stack>
-          </Stack>
-        </Box>
-      </Paper>
+          </CardContent>
+        </Card>
+      </Box>
     </Box>
   );
 }

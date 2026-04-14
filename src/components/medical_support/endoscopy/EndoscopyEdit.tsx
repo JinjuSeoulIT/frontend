@@ -210,7 +210,7 @@ export default function EndoscopyEdit() {
 
           <Button
             variant="outlined"
-            onClick={() => router.push("/medical_support/endoscopy/list")}
+            onClick={() => router.push("/medical_support/testResult/list")}
           >
             목록으로
           </Button>

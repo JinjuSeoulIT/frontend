@@ -183,7 +183,7 @@ export default function ImagingEdit() {
 
           <Button
             variant="outlined"
-            onClick={() => router.push("/medical_support/imaging/list")}
+            onClick={() => router.push("/medical_support/testResult/list")}
           >
             목록으로
           </Button>

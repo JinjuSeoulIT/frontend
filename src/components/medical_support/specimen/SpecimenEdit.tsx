@@ -214,7 +214,7 @@ export default function SpecimenEdit() {
 
           <Button
             variant="outlined"
-            onClick={() => router.push("/medical_support/specimen/list")}
+            onClick={() => router.push("/medical_support/testResult/list")}
           >
             목록으로
           </Button>

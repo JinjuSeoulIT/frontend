@@ -240,7 +240,7 @@ export default function PathologyEdit() {
 
           <Button
             variant="outlined"
-            onClick={() => router.push("/medical_support/pathology/list")}
+            onClick={() => router.push("/medical_support/testResult/list")}
           >
             목록으로
           </Button>

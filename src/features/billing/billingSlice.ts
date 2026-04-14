@@ -8,12 +8,16 @@ import {
   BillingClaimRequest,
   BillingClaimResult,
   BillHistory,
+  CalculatedBill,
 } from "@/lib/billing/billingApi";
 
-// 상태 필터 payload 타입
 interface FetchBillsByPatientPayload {
   patientId: number;
   status?: string;
+}
+
+interface FetchBillsByEncounterPayload {
+  encounterId: number;
 }
 
 interface BillingState {
@@ -22,13 +26,12 @@ interface BillingState {
   payments: Payment[];
   billHistory: BillHistory[];
   billingStats: BillingStats | null;
-
-  //claims 생성 결과 상태
-
+  calculatedBill: CalculatedBill | null;
   billingClaimResult: BillingClaimResult | null;
-
   loading: boolean;
   error: string | null;
+  statsLoading: boolean;
+  statsError: string | null;
 }
 
 const initialState: BillingState = {
@@ -37,19 +40,18 @@ const initialState: BillingState = {
   payments: [],
   billHistory: [],
   billingStats: null,
-
-  billingClaimResult: null,  //claims 생성 결과 초기값
-
+  calculatedBill: null,
+  billingClaimResult: null,
   loading: false,
   error: null,
+  statsLoading: false,
+  statsError: null,
 };
 
 const billingSlice = createSlice({
   name: "billing",
   initialState,
   reducers: {
-
-    // Saga 요청 트리거 액션
     fetchBillsByPatientRequest(
       state,
       action: PayloadAction<FetchBillsByPatientPayload>
@@ -58,18 +60,25 @@ const billingSlice = createSlice({
       state.error = null;
     },
 
-    fetchBillingDetailRequest(
+    fetchBillsByEncounterRequest(
       state,
-      action: PayloadAction<number>
+      action: PayloadAction<FetchBillsByEncounterPayload>
     ) {
       state.loading = true;
       state.error = null;
     },
 
-    fetchBillHistoryRequest(
-      state,
-      action: PayloadAction<number>
-    ) {
+    fetchBillingDetailRequest(state, action: PayloadAction<number>) {
+      state.loading = true;
+      state.error = null;
+    },
+
+    fetchCalculatedBillRequest(state, action: PayloadAction<number>) {
+      state.loading = true;
+      state.error = null;
+    },
+
+    fetchBillHistoryRequest(state, action: PayloadAction<number>) {
       state.loading = true;
       state.error = null;
     },
@@ -92,10 +101,22 @@ const billingSlice = createSlice({
       state.error = null;
     },
 
-    confirmBillRequest(
-      state,
-      action: PayloadAction<number>
-    ) {
+    confirmBillRequest(state, action: PayloadAction<number>) {
+      state.loading = true;
+      state.error = null;
+    },
+
+    unconfirmBillRequest(state, action: PayloadAction<number>) {
+      state.loading = true;
+      state.error = null;
+    },
+
+    cancelBillRequest(state, action: PayloadAction<number>) {
+      state.loading = true;
+      state.error = null;
+    },
+
+    restoreBillRequest(state, action: PayloadAction<number>) {
       state.loading = true;
       state.error = null;
     },
@@ -112,7 +133,6 @@ const billingSlice = createSlice({
       state.error = null;
     },
 
-    // 환불 요청
     refundPaymentRequest(
       state,
       action: PayloadAction<{
@@ -127,27 +147,29 @@ const billingSlice = createSlice({
     },
 
     fetchBillingStatsRequest(state) {
+      state.statsLoading = true;
+      state.statsError = null;
+    },
+
+    fetchPaymentsByBillRequest(state, action: PayloadAction<number>) {
       state.loading = true;
       state.error = null;
     },
 
-    fetchPaymentsByBillRequest(
-      state,
-      action: PayloadAction<number>
-    ) {
-      state.loading = true;
-      state.error = null;
-    },
-
+    // [수정] billingDate 추가
     fetchBillsRequest(
       state,
-      action: PayloadAction<string | null>
+      action: PayloadAction<{
+        status?: string | null;
+        confirmedOnly?: boolean;
+        partialOnly?: boolean;
+        billingDate?: string | null;
+      }>
     ) {
       state.loading = true;
       state.error = null;
     },
 
-    //claims 생성 요청 액션
     createBillingClaimRequest(
       state,
       action: PayloadAction<BillingClaimRequest>
@@ -156,7 +178,6 @@ const billingSlice = createSlice({
       state.error = null;
     },
 
-    // 공통 상태 변경
     setLoading(state, action: PayloadAction<boolean>) {
       state.loading = action.payload;
     },
@@ -165,43 +186,38 @@ const billingSlice = createSlice({
       state.error = action.payload;
     },
 
-    // 데이터 저장
-    setBillingList(
-      state,
-      action: PayloadAction<BillSummary[]>
-    ) {
+    setStatsLoading(state, action: PayloadAction<boolean>) {
+      state.statsLoading = action.payload;
+    },
+
+    setStatsError(state, action: PayloadAction<string | null>) {
+      state.statsError = action.payload;
+    },
+
+    setBillingList(state, action: PayloadAction<BillSummary[]>) {
       state.billingList = action.payload;
     },
 
-    setBillingDetail(
-      state,
-      action: PayloadAction<BillDetail | null>
-    ) {
+    setBillingDetail(state, action: PayloadAction<BillDetail | null>) {
       state.billingDetail = action.payload;
     },
 
-    setBillHistory(
-      state,
-      action: PayloadAction<BillHistory[]>
-    ) {
+    setCalculatedBill(state, action: PayloadAction<CalculatedBill | null>) {
+      state.calculatedBill = action.payload;
+    },
+
+    setBillHistory(state, action: PayloadAction<BillHistory[]>) {
       state.billHistory = action.payload;
     },
 
-    setBillingStats(
-      state,
-      action: PayloadAction<BillingStats | null>
-    ) {
+    setBillingStats(state, action: PayloadAction<BillingStats | null>) {
       state.billingStats = action.payload;
     },
 
-    setPayments(
-      state,
-      action: PayloadAction<Payment[]>
-    ) {
+    setPayments(state, action: PayloadAction<Payment[]>) {
       state.payments = action.payload;
     },
 
-    // claims 생성 결과 저장
     setBillingClaimResult(
       state,
       action: PayloadAction<BillingClaimResult | null>
@@ -213,27 +229,32 @@ const billingSlice = createSlice({
 
 export const {
   fetchBillsByPatientRequest,
+  fetchBillsByEncounterRequest,
   fetchBillingDetailRequest,
+  fetchCalculatedBillRequest,
   fetchBillHistoryRequest,
   fetchOutstandingBillsRequest,
   createPaymentRequest,
   confirmBillRequest,
+  unconfirmBillRequest,
+  cancelBillRequest,
+  restoreBillRequest,
   cancelPaymentRequest,
   refundPaymentRequest,
   fetchBillingStatsRequest,
   fetchPaymentsByBillRequest,
   fetchBillsRequest,
-
   createBillingClaimRequest,
-
   setBillingStats,
   setLoading,
   setError,
+  setStatsLoading,
+  setStatsError,
   setBillingList,
   setBillingDetail,
+  setCalculatedBill,
   setBillHistory,
   setPayments,
-
   setBillingClaimResult,
 } = billingSlice.actions;
 

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import { fetchBillDetailApi, type BillDetail } from "@/lib/billing/billingApi";
 import { fetchPatientsApi } from "@/lib/patient/patientApi";
@@ -40,8 +39,20 @@ const formatDateTime = (value: string) => {
 };
 
 export default function BillingStatementPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const params = useParams<{ billId: string }>();
   const billId = Number(params.billId);
+
+  // 수정: 상세 복귀용 returnTo
+  const returnTo = searchParams.get("returnTo");
+
+  // 수정: 청구서에서 돌아갈 상세 경로
+  const detailHref = useMemo(() => {
+    return returnTo
+      ? `/billing/${billId}?returnTo=${encodeURIComponent(returnTo)}`
+      : `/billing/${billId}`;
+  }, [billId, returnTo]);
 
   const [billingDetail, setBillingDetail] = useState<BillDetail | null>(null);
   const [patientNameById, setPatientNameById] = useState<Record<number, string>>(
@@ -194,8 +205,8 @@ export default function BillingStatementPage() {
 
             <Stack direction="row" spacing={1} className="print-hide">
               <Button
-                component={Link}
-                href={`/billing/${billId}`}
+                // 수정: Link 고정 이동 -> 상세 복귀 경로 사용
+                onClick={() => router.push(detailHref)}
                 variant="outlined"
               >
                 청구 상세로 돌아가기

@@ -3,7 +3,9 @@ import toast from "react-hot-toast";
 
 import {
   fetchBillsByPatientApi,
+  fetchBillsByEncounterApi,
   fetchBillDetailApi,
+  fetchCalculatedBillApi,
   fetchBillHistoryApi,
   fetchOutstandingBillsApi,
   createPaymentApi,
@@ -13,13 +15,18 @@ import {
   refundPaymentApi,
   fetchBillsApi,
   confirmBillApi,
+  unconfirmBillApi,
+  cancelBillApi,
+  restoreBillApi,
   createBillingClaimApi,
   BillingClaimRequest,
 } from "@/lib/billing/billingApi";
 
 import {
   fetchBillsByPatientRequest,
+  fetchBillsByEncounterRequest,
   fetchBillingDetailRequest,
+  fetchCalculatedBillRequest,
   fetchBillHistoryRequest,
   fetchOutstandingBillsRequest,
   createPaymentRequest,
@@ -29,11 +36,17 @@ import {
   fetchPaymentsByBillRequest,
   fetchBillsRequest,
   confirmBillRequest,
+  unconfirmBillRequest,
+  cancelBillRequest,
+  restoreBillRequest,
   createBillingClaimRequest,
   setLoading,
   setError,
+  setStatsLoading,
+  setStatsError,
   setBillingList,
   setBillingDetail,
+  setCalculatedBill,
   setBillHistory,
   setPayments,
   setBillingStats,
@@ -42,9 +55,6 @@ import {
 
 import type { PayloadAction } from "@reduxjs/toolkit";
 
-/**
- * 환자 기준 청구 목록 조회
- */
 function* fetchBillsByPatientSaga(
   action: PayloadAction<{ patientId: number; status?: string }>
 ): Generator<any, void, any> {
@@ -60,27 +70,21 @@ function* fetchBillsByPatientSaga(
   }
 }
 
-/**
- * 전체 청구 목록 조회
- */
-function* fetchBillsSaga(
-  action: PayloadAction<string | null>
+function* fetchBillsByEncounterSaga(
+  action: PayloadAction<{ encounterId: number }>
 ): Generator<any, void, any> {
   try {
-    const status = action.payload;
-    const data = yield call(fetchBillsApi, status);
+    const { encounterId } = action.payload;
+    const data = yield call(fetchBillsByEncounterApi, encounterId);
     yield put(setBillingList(data));
   } catch (error: any) {
-    yield put(setError(error.message || "전체 청구 목록 조회 실패"));
-    toast.error(error.message || "전체 청구 목록 조회 실패");
+    yield put(setError(error.message || "내원 기준 청구 목록 조회 실패"));
+    toast.error(error.message || "내원 기준 청구 목록 조회 실패");
   } finally {
     yield put(setLoading(false));
   }
 }
 
-/**
- * 청구 상세 조회
- */
 function* fetchBillingDetailSaga(
   action: PayloadAction<number>
 ): Generator<any, void, any> {
@@ -96,9 +100,21 @@ function* fetchBillingDetailSaga(
   }
 }
 
-/**
- * 청구 이력 조회
- */
+function* fetchCalculatedBillSaga(
+  action: PayloadAction<number>
+): Generator<any, void, any> {
+  try {
+    const billId = action.payload;
+    const data = yield call(fetchCalculatedBillApi, billId);
+    yield put(setCalculatedBill(data));
+  } catch (error: any) {
+    yield put(setError(error.message || "자동 계산 조회 실패"));
+    toast.error(error.message || "자동 계산 조회 실패");
+  } finally {
+    yield put(setLoading(false));
+  }
+}
+
 function* fetchBillHistorySaga(
   action: PayloadAction<number>
 ): Generator<any, void, any> {
@@ -114,9 +130,6 @@ function* fetchBillHistorySaga(
   }
 }
 
-/**
- * 청구 기준 결제 이력 조회
- */
 function* fetchPaymentsByBillSaga(
   action: PayloadAction<number>
 ): Generator<any, void, any> {
@@ -133,8 +146,28 @@ function* fetchPaymentsByBillSaga(
 }
 
 /**
- * 미수금 조회
+ * [수정] billingDate까지 전달
  */
+function* fetchBillsSaga(
+  action: PayloadAction<{
+    status?: string | null;
+    confirmedOnly?: boolean;
+    partialOnly?: boolean;
+    billingDate?: string | null;
+  }>
+): Generator<any, void, any> {
+  try {
+    const params = action.payload;
+    const data = yield call(fetchBillsApi, params);
+    yield put(setBillingList(data));
+  } catch (error: any) {
+    yield put(setError(error.message || "전체 청구 목록 조회 실패"));
+    toast.error(error.message || "전체 청구 목록 조회 실패");
+  } finally {
+    yield put(setLoading(false));
+  }
+}
+
 function* fetchOutstandingBillsSaga(): Generator<any, void, any> {
   try {
     const data = yield call(fetchOutstandingBillsApi);
@@ -147,9 +180,6 @@ function* fetchOutstandingBillsSaga(): Generator<any, void, any> {
   }
 }
 
-/**
- * 수납 생성
- */
 function* createPaymentSaga(
   action: PayloadAction<{
     billId: number;
@@ -165,19 +195,11 @@ function* createPaymentSaga(
 
     toast.success("수납이 완료되었습니다.");
 
-    // 상세 재조회
     yield put(fetchBillingDetailRequest(billId));
-
-    // 청구 이력 재조회
+    yield put(fetchCalculatedBillRequest(billId));
     yield put(fetchBillHistoryRequest(billId));
-
-    // 결제 이력 재조회
     yield put(fetchPaymentsByBillRequest(billId));
-
-    // 환자 기준 목록 재조회
     yield put(fetchBillsByPatientRequest({ patientId }));
-
-    // 전체 통계 재조회
     yield put(fetchBillingStatsRequest());
   } catch (error: any) {
     yield put(setError(error.message || "수납 실패"));
@@ -187,9 +209,6 @@ function* createPaymentSaga(
   }
 }
 
-/**
- * 수납 취소
- */
 function* cancelPaymentSaga(
   action: PayloadAction<{
     paymentId: number;
@@ -204,19 +223,11 @@ function* cancelPaymentSaga(
 
     toast.success("수납 취소가 완료되었습니다.");
 
-    // 상세 재조회
     yield put(fetchBillingDetailRequest(billId));
-
-    // 청구 이력 재조회
+    yield put(fetchCalculatedBillRequest(billId));
     yield put(fetchBillHistoryRequest(billId));
-
-    // 결제 이력 재조회
     yield put(fetchPaymentsByBillRequest(billId));
-
-    // 환자 기준 목록 재조회
     yield put(fetchBillsByPatientRequest({ patientId }));
-
-    // 전체 통계 재조회
     yield put(fetchBillingStatsRequest());
   } catch (error: any) {
     yield put(setError(error.message || "수납 취소 실패"));
@@ -226,9 +237,6 @@ function* cancelPaymentSaga(
   }
 }
 
-/**
- * 부분 환불
- */
 function* refundPaymentSaga(
   action: PayloadAction<{
     paymentId: number;
@@ -244,19 +252,11 @@ function* refundPaymentSaga(
 
     toast.success("환불이 완료되었습니다.");
 
-    // 상세 재조회
     yield put(fetchBillingDetailRequest(billId));
-
-    // 청구 이력 재조회
+    yield put(fetchCalculatedBillRequest(billId));
     yield put(fetchBillHistoryRequest(billId));
-
-    // 결제 이력 재조회
     yield put(fetchPaymentsByBillRequest(billId));
-
-    // 환자 기준 목록 재조회
     yield put(fetchBillsByPatientRequest({ patientId }));
-
-    // 전체 통계 재조회
     yield put(fetchBillingStatsRequest());
   } catch (error: any) {
     yield put(setError(error.message || "환불 실패"));
@@ -266,24 +266,18 @@ function* refundPaymentSaga(
   }
 }
 
-/**
- * 수납 통계 조회
- */
 function* fetchBillingStatsSaga(): Generator<any, void, any> {
   try {
     const data = yield call(fetchBillingStatsApi);
     yield put(setBillingStats(data));
   } catch (error: any) {
-    yield put(setError(error.message || "수납 통계 조회 실패"));
+    yield put(setStatsError(error.message || "수납 통계 조회 실패"));
     toast.error(error.message || "수납 통계 조회 실패");
   } finally {
-    yield put(setLoading(false));
+    yield put(setStatsLoading(false));
   }
 }
 
-/**
- * 청구 확정
- */
 function* confirmBillSaga(
   action: PayloadAction<number>
 ): Generator<any, void, any> {
@@ -294,13 +288,9 @@ function* confirmBillSaga(
 
     toast.success("청구가 확정되었습니다.");
 
-    // 상세 재조회
     yield put(fetchBillingDetailRequest(billId));
-
-    // 청구 이력 재조회
+    yield put(fetchCalculatedBillRequest(billId));
     yield put(fetchBillHistoryRequest(billId));
-
-    // 전체 통계 재조회
     yield put(fetchBillingStatsRequest());
   } catch (error: any) {
     yield put(setError(error.message || "청구 확정 실패"));
@@ -310,7 +300,73 @@ function* confirmBillSaga(
   }
 }
 
-//claims 생성 saga
+function* unconfirmBillSaga(
+  action: PayloadAction<number>
+): Generator<any, void, any> {
+  try {
+    const billId = action.payload;
+
+    yield call(unconfirmBillApi, billId);
+
+    toast.success("청구 확정이 해제되었습니다.");
+
+    yield put(fetchBillingDetailRequest(billId));
+    yield put(fetchCalculatedBillRequest(billId));
+    yield put(fetchBillHistoryRequest(billId));
+    yield put(fetchBillingStatsRequest());
+  } catch (error: any) {
+    yield put(setError(error.message || "청구 확정 해제 실패"));
+    toast.error(error.message || "청구 확정 해제 실패");
+  } finally {
+    yield put(setLoading(false));
+  }
+}
+
+function* cancelBillSaga(
+  action: PayloadAction<number>
+): Generator<any, void, any> {
+  try {
+    const billId = action.payload;
+
+    yield call(cancelBillApi, billId);
+
+    toast.success("청구가 취소되었습니다.");
+
+    yield put(fetchBillingDetailRequest(billId));
+    yield put(fetchCalculatedBillRequest(billId));
+    yield put(fetchBillHistoryRequest(billId));
+    yield put(fetchBillsRequest({ status: "CONFIRMED", confirmedOnly: true }));
+    yield put(fetchBillingStatsRequest());
+  } catch (error: any) {
+    yield put(setError(error.message || "청구 취소 실패"));
+    toast.error(error.message || "청구 취소 실패");
+  } finally {
+    yield put(setLoading(false));
+  }
+}
+
+function* restoreBillSaga(
+  action: PayloadAction<number>
+): Generator<any, void, any> {
+  try {
+    const billId = action.payload;
+
+    yield call(restoreBillApi, billId);
+
+    toast.success("청구가 복원되었습니다.");
+
+    yield put(fetchBillingDetailRequest(billId));
+    yield put(fetchCalculatedBillRequest(billId));
+    yield put(fetchBillHistoryRequest(billId));
+    yield put(fetchBillsRequest({ status: "CONFIRMED", confirmedOnly: true }));
+    yield put(fetchBillingStatsRequest());
+  } catch (error: any) {
+    yield put(setError(error.message || "청구 복원 실패"));
+    toast.error(error.message || "청구 복원 실패");
+  } finally {
+    yield put(setLoading(false));
+  }
+}
 
 function* createBillingClaimSaga(
   action: PayloadAction<BillingClaimRequest>
@@ -328,7 +384,6 @@ function* createBillingClaimSaga(
       toast.success("청구 생성 요청이 정상적으로 접수되었습니다.");
     }
 
-    // 통계 재조회
     yield put(fetchBillingStatsRequest());
   } catch (error: any) {
     yield put(setError(error.message || "청구 생성 요청 실패"));
@@ -340,15 +395,20 @@ function* createBillingClaimSaga(
 
 export default function* billingSaga(): Generator<any, void, any> {
   yield takeLatest(fetchBillsByPatientRequest.type, fetchBillsByPatientSaga);
-  yield takeLatest(fetchBillsRequest.type, fetchBillsSaga);
+  yield takeLatest(fetchBillsByEncounterRequest.type, fetchBillsByEncounterSaga);
   yield takeLatest(fetchBillingDetailRequest.type, fetchBillingDetailSaga);
+  yield takeLatest(fetchCalculatedBillRequest.type, fetchCalculatedBillSaga);
   yield takeLatest(fetchBillHistoryRequest.type, fetchBillHistorySaga);
   yield takeLatest(fetchPaymentsByBillRequest.type, fetchPaymentsByBillSaga);
+  yield takeLatest(fetchBillsRequest.type, fetchBillsSaga);
   yield takeLatest(fetchOutstandingBillsRequest.type, fetchOutstandingBillsSaga);
   yield takeLatest(createPaymentRequest.type, createPaymentSaga);
   yield takeLatest(cancelPaymentRequest.type, cancelPaymentSaga);
   yield takeLatest(refundPaymentRequest.type, refundPaymentSaga);
   yield takeLatest(fetchBillingStatsRequest.type, fetchBillingStatsSaga);
   yield takeLatest(confirmBillRequest.type, confirmBillSaga);
+  yield takeLatest(unconfirmBillRequest.type, unconfirmBillSaga);
+  yield takeLatest(cancelBillRequest.type, cancelBillSaga);
+  yield takeLatest(restoreBillRequest.type, restoreBillSaga);
   yield takeLatest(createBillingClaimRequest.type, createBillingClaimSaga);
 }

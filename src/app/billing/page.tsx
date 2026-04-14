@@ -18,7 +18,7 @@ import {
   Divider,
   CircularProgress,
   Button,
-  Chip, // 추가: NEW 배지 표시용
+  Chip,
 } from "@mui/material";
 
 import MonetizationOnOutlinedIcon from "@mui/icons-material/MonetizationOnOutlined";
@@ -41,8 +41,14 @@ export default function BillingPage() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
 
-  const { billingStats, loading, error } = useSelector(
-    (state: RootState) => state.billing
+  const billingStats = useSelector(
+    (state: RootState) => state.billing.billingStats
+  );
+  const statsLoading = useSelector(
+    (state: RootState) => state.billing.statsLoading
+  );
+  const statsError = useSelector(
+    (state: RootState) => state.billing.statsError
   );
 
   const refundRate =
@@ -54,20 +60,11 @@ export default function BillingPage() {
         )
       : 0;
 
-  /* ================================
-     추가: 신규 청구 대기 NEW 배지 판단용 storage key / polling 시간
-  ================================= */
   const READY_SEEN_COUNT_STORAGE_KEY = "billing:readySeenCount";
   const BILLING_STATS_POLLING_MS = 10000;
 
-  /* ================================
-     추가: READY 카드 NEW 배지 표시 여부
-  ================================= */
   const [hasNewReadyBadge, setHasNewReadyBadge] = useState(false);
 
-  /* ================================
-     수정: 최초 진입 + 주기적 polling 으로 stats 재조회
-  ================================= */
   useEffect(() => {
     dispatch(fetchBillingStatsRequest());
 
@@ -80,10 +77,6 @@ export default function BillingPage() {
     };
   }, [dispatch]);
 
-  /* ================================
-     추가: 현재 READY 개수와 마지막 확인 개수를 비교해서
-     신규 청구 대기 NEW 배지 표시 여부 결정
-  ================================= */
   useEffect(() => {
     if (!billingStats) return;
 
@@ -91,7 +84,6 @@ export default function BillingPage() {
       READY_SEEN_COUNT_STORAGE_KEY
     );
 
-    // 최초 진입 시에는 현재 값을 기준값으로 저장하고 NEW는 띄우지 않음
     if (savedSeenReadyCount === null) {
       window.localStorage.setItem(
         READY_SEEN_COUNT_STORAGE_KEY,
@@ -110,10 +102,6 @@ export default function BillingPage() {
     }
   }, [billingStats]);
 
-  /* ================================
-     추가: 신규 청구 대기 카드를 열어보면
-     현재 READY 개수를 확인 완료 상태로 저장
-  ================================= */
   const handleReadyCardClick = () => {
     if (billingStats) {
       window.localStorage.setItem(
@@ -277,8 +265,8 @@ export default function BillingPage() {
               </Box>
             </Stack>
 
-            {loading && <Typography>로딩 중...</Typography>}
-            {error && <Typography color="error">{error}</Typography>}
+            {statsLoading && <Typography>로딩 중...</Typography>}
+            {statsError && <Typography color="error">{statsError}</Typography>}
 
             {billingStats && (
               <>
@@ -322,22 +310,18 @@ export default function BillingPage() {
                     title={getBillingStatusLabel("READY")}
                     description={getBillingStatusDescription("READY")}
                     value={billingStats.readyCount}
-                    /* ================================
-                       추가: NEW 배지 표시 여부 전달
-                    ================================= */
                     isNew={hasNewReadyBadge}
-                    /* ================================
-                       수정: 클릭 시 확인 처리 후 이동
-                    ================================= */
                     onClick={handleReadyCardClick}
                   />
 
                   <StatCard
                     icon={<SyncIcon />}
-                    title={getBillingStatusLabel("CONFIRMED")}
-                    description={getBillingStatusDescription("CONFIRMED")}
+                    title="부분 수납"
+                    description="부분 수납 상태"
                     value={billingStats.confirmedCount}
-                    onClick={() => router.push("/billing/list?status=CONFIRMED")}
+                    onClick={() =>
+                      router.push("/billing/list?status=CONFIRMED&partialOnly=true")
+                    }
                   />
 
                   <StatCard
@@ -346,6 +330,16 @@ export default function BillingPage() {
                     description={getBillingStatusDescription("PAID")}
                     value={billingStats.paidCount}
                     onClick={() => router.push("/billing/list?status=PAID")}
+                  />
+
+                  <StatCard
+                    icon={<ReceiptLongIcon />}
+                    title="청구 확정"
+                    description="완납 후 청구 확정 상태"
+                    value={billingStats.finalConfirmedCount}
+                    onClick={() =>
+                      router.push("/billing/list?status=CONFIRMED&confirmedOnly=true")
+                    }
                   />
 
                   <StatCard
@@ -522,7 +516,7 @@ function StatCard({
   highlight = false,
   color,
   onClick,
-  isNew = false, // 추가: NEW 배지 표시 여부
+  isNew = false,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -531,7 +525,7 @@ function StatCard({
   highlight?: boolean;
   color?: string;
   onClick?: () => void;
-  isNew?: boolean; // 추가
+  isNew?: boolean;
 }) {
   return (
     <Card
@@ -577,9 +571,6 @@ function StatCard({
               {title}
             </Typography>
 
-            {/* ================================
-               추가: 신규 청구 감지 시 NEW 배지 표시
-            ================================= */}
             {isNew && (
               <Chip
                 label="NEW"

@@ -694,7 +694,7 @@ export function ClinicalSoapCard({
                 try {
                   await onVisitCompleted();
                   window.alert(
-                    "진료가 완료되었습니다. 진료 서버가 수납 서비스 API로 연동 요청을 보냈습니다."
+                    "진료 완료로 저장되었습니다. 수납(청구) 자동 연동은 청구 대상 진료 오더가 있을 때만 시도되며, 수납 서버 오류 시에도 진료 완료는 반영될 수 있습니다."
                   );
                 } catch (e) {
                   window.alert(e instanceof Error ? e.message : "진료 완료 처리 실패");

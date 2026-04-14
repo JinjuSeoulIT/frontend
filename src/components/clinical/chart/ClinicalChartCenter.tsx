@@ -34,6 +34,7 @@ import { ClinicalPastVisitsCard, type PriorSubjectiveApplyMode } from "./Clinica
 import { ClinicalSoapCard } from "./ClinicalSoapCard";
 import type { RecordFormType } from "@/features/medical_support/record/recordTypes";
 import { formatDateTime } from "../clinicalDocumentation";
+import TestResultList from "@/components/medical_support/testResult/TestResultList";
 
 type RecordVitalsLineFields = Pick<
   RecordFormType,
@@ -426,6 +427,7 @@ export function ClinicalChartCenter(p: Props) {
   const [vitalsOpen, setVitalsOpen] = React.useState(false);
   const [pastHistoryOpen, setPastHistoryOpen] = React.useState(false);
   const [pastVisitsOpen, setPastVisitsOpen] = React.useState(false);
+  const [testResultsOpen, setTestResultsOpen] = React.useState(false);
   const [vitalHistoryPoints, setVitalHistoryPoints] = React.useState<{ v: VitalSignsRes }[]>([]);
   const [vitalHistoryLoading, setVitalHistoryLoading] = React.useState(false);
 
@@ -624,6 +626,9 @@ export function ClinicalChartCenter(p: Props) {
                 </Button>
                 <Button size="small" variant="outlined" onClick={() => setPastVisitsOpen(true)} sx={{ textTransform: "none", fontWeight: 600 }}>
                   과거 진료기록
+                </Button>
+                <Button size="small" variant="outlined" onClick={() => setTestResultsOpen(true)} sx={{ textTransform: "none", fontWeight: 600 }}>
+                  검사결과
                 </Button>
               </Stack>
             </Stack>
@@ -856,6 +861,20 @@ export function ClinicalChartCenter(p: Props) {
             repeatingFromClinicalId={p.repeatingFromClinicalId}
             onRepeatPrescription={p.onRepeatPrescription}
             onApplyPriorSubjective={p.onApplyPriorSubjective}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={testResultsOpen}
+        onClose={() => setTestResultsOpen(false)}
+        maxWidth="xl"
+        fullWidth
+        scroll="paper"
+      >
+        <ModalTitleBar title="" onClose={() => setTestResultsOpen(false)} />
+        <DialogContent dividers sx={{ pt: 2 }}>
+          <TestResultList
           />
         </DialogContent>
       </Dialog>

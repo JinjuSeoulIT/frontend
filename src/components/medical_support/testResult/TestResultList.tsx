@@ -10,12 +10,8 @@ import {
   CardContent,
   Chip,
   CircularProgress,
-  FormControl,
   FormControlLabel,
-  InputLabel,
-  MenuItem,
   Paper,
-  Select,
   Stack,
   Switch,
   Table,
@@ -25,10 +21,8 @@ import {
   TableHead,
   TablePagination,
   TableRow,
-  TextField,
   Typography,
 } from "@mui/material";
-import type { ChipProps } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { TestResultActions } from "@/features/medical_support/testResult/testResultSlice";
@@ -36,66 +30,21 @@ import type {
   TestResult,
   TestResultSearchParams,
 } from "@/features/medical_support/testResult/testResultType";
-import {
-  TEST_RESULT_STATUS_OPTIONS,
-  TEST_RESULT_TYPE_OPTIONS,
-} from "@/features/medical_support/testResult/testResultType";
+import { TEST_RESULT_TYPE_OPTIONS } from "@/features/medical_support/testResult/testResultType";
 import type { AppDispatch, RootState } from "@/store/store";
-
-type TestResultSearchType =
-  | "resultType"
-  | "patientName"
-  | "detailCode"
-  | "departmentName"
-  | "status"
-  | "resultAt";
-
-type TestResultSearchCriteria = {
-  searchType: TestResultSearchType;
-  searchValue: string;
-  startDate: string;
-  endDate: string;
-};
-
-type SearchControlsProps = {
-  initialCriteria: TestResultSearchCriteria;
-  loading?: boolean;
-  onSearch: (criteria: TestResultSearchCriteria) => void;
-  onReset: () => void;
-};
-
-const DEFAULT_SEARCH_TYPE: TestResultSearchType = "patientName";
-
-const INITIAL_SEARCH_CRITERIA: TestResultSearchCriteria = {
-  searchType: DEFAULT_SEARCH_TYPE,
-  searchValue: "",
-  startDate: "",
-  endDate: "",
-};
 
 const LABELS = {
   title: "\uAC80\uC0AC \uACB0\uACFC \uBAA9\uB85D",
   subtitle:
-    "\uAC80\uC0AC \uACB0\uACFC\uB97C \uAC80\uC0C9 \uC870\uAC74\uBCC4\uB85C \uC870\uD68C\uD569\uB2C8\uB2E4.",
-  searchType: "\uAC80\uC0C9\uAD6C\uBD84",
-  resultType: "\uAC80\uC0AC\uC885\uB958",
-  resultTypeSelect: "\uAC80\uC0AC\uC885\uB958 \uC120\uD0DD",
+    "\uD1B5\uD569 \uAC80\uC0AC \uACB0\uACFC\uB97C \uBAA9\uB85D\uC73C\uB85C \uD655\uC778\uD558\uACE0 \uC0C1\uC138 \uD654\uBA74\uC73C\uB85C \uC774\uB3D9\uD569\uB2C8\uB2E4.",
+  resultType: "\uAC80\uC0AC\uC720\uD615",
   resultId: "\uACB0\uACFC ID",
-  detailCode: "\uC138\uBD80 \uCF54\uB4DC",
-  detailCodeInput: "\uC138\uBD80 \uCF54\uB4DC \uC785\uB825",
+  detailCode: "\uAC80\uC0AC\uCF54\uB4DC",
   patientName: "\uD658\uC790\uBA85",
-  patientNameInput: "\uD658\uC790\uBA85 \uC785\uB825",
   departmentName: "\uC9C4\uB8CC\uACFC",
-  departmentNameInput: "\uC9C4\uB8CC\uACFC \uC785\uB825",
   performer: "\uAC80\uC0AC\uC218\uD589\uC790\uBA85",
   status: "\uC0C1\uD0DC",
-  statusSelect: "\uC0C1\uD0DC \uC120\uD0DD",
-  resultAt: "\uAC80\uC0AC\uC77C\uC2DC",
-  startDate: "\uC2DC\uC791\uC77C",
-  endDate: "\uC885\uB8CC\uC77C",
-  select: "\uC120\uD0DD",
-  search: "\uC870\uD68C",
-  reset: "\uCD08\uAE30\uD654",
+  resultAt: "\uACB0\uACFC\uB4F1\uB85D\uC77C\uC2DC",
   includeInactive: "\uBE44\uD65C\uC131 \uD3EC\uD568",
   refresh: "\uC0C8\uB85C\uACE0\uCE68",
   total: "\uCD1D",
@@ -104,50 +53,17 @@ const LABELS = {
   cases: "\uAC74",
   rowNumber: "\uBC88\uD638",
   rowsPerPage: "\uD398\uC774\uC9C0\uB2F9 \uD589",
-  empty:
-    "\uAC80\uC0C9 \uC870\uAC74\uC5D0 \uB9DE\uB294 \uAC80\uC0AC \uACB0\uACFC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+  empty: "\uC870\uD68C\uB41C \uAC80\uC0AC \uACB0\uACFC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
   loading: "\uC870\uD68C \uC911",
-  inputRequired:
-    "\uAC80\uC0C9\uAC12\uC744 \uC785\uB825\uD574\uC8FC\uC138\uC694.",
-  resultTypeRequired:
-    "\uAC80\uC0AC\uC885\uB958\uB97C \uC120\uD0DD\uD574\uC8FC\uC138\uC694.",
-  statusRequired: "\uC0C1\uD0DC\uB97C \uC120\uD0DD\uD574\uC8FC\uC138\uC694.",
-  dateRequired:
-    "\uC2DC\uC791\uC77C\uACFC \uC885\uB8CC\uC77C\uC744 \uBAA8\uB450 \uC785\uB825\uD574\uC8FC\uC138\uC694.",
-  dateOrder:
-    "\uC2DC\uC791\uC77C\uC774 \uC885\uB8CC\uC77C\uBCF4\uB2E4 \uB2A6\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
 } as const;
 
-const SEARCH_TYPE_OPTIONS: Array<{
-  value: TestResultSearchType;
-  label: string;
-}> = [
-  { value: "patientName", label: LABELS.patientName },
-  { value: "resultType", label: LABELS.resultType },
-  { value: "detailCode", label: LABELS.detailCode },
-  { value: "departmentName", label: LABELS.departmentName },
-  { value: "status", label: LABELS.status },
-  { value: "resultAt", label: LABELS.resultAt },
-];
-
-const getInitialSearchCriteria = (
-  resultTypeValue?: string | null
-): TestResultSearchCriteria => {
+const getInitialResultType = (resultTypeValue?: string | null) => {
   const normalizedResultType = resultTypeValue?.trim().toUpperCase() ?? "";
   const hasSupportedResultType = TEST_RESULT_TYPE_OPTIONS.some(
     (option) => option.value === normalizedResultType
   );
 
-  if (!hasSupportedResultType) {
-    return INITIAL_SEARCH_CRITERIA;
-  }
-
-  return {
-    searchType: "resultType",
-    searchValue: normalizedResultType,
-    startDate: "",
-    endDate: "",
-  };
+  return hasSupportedResultType ? normalizedResultType : "";
 };
 
 const TABLE_HEADERS = [
@@ -159,7 +75,6 @@ const TABLE_HEADERS = [
   LABELS.departmentName,
   LABELS.performer,
   LABELS.resultAt,
-  LABELS.status,
 ];
 
 const safeValue = (value?: string | number | null) => {
@@ -198,34 +113,6 @@ const formatDateTime = (value?: string | null) => {
   }).format(date);
 };
 
-const formatStatus = (value?: string | null) => {
-  const normalized = normalizeValue(value);
-
-  if (normalized === "ACTIVE") {
-    return LABELS.active;
-  }
-
-  if (normalized === "INACTIVE") {
-    return LABELS.inactive;
-  }
-
-  return safeValue(value);
-};
-
-const getStatusColor = (value?: string | null): ChipProps["color"] => {
-  const normalized = normalizeValue(value);
-
-  if (normalized === "ACTIVE") {
-    return "success";
-  }
-
-  if (normalized === "INACTIVE") {
-    return "default";
-  }
-
-  return "default";
-};
-
 const getResultTypeLabel = (item: TestResult) => {
   const displayName = item.resultTypeName?.trim();
   if (displayName) {
@@ -240,246 +127,12 @@ const getResultTypeLabel = (item: TestResult) => {
   return option?.label ?? safeValue(item.resultType);
 };
 
-const buildSearchParams = (
-  criteria: TestResultSearchCriteria,
-  includeInactive: boolean
-): TestResultSearchParams | undefined => {
-  const params: TestResultSearchParams = {};
-  const normalizedValue = criteria.searchValue.trim();
-
-  if (criteria.searchType === "resultAt") {
-    if (criteria.startDate && criteria.endDate) {
-      params.startDate = criteria.startDate;
-      params.endDate = criteria.endDate;
-    }
-  } else if (normalizedValue) {
-    params[criteria.searchType] = normalizedValue;
-  }
-
-  const searchesInactive =
-    criteria.searchType === "status" && normalizedValue === "INACTIVE";
-  if (includeInactive || searchesInactive) {
-    params.includeInactive = true;
-  }
-
-  return Object.keys(params).length > 0 ? params : undefined;
-};
-
-function TestResultSearchControls({
-  initialCriteria,
-  loading = false,
-  onSearch,
-  onReset,
-}: SearchControlsProps) {
-  const [criteria, setCriteria] = React.useState<TestResultSearchCriteria>(
-    initialCriteria
-  );
-  const [searchError, setSearchError] = React.useState("");
-
-  const resetSearchFields = (nextSearchType: TestResultSearchType) => {
-    setCriteria({
-      searchType: nextSearchType,
-      searchValue: "",
-      startDate: "",
-      endDate: "",
-    });
-    setSearchError("");
-  };
-
-  const updateCriteria = (partial: Partial<TestResultSearchCriteria>) => {
-    setCriteria((current) => ({ ...current, ...partial }));
-    setSearchError("");
-  };
-
-  const handleSearch = () => {
-    setSearchError("");
-
-    if (criteria.searchType === "resultAt") {
-      if (!criteria.startDate || !criteria.endDate) {
-        setSearchError(LABELS.dateRequired);
-        return;
-      }
-
-      if (criteria.startDate > criteria.endDate) {
-        setSearchError(LABELS.dateOrder);
-        return;
-      }
-
-      onSearch({
-        ...criteria,
-        searchValue: "",
-      });
-      return;
-    }
-
-    const normalizedValue = criteria.searchValue.trim();
-    if (!normalizedValue) {
-      if (criteria.searchType === "resultType") {
-        setSearchError(LABELS.resultTypeRequired);
-      } else if (criteria.searchType === "status") {
-        setSearchError(LABELS.statusRequired);
-      } else {
-        setSearchError(LABELS.inputRequired);
-      }
-      return;
-    }
-
-    onSearch({
-      ...criteria,
-      searchValue: normalizedValue,
-      startDate: "",
-      endDate: "",
-    });
-  };
-
-  const handleReset = () => {
-    setCriteria(INITIAL_SEARCH_CRITERIA);
-    setSearchError("");
-    onReset();
-  };
-
-  const textLabel =
-    criteria.searchType === "patientName"
-      ? LABELS.patientNameInput
-      : criteria.searchType === "detailCode"
-      ? LABELS.detailCodeInput
-      : LABELS.departmentNameInput;
-
-  return (
-    <Stack spacing={1.5}>
-      <Box
-        sx={{
-          display: "flex",
-          gap: 1,
-          alignItems: "center",
-          flexWrap: "wrap",
-        }}
-      >
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel id="test-result-search-type-label">
-            {LABELS.searchType}
-          </InputLabel>
-          <Select
-            labelId="test-result-search-type-label"
-            label={LABELS.searchType}
-            value={criteria.searchType}
-            onChange={(event) =>
-              resetSearchFields(event.target.value as TestResultSearchType)
-            }
-          >
-            {SEARCH_TYPE_OPTIONS.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {criteria.searchType === "resultAt" ? (
-          <>
-            <TextField
-              size="small"
-              type="date"
-              label={LABELS.startDate}
-              value={criteria.startDate}
-              onChange={(event) =>
-                updateCriteria({ startDate: event.target.value })
-              }
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              size="small"
-              type="date"
-              label={LABELS.endDate}
-              value={criteria.endDate}
-              onChange={(event) =>
-                updateCriteria({ endDate: event.target.value })
-              }
-              InputLabelProps={{ shrink: true }}
-            />
-          </>
-        ) : criteria.searchType === "resultType" ? (
-          <FormControl size="small" sx={{ minWidth: 190 }}>
-            <InputLabel id="test-result-type-label">
-              {LABELS.resultTypeSelect}
-            </InputLabel>
-            <Select
-              labelId="test-result-type-label"
-              label={LABELS.resultTypeSelect}
-              value={criteria.searchValue}
-              onChange={(event) =>
-                updateCriteria({ searchValue: String(event.target.value) })
-              }
-            >
-              <MenuItem value="">{LABELS.select}</MenuItem>
-              {TEST_RESULT_TYPE_OPTIONS.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label} ({option.value})
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        ) : criteria.searchType === "status" ? (
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel id="test-result-status-label">
-              {LABELS.statusSelect}
-            </InputLabel>
-            <Select
-              labelId="test-result-status-label"
-              label={LABELS.statusSelect}
-              value={criteria.searchValue}
-              onChange={(event) =>
-                updateCriteria({ searchValue: String(event.target.value) })
-              }
-            >
-              <MenuItem value="">{LABELS.select}</MenuItem>
-              {TEST_RESULT_STATUS_OPTIONS.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        ) : (
-          <TextField
-            size="small"
-            label={textLabel}
-            value={criteria.searchValue}
-            onChange={(event) =>
-              updateCriteria({ searchValue: event.target.value })
-            }
-          />
-        )}
-
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={handleSearch}
-          disabled={loading}
-        >
-          {LABELS.search}
-        </Button>
-        <Button
-          variant="text"
-          size="small"
-          onClick={handleReset}
-          disabled={loading}
-        >
-          {LABELS.reset}
-        </Button>
-      </Box>
-
-      {searchError ? <Alert severity="error">{searchError}</Alert> : null}
-    </Stack>
-  );
-}
-
 export default function TestResultList() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const queryInitialSearchCriteria = React.useMemo(
-    () => getInitialSearchCriteria(searchParams.get("resultType")),
+  const queryInitialResultType = React.useMemo(
+    () => getInitialResultType(searchParams.get("resultType")),
     [searchParams]
   );
   const queryInitialIncludeInactive = React.useMemo(
@@ -491,32 +144,44 @@ export default function TestResultList() {
   const [includeInactive, setIncludeInactive] = React.useState(
     queryInitialIncludeInactive
   );
-  const [searchCriteria, setSearchCriteria] =
-    React.useState<TestResultSearchCriteria>(() => queryInitialSearchCriteria);
-  const initialSearchCriteriaRef = React.useRef(queryInitialSearchCriteria);
-  const initialIncludeInactiveRef = React.useRef(queryInitialIncludeInactive);
 
   const { list: rows, loading, error } = useSelector(
     (state: RootState) => state.testResults
   );
 
+  const baseSearchParams = React.useMemo<TestResultSearchParams | undefined>(() => {
+    if (!queryInitialResultType) {
+      return undefined;
+    }
+
+    return {
+      resultType: queryInitialResultType,
+    };
+  }, [queryInitialResultType]);
+
   const fetchRows = React.useCallback(
-    (criteria: TestResultSearchCriteria, nextIncludeInactive: boolean) => {
+    (nextIncludeInactive: boolean) => {
+      const requestParams = {
+        ...(baseSearchParams ?? {}),
+        ...(nextIncludeInactive ? { includeInactive: true } : {}),
+      };
+
       dispatch(
         TestResultActions.fetchTestResultsRequest(
-          buildSearchParams(criteria, nextIncludeInactive)
+          Object.keys(requestParams).length > 0 ? requestParams : undefined
         )
       );
     },
-    [dispatch]
+    [baseSearchParams, dispatch]
   );
 
   React.useEffect(() => {
-    fetchRows(
-      initialSearchCriteriaRef.current,
-      initialIncludeInactiveRef.current
-    );
-  }, [fetchRows]);
+    setIncludeInactive(queryInitialIncludeInactive);
+  }, [queryInitialIncludeInactive]);
+
+  React.useEffect(() => {
+    fetchRows(queryInitialIncludeInactive);
+  }, [fetchRows, queryInitialIncludeInactive]);
 
   const activeCount = React.useMemo(
     () => rows.filter((row) => !isInactiveStatus(row.status)).length,
@@ -526,10 +191,7 @@ export default function TestResultList() {
     () => rows.filter((row) => isInactiveStatus(row.status)).length,
     [rows]
   );
-  const inactiveStatusSearch =
-    searchCriteria.searchType === "status" &&
-    searchCriteria.searchValue === "INACTIVE";
-  const includeInactiveChecked = includeInactive || inactiveStatusSearch;
+  const includeInactiveChecked = includeInactive;
 
   const maxPage = Math.max(0, Math.ceil(rows.length / rowsPerPage) - 1);
   const currentPage = Math.min(page, maxPage);
@@ -543,26 +205,8 @@ export default function TestResultList() {
     [currentPage, rows, rowsPerPage]
   );
 
-  const handleSearch = (criteria: TestResultSearchCriteria) => {
-    const shouldForceInactive =
-      criteria.searchType === "status" && criteria.searchValue === "INACTIVE";
-
-    setSearchCriteria(criteria);
-    if (shouldForceInactive) {
-      setIncludeInactive(true);
-    }
-    setPage(0);
-    fetchRows(criteria, includeInactive || shouldForceInactive);
-  };
-
-  const handleResetSearch = () => {
-    setSearchCriteria(INITIAL_SEARCH_CRITERIA);
-    setPage(0);
-    fetchRows(INITIAL_SEARCH_CRITERIA, includeInactive);
-  };
-
   const handleRefresh = () => {
-    fetchRows(searchCriteria, includeInactiveChecked);
+    fetchRows(includeInactiveChecked);
   };
 
   const handleIncludeInactiveChange = (
@@ -571,7 +215,7 @@ export default function TestResultList() {
     const nextIncludeInactive = event.target.checked;
     setIncludeInactive(nextIncludeInactive);
     setPage(0);
-    fetchRows(searchCriteria, nextIncludeInactive);
+    fetchRows(nextIncludeInactive);
   };
 
   const handleChangePage = (_event: unknown, newPage: number) => {
@@ -658,7 +302,7 @@ export default function TestResultList() {
                   <Switch
                     size="small"
                     checked={includeInactiveChecked}
-                    disabled={inactiveStatusSearch || loading}
+                    disabled={loading}
                     onChange={handleIncludeInactiveChange}
                   />
                 }
@@ -694,15 +338,6 @@ export default function TestResultList() {
         </Box>
 
         <CardContent sx={{ p: 2.5 }}>
-          <Box sx={{ mb: 2.5 }}>
-            <TestResultSearchControls
-              initialCriteria={queryInitialSearchCriteria}
-              loading={loading}
-              onSearch={handleSearch}
-              onReset={handleResetSearch}
-            />
-          </Box>
-
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
               <CircularProgress size={28} />
@@ -822,22 +457,6 @@ export default function TestResultList() {
                           </TableCell>
                           <TableCell align="center">
                             {formatDateTime(row.resultAt)}
-                          </TableCell>
-                          <TableCell align="center">
-                            <Chip
-                              label={formatStatus(row.status)}
-                              color={getStatusColor(row.status)}
-                              size="small"
-                              sx={{
-                                fontWeight: 600,
-                                ...(inactive
-                                  ? {
-                                      backgroundColor: "#eeeeee",
-                                      color: "#757575",
-                                    }
-                                  : {}),
-                              }}
-                            />
                           </TableCell>
                         </TableRow>
                       );

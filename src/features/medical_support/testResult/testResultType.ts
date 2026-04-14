@@ -15,7 +15,46 @@ export type TestResultDetailValue =
   | null
   | undefined;
 
-export type TestResultDetailData = Record<string, TestResultDetailValue>;
+export interface BaseTestResultDetailData {
+  resultSummary?: string | null;
+  [key: string]: TestResultDetailValue;
+}
+
+export interface ImagingTestResultDetailData extends BaseTestResultDetailData {
+  readingDetail?: string | null;
+}
+
+export interface SpecimenTestResultDetailData extends BaseTestResultDetailData {
+  resultItemCode?: string | null;
+  unit?: string | null;
+  referenceRange?: string | null;
+  judgement?: string | null;
+}
+
+export interface PathologyTestResultDetailData extends BaseTestResultDetailData {
+  judgedAt?: string | null;
+  readerId?: string | null;
+  diagnosisName?: string | null;
+}
+
+export interface EndoscopyTestResultDetailData extends BaseTestResultDetailData {
+  biopsyYn?: string | null;
+  readerId?: string | null;
+}
+
+export interface PhysiologicalTestResultDetailData
+  extends BaseTestResultDetailData {
+  report?: string | null;
+  measuredItemCode?: string | null;
+}
+
+export type TestResultDetailData =
+  | ImagingTestResultDetailData
+  | SpecimenTestResultDetailData
+  | PathologyTestResultDetailData
+  | EndoscopyTestResultDetailData
+  | PhysiologicalTestResultDetailData
+  | BaseTestResultDetailData;
 
 export interface TestResultDetailRequestPayload {
   resultType: string;

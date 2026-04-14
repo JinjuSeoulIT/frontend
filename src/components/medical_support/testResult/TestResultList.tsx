@@ -45,6 +45,7 @@ import type { AppDispatch, RootState } from "@/store/store";
 type TestResultSearchType =
   | "resultType"
   | "patientName"
+  | "detailCode"
   | "departmentName"
   | "status"
   | "resultAt";
@@ -80,6 +81,8 @@ const LABELS = {
   resultType: "\uAC80\uC0AC\uC885\uB958",
   resultTypeSelect: "\uAC80\uC0AC\uC885\uB958 \uC120\uD0DD",
   resultId: "\uACB0\uACFC ID",
+  detailCode: "\uC138\uBD80 \uCF54\uB4DC",
+  detailCodeInput: "\uC138\uBD80 \uCF54\uB4DC \uC785\uB825",
   patientName: "\uD658\uC790\uBA85",
   patientNameInput: "\uD658\uC790\uBA85 \uC785\uB825",
   departmentName: "\uC9C4\uB8CC\uACFC",
@@ -121,6 +124,7 @@ const SEARCH_TYPE_OPTIONS: Array<{
 }> = [
   { value: "patientName", label: LABELS.patientName },
   { value: "resultType", label: LABELS.resultType },
+  { value: "detailCode", label: LABELS.detailCode },
   { value: "departmentName", label: LABELS.departmentName },
   { value: "status", label: LABELS.status },
   { value: "resultAt", label: LABELS.resultAt },
@@ -150,6 +154,7 @@ const TABLE_HEADERS = [
   LABELS.rowNumber,
   LABELS.resultType,
   LABELS.resultId,
+  LABELS.detailCode,
   LABELS.patientName,
   LABELS.departmentName,
   LABELS.performer,
@@ -336,6 +341,8 @@ function TestResultSearchControls({
   const textLabel =
     criteria.searchType === "patientName"
       ? LABELS.patientNameInput
+      : criteria.searchType === "detailCode"
+      ? LABELS.detailCodeInput
       : LABELS.departmentNameInput;
 
   return (
@@ -800,6 +807,9 @@ export default function TestResultList() {
                           </TableCell>
                           <TableCell align="center">
                             {safeValue(row.resultId)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(row.detailCode)}
                           </TableCell>
                           <TableCell align="center">
                             {safeValue(row.patientName)}

@@ -13,23 +13,9 @@ import {
   Divider,
   Paper,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Typography,
 } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  formatActiveStatus,
-  formatDateTime,
-  formatYn,
-  getActiveStatusColor,
-  getActiveStatusSx,
-  safeValue,
-} from "@/components/medical_support/common/ExamDisplay";
 import { TestResultActions } from "@/features/medical_support/testResult/testResultSlice";
 import type {
   TestResult,
@@ -47,27 +33,65 @@ type DetailFieldConfig = {
 };
 
 const TYPE_DETAIL_FIELDS: Record<string, DetailFieldConfig[]> = {
-  IMAGING: [{ key: "readingDetail", label: "판독 상세", fullWidth: true }],
+  IMAGING: [
+    { key: "readingDetail", label: "영상 판독 본문", fullWidth: true },
+  ],
   SPECIMEN: [
-    { key: "resultItemCode", label: "결과 항목 코드" },
-    { key: "unit", label: "단위" },
-    { key: "referenceRange", label: "참고범위" },
-    { key: "judgement", label: "판정" },
+    { key: "resultItemCode", label: "검사 항목 코드" },
+    { key: "unit", label: "결과 단위" },
+    { key: "referenceRange", label: "참고치 범위" },
+    { key: "judgement", label: "판정값" },
   ],
   PATHOLOGY: [
-    { key: "diagnosisName", label: "진단명" },
-    { key: "judgedAt", label: "판정일시", formatter: formatDetailDateTime },
+    { key: "judgedAt", label: "병리 판정 시각", formatter: formatDetailDateTime },
     { key: "readerId", label: "판독자 ID" },
+    { key: "diagnosisName", label: "병리 진단명" },
   ],
   ENDOSCOPY: [
-    { key: "biopsyYn", label: "생검 여부", formatter: formatDetailYn },
+    { key: "biopsyYn", label: "조직검사 여부", formatter: formatDetailYn },
     { key: "readerId", label: "판독자 ID" },
   ],
   PHYSIOLOGICAL: [
+    { key: "report", label: "검사 리포트 본문", fullWidth: true },
     { key: "measuredItemCode", label: "측정 항목 코드" },
-    { key: "report", label: "보고서", fullWidth: true },
   ],
 };
+
+function safeValue(value?: TestResultDetailValue) {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+
+  const text = String(value).trim();
+  return text || "-";
+}
+
+function normalizeValue(value?: string | null) {
+  return value?.trim().toUpperCase() ?? "";
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  const normalized = value.replace(" ", "T");
+  const date = new Date(normalized);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(date);
+}
 
 function formatDetailValue(value: TestResultDetailValue) {
   if (typeof value === "boolean") {
@@ -86,15 +110,39 @@ function formatDetailDateTime(value: TestResultDetailValue) {
 }
 
 function formatDetailYn(value: TestResultDetailValue) {
-  if (typeof value === "boolean") {
-    return value ? "예" : "아니오";
-  }
+  const normalized = String(value ?? "").trim().toUpperCase();
 
-  if (value === null || value === undefined || value === "") {
+  if (!normalized) {
     return "-";
   }
 
-  return formatYn(String(value));
+  if (["Y", "YES", "TRUE"].includes(normalized)) {
+    return "예";
+  }
+
+  if (["N", "NO", "FALSE"].includes(normalized)) {
+    return "아니오";
+  }
+
+  return safeValue(value);
+}
+
+function formatStatus(value?: string | null) {
+  const normalized = normalizeValue(value);
+
+  if (normalized === "ACTIVE") {
+    return "활성";
+  }
+
+  if (normalized === "INACTIVE") {
+    return "비활성";
+  }
+
+  return safeValue(value);
+}
+
+function getStatusColor(value?: string | null) {
+  return normalizeValue(value) === "ACTIVE" ? "success" : "default";
 }
 
 function getRouteParam(value: string | string[] | undefined) {
@@ -128,35 +176,18 @@ function buildDetailFieldConfigs(
     return knownFields;
   }
 
-  return Object.keys(detail ?? {}).map<DetailFieldConfig>((key) => ({
+  return Object.keys(detail ?? {}).map((key) => ({
     key,
     label: key,
   }));
 }
 
-function getSummaryLabel(resultType: string) {
-  switch (resultType) {
-    case "IMAGING":
-      return "판독 요약";
-    case "SPECIMEN":
-      return "결과값";
-    case "PATHOLOGY":
-      return "병리 결과 요약";
-    case "ENDOSCOPY":
-      return "내시경 소견";
-    case "PHYSIOLOGICAL":
-      return "결과 요약";
-    default:
-      return "결과 요약";
-  }
-}
-
 function getDetailSectionTitle(resultType: string) {
   switch (resultType) {
     case "IMAGING":
-      return "판독 정보";
+      return "영상 판독 정보";
     case "SPECIMEN":
-      return "검체 결과";
+      return "검체검사 결과";
     case "PATHOLOGY":
       return "병리 판정 정보";
     case "ENDOSCOPY":
@@ -164,7 +195,7 @@ function getDetailSectionTitle(resultType: string) {
     case "PHYSIOLOGICAL":
       return "생리기능 결과 정보";
     default:
-      return "타입별 상세 정보";
+      return "도메인별 상세 정보";
   }
 }
 
@@ -247,64 +278,6 @@ function DetailGrid({ children }: { children: ReactNode }) {
     >
       {children}
     </Box>
-  );
-}
-
-function SpecimenResultTable({
-  detail,
-  summary,
-}: {
-  detail: TestResultDetailData | null | undefined;
-  summary?: string | null;
-}) {
-  return (
-    <TableContainer
-      component={Box}
-      sx={{
-        mt: 1.5,
-        border: "1px solid",
-        borderColor: "grey.200",
-        borderRadius: 1,
-        overflowX: "auto",
-      }}
-    >
-      <Table size="small" sx={{ minWidth: 720 }}>
-        <TableHead>
-          <TableRow>
-            {["결과 항목 코드", "결과값", "단위", "참고범위", "판정"].map(
-              (header) => (
-                <TableCell
-                  key={header}
-                  align="center"
-                  sx={{
-                    fontWeight: 700,
-                    backgroundColor: "#f8f9fa",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {header}
-                </TableCell>
-              )
-            )}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          <TableRow>
-            <TableCell align="center">
-              {formatDetailValue(detail?.resultItemCode)}
-            </TableCell>
-            <TableCell align="center">{safeValue(summary)}</TableCell>
-            <TableCell align="center">{formatDetailValue(detail?.unit)}</TableCell>
-            <TableCell align="center">
-              {formatDetailValue(detail?.referenceRange)}
-            </TableCell>
-            <TableCell align="center">
-              {formatDetailValue(detail?.judgement)}
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
-    </TableContainer>
   );
 }
 
@@ -407,9 +380,7 @@ export default function TestResultDetail() {
   }
 
   const detailFields = buildDetailFieldConfigs(resultType, detail.detail);
-  const isSpecimenResult = resultType === "SPECIMEN";
   const detailSectionTitle = getDetailSectionTitle(resultType);
-  const summaryLabel = getSummaryLabel(resultType);
 
   return (
     <Box sx={{ px: 3, py: 3, maxWidth: 1100, mx: "auto" }}>
@@ -435,7 +406,7 @@ export default function TestResultDetail() {
                 검사 결과 상세
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                결과 요약과 검사별 판독 정보를 확인합니다.
+                통합 검사 결과의 공통 정보와 도메인별 상세 정보를 확인합니다.
               </Typography>
             </Box>
 
@@ -454,58 +425,47 @@ export default function TestResultDetail() {
 
         <Box sx={{ p: 3 }}>
           <Stack spacing={4}>
-            <Section title={isSpecimenResult ? detailSectionTitle : "결과 요약"}>
-              {isSpecimenResult ? (
-                <SpecimenResultTable
-                  detail={detail.detail}
-                  summary={detail.summary}
+            <Section title="결과 요약">
+              <DetailGrid>
+                <DetailField
+                  label="목록 결과 요약"
+                  value={safeValue(detail.summary)}
+                  fullWidth
                 />
-              ) : (
-                <DetailGrid>
-                  <DetailField
-                    label={summaryLabel}
-                    value={safeValue(detail.summary)}
-                    fullWidth
-                  />
-                </DetailGrid>
-              )}
+              </DetailGrid>
             </Section>
 
-            {!isSpecimenResult ? (
-              <>
-                <Divider />
+            <Divider />
 
-                <Section title={detailSectionTitle}>
-                  {detailFields.length > 0 ? (
-                    <DetailGrid>
-                      {detailFields.map((field) => (
-                        <DetailField
-                          key={field.key}
-                          label={field.label}
-                          fullWidth={field.fullWidth}
-                          value={
-                            field.formatter
-                              ? field.formatter(detail.detail?.[field.key])
-                              : formatDetailValue(detail.detail?.[field.key])
-                          }
-                        />
-                      ))}
-                    </DetailGrid>
-                  ) : (
-                    <Typography color="text.secondary" sx={{ mt: 1.5 }}>
-                      등록된 상세 정보가 없습니다.
-                    </Typography>
-                  )}
-                </Section>
-              </>
-            ) : null}
+            <Section title={detailSectionTitle}>
+              {detailFields.length > 0 ? (
+                <DetailGrid>
+                  {detailFields.map((field) => (
+                    <DetailField
+                      key={field.key}
+                      label={field.label}
+                      fullWidth={field.fullWidth}
+                      value={
+                        field.formatter
+                          ? field.formatter(detail.detail?.[field.key])
+                          : formatDetailValue(detail.detail?.[field.key])
+                      }
+                    />
+                  ))}
+                </DetailGrid>
+              ) : (
+                <Typography color="text.secondary" sx={{ mt: 1.5 }}>
+                  등록된 상세 정보가 없습니다.
+                </Typography>
+              )}
+            </Section>
 
             <Divider />
 
             <Section title="검사 정보">
               <DetailGrid>
                 <DetailField
-                  label="검사종류"
+                  label="검사 종류"
                   value={getResultTypeLabel(detail, resultType)}
                 />
                 <DetailField
@@ -514,15 +474,15 @@ export default function TestResultDetail() {
                 />
                 <DetailField label="진료과" value={safeValue(detail.departmentName)} />
                 <DetailField
-                  label="결과확정일시"
+                  label="결과 확정 시각"
                   value={formatDateTime(detail.resultAt)}
                 />
                 <DetailField
-                  label="검사수행자"
+                  label="검사 시행자"
                   value={formatNameWithId(detail.performerName, detail.performerId)}
                 />
                 <DetailField
-                  label="검사결과관리자"
+                  label="결과 관리자"
                   value={formatNameWithId(
                     detail.resultManagerName,
                     detail.resultManagerId
@@ -532,13 +492,14 @@ export default function TestResultDetail() {
                   label="상태"
                   value={
                     <Chip
-                      label={formatActiveStatus(detail.status)}
-                      color={getActiveStatusColor(detail.status)}
+                      label={formatStatus(detail.status)}
+                      color={getStatusColor(detail.status)}
                       size="small"
-                      sx={getActiveStatusSx(detail.status)}
+                      sx={{ fontWeight: 600 }}
                     />
                   }
                 />
+                <DetailField label="생성 시각" value={formatDateTime(detail.createdAt)} />
               </DetailGrid>
             </Section>
 
@@ -547,12 +508,12 @@ export default function TestResultDetail() {
             <Section title="관리 정보">
               <DetailGrid>
                 <DetailField label="결과 ID" value={safeValue(detail.resultId)} />
-                <DetailField label="검사 ID" value={safeValue(detail.examId)} />
+                <DetailField label="원본 검사 실행 ID" value={safeValue(detail.examId)} />
                 <DetailField
-                  label="검사 수행 ID"
+                  label="상위 검사 실행 묶음 ID"
                   value={safeValue(detail.testExecutionId)}
                 />
-                <DetailField label="상세코드" value={safeValue(detail.detailCode)} />
+                <DetailField label="검사 세부 코드" value={safeValue(detail.detailCode)} />
               </DetailGrid>
             </Section>
           </Stack>

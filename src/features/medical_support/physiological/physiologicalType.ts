@@ -18,6 +18,7 @@ export interface PhysiologicalExam {
 
 export interface PhysiologicalExamCreatePayload {
   testExecutionId?: string | number | null;
+  detailCode?: string | null;
   patientId?: string | number | null;
   patientName?: string | null;
   departmentName?: string | null;
@@ -32,6 +33,7 @@ export interface PhysiologicalExamCreatePayload {
 
 export interface PhysiologicalExamUpdatePayload {
   testExecutionId?: string | number | null;
+  detailCode?: string | null;
   patientId?: string | number | null;
   patientName?: string | null;
   departmentName?: string | null;

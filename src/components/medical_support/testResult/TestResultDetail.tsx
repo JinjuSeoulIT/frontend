@@ -16,14 +16,6 @@ import {
   Typography,
 } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  formatActiveStatus,
-  formatDateTime,
-  formatYn,
-  getActiveStatusColor,
-  getActiveStatusSx,
-  safeValue,
-} from "@/components/medical_support/common/ExamDisplay";
 import { TestResultActions } from "@/features/medical_support/testResult/testResultSlice";
 import type {
   TestResult,
@@ -37,29 +29,69 @@ type DetailFieldConfig = {
   key: string;
   label: string;
   formatter?: (value: TestResultDetailValue) => ReactNode;
+  fullWidth?: boolean;
 };
 
 const TYPE_DETAIL_FIELDS: Record<string, DetailFieldConfig[]> = {
-  IMAGING: [],
+  IMAGING: [
+    { key: "readingDetail", label: "영상 판독 본문", fullWidth: true },
+  ],
   SPECIMEN: [
-    { key: "resultItemCode", label: "결과 항목 코드" },
-    { key: "unit", label: "단위" },
-    { key: "referenceRange", label: "참고범위" },
-    { key: "judgement", label: "판정" },
+    { key: "resultItemCode", label: "검사 항목 코드" },
+    { key: "unit", label: "결과 단위" },
+    { key: "referenceRange", label: "참고치 범위" },
+    { key: "judgement", label: "판정값" },
   ],
   PATHOLOGY: [
-    { key: "judgedAt", label: "판정일시", formatter: formatDetailDateTime },
-    { key: "diagnosisName", label: "진단명" },
+    { key: "judgedAt", label: "병리 판정 시각", formatter: formatDetailDateTime },
+    { key: "readerId", label: "판독자 ID" },
+    { key: "diagnosisName", label: "병리 진단명" },
   ],
   ENDOSCOPY: [
-    { key: "biopsyYn", label: "생검 여부", formatter: formatDetailYn },
+    { key: "biopsyYn", label: "조직검사 여부", formatter: formatDetailYn },
     { key: "readerId", label: "판독자 ID" },
   ],
   PHYSIOLOGICAL: [
-    { key: "report", label: "보고서" },
+    { key: "report", label: "검사 리포트 본문", fullWidth: true },
     { key: "measuredItemCode", label: "측정 항목 코드" },
   ],
 };
+
+function safeValue(value?: TestResultDetailValue) {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+
+  const text = String(value).trim();
+  return text || "-";
+}
+
+function normalizeValue(value?: string | null) {
+  return value?.trim().toUpperCase() ?? "";
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  const normalized = value.replace(" ", "T");
+  const date = new Date(normalized);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(date);
+}
 
 function formatDetailValue(value: TestResultDetailValue) {
   if (typeof value === "boolean") {
@@ -78,15 +110,39 @@ function formatDetailDateTime(value: TestResultDetailValue) {
 }
 
 function formatDetailYn(value: TestResultDetailValue) {
-  if (typeof value === "boolean") {
-    return value ? "예" : "아니오";
-  }
+  const normalized = String(value ?? "").trim().toUpperCase();
 
-  if (value === null || value === undefined || value === "") {
+  if (!normalized) {
     return "-";
   }
 
-  return formatYn(String(value));
+  if (["Y", "YES", "TRUE"].includes(normalized)) {
+    return "예";
+  }
+
+  if (["N", "NO", "FALSE"].includes(normalized)) {
+    return "아니오";
+  }
+
+  return safeValue(value);
+}
+
+function formatStatus(value?: string | null) {
+  const normalized = normalizeValue(value);
+
+  if (normalized === "ACTIVE") {
+    return "활성";
+  }
+
+  if (normalized === "INACTIVE") {
+    return "비활성";
+  }
+
+  return safeValue(value);
+}
+
+function getStatusColor(value?: string | null) {
+  return normalizeValue(value) === "ACTIVE" ? "success" : "default";
 }
 
 function getRouteParam(value: string | string[] | undefined) {
@@ -120,21 +176,54 @@ function buildDetailFieldConfigs(
     return knownFields;
   }
 
-  return Object.keys(detail ?? {}).map<DetailFieldConfig>((key) => ({
+  return Object.keys(detail ?? {}).map((key) => ({
     key,
     label: key,
   }));
 }
 
+function getDetailSectionTitle(resultType: string) {
+  switch (resultType) {
+    case "IMAGING":
+      return "영상 판독 정보";
+    case "SPECIMEN":
+      return "검체검사 결과";
+    case "PATHOLOGY":
+      return "병리 판정 정보";
+    case "ENDOSCOPY":
+      return "내시경 결과 정보";
+    case "PHYSIOLOGICAL":
+      return "생리기능 결과 정보";
+    default:
+      return "도메인별 상세 정보";
+  }
+}
+
+function formatNameWithId(
+  name?: string | null,
+  id?: string | number | null
+) {
+  const displayName = safeValue(name);
+  const displayId = safeValue(id);
+
+  if (displayName !== "-" && displayId !== "-") {
+    return `${displayName} (${displayId})`;
+  }
+
+  return displayName !== "-" ? displayName : displayId;
+}
+
 function DetailField({
   label,
   value,
+  fullWidth = false,
 }: {
   label: string;
   value: ReactNode;
+  fullWidth?: boolean;
 }) {
   return (
-    <Box sx={{ minWidth: 0 }}>
+    <Box sx={{ minWidth: 0, gridColumn: fullWidth ? { md: "1 / -1" } : undefined }}>
       <Typography variant="caption" color="text.secondary" fontWeight={600}>
         {label}
       </Typography>
@@ -154,6 +243,64 @@ function DetailField({
         )}
       </Box>
     </Box>
+  );
+}
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <Box>
+      <Typography variant="subtitle1" fontWeight={700}>
+        {title}
+      </Typography>
+      {children}
+    </Box>
+  );
+}
+
+function SectionCard({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        borderRadius: 3,
+        overflow: "hidden",
+        border: "1px solid",
+        borderColor: "grey.200",
+      }}
+    >
+      <Box
+        sx={{
+          px: { xs: 2, md: 2.5 },
+          py: 1.75,
+          borderBottom: "1px solid",
+          borderColor: "grey.200",
+          backgroundColor: "#fafafa",
+        }}
+      >
+        <Typography variant="subtitle1" fontWeight={700}>
+          {title}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          {description}
+        </Typography>
+      </Box>
+
+      <Box sx={{ p: { xs: 2, md: 2.5 } }}>{children}</Box>
+    </Paper>
   );
 }
 
@@ -274,18 +421,12 @@ export default function TestResultDetail() {
   }
 
   const detailFields = buildDetailFieldConfigs(resultType, detail.detail);
-  const isSpecimenResult = resultType === "SPECIMEN";
-  const isImagingResult = resultType === "IMAGING";
-  const isEndoscopyResult = resultType === "ENDOSCOPY";
-  const isPathologyResult = resultType === "PATHOLOGY";
-  const isPhysiologicalResult = resultType === "PHYSIOLOGICAL";
-  const hideResultSummary =
-    isSpecimenResult ||
-    isImagingResult ||
-    isEndoscopyResult ||
-    isPathologyResult ||
-    isPhysiologicalResult;
-  const showTypeDetailSection = !isImagingResult || detailFields.length > 0;
+  const detailSectionTitle = getDetailSectionTitle(resultType);
+  const isImaging = resultType === "IMAGING";
+  const isSpecimen = resultType === "SPECIMEN";
+  const isPathology = resultType === "PATHOLOGY";
+  const isEndoscopy = resultType === "ENDOSCOPY";
+  const isPhysiological = resultType === "PHYSIOLOGICAL";
 
   return (
     <Box sx={{ px: 3, py: 3, maxWidth: 1100, mx: "auto" }}>
@@ -311,7 +452,7 @@ export default function TestResultDetail() {
                 검사 결과 상세
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                검사 결과의 공통 정보와 타입별 상세 정보를 확인합니다.
+                통합 검사 결과의 공통 정보와 도메인별 상세 정보를 확인합니다.
               </Typography>
             </Box>
 
@@ -329,97 +470,554 @@ export default function TestResultDetail() {
         <Divider />
 
         <Box sx={{ p: 3 }}>
-          <Stack spacing={4}>
-            <Box>
-              <Typography variant="subtitle1" fontWeight={700}>
-                공통 정보
-              </Typography>
-              <DetailGrid>
-                <DetailField
-                  label="검사종류"
-                  value={getResultTypeLabel(detail, resultType)}
-                />
-                <DetailField label="결과 ID" value={safeValue(detail.resultId)} />
-                <DetailField label="검사 ID" value={safeValue(detail.examId)} />
-                <DetailField
-                  label="검사 수행 ID"
-                  value={safeValue(detail.testExecutionId)}
-                />
-                <DetailField label="상세코드" value={safeValue(detail.detailCode)} />
-                <DetailField label="환자 ID" value={safeValue(detail.patientId)} />
-                <DetailField label="환자명" value={safeValue(detail.patientName)} />
-                <DetailField label="진료과" value={safeValue(detail.departmentName)} />
-                <DetailField
-                  label="검사수행자 ID"
-                  value={safeValue(detail.performerId)}
-                />
-                <DetailField
-                  label="검사수행자명"
-                  value={safeValue(detail.performerName)}
-                />
-                <DetailField
-                  label="검사결과관리자 ID"
-                  value={safeValue(detail.resultManagerId)}
-                />
-                <DetailField
-                  label="검사결과관리자명"
-                  value={safeValue(detail.resultManagerName)}
-                />
-                {!isSpecimenResult ? (
+          {isImaging ? (
+            <Stack spacing={3}>
+              <SectionCard
+                title="기본 정보"
+                description="검사유형, 검사코드, 환자 및 수행 정보를 먼저 확인합니다."
+              >
+                <DetailGrid>
                   <DetailField
-                    label="검사일시"
+                    label="검사유형"
+                    value={getResultTypeLabel(detail, resultType)}
+                  />
+                  <DetailField label="검사코드" value={safeValue(detail.detailCode)} />
+                  <DetailField label="환자명" value={safeValue(detail.patientName)} />
+                  <DetailField label="환자 ID" value={safeValue(detail.patientId)} />
+                  <DetailField label="진료과" value={safeValue(detail.departmentName)} />
+                  <DetailField
+                    label="검사수행자"
+                    value={formatNameWithId(detail.performerName, detail.performerId)}
+                  />
+                </DetailGrid>
+              </SectionCard>
+
+              <SectionCard
+                title="결과 관리 정보"
+                description="결과등록일시, 생성일시, 검사결과관리자와 상태를 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField
+                    label="결과등록일시"
                     value={formatDateTime(detail.resultAt)}
                   />
-                ) : null}
-                <DetailField label="생성일시" value={formatDateTime(detail.createdAt)} />
-                <DetailField
-                  label="상태"
-                  value={
-                    <Chip
-                      label={formatActiveStatus(detail.status)}
-                      color={getActiveStatusColor(detail.status)}
-                      size="small"
-                      sx={getActiveStatusSx(detail.status)}
-                    />
-                  }
-                />
-                {!hideResultSummary ? (
-                  <DetailField label="결과 요약" value={safeValue(detail.summary)} />
-                ) : null}
-              </DetailGrid>
-            </Box>
+                  <DetailField label="생성일시" value={formatDateTime(detail.createdAt)} />
+                  <DetailField
+                    label="검사결과관리자"
+                    value={formatNameWithId(
+                      detail.resultManagerName,
+                      detail.resultManagerId
+                    )}
+                  />
+                  <DetailField
+                    label="상태"
+                    value={
+                      <Chip
+                        label={formatStatus(detail.status)}
+                        color={getStatusColor(detail.status)}
+                        size="small"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
+                </DetailGrid>
+              </SectionCard>
 
-            {showTypeDetailSection ? (
-              <>
-                <Divider />
+              <SectionCard
+                title="영상 판독 정보"
+                description="실제 결과 요약과 판독 본문을 중심으로 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField
+                    label="결과 요약"
+                    value={safeValue(detail.summary)}
+                    fullWidth
+                  />
+                  <DetailField
+                    label="영상 판독 본문"
+                    value={formatDetailValue(detail.detail?.readingDetail)}
+                    fullWidth
+                  />
+                </DetailGrid>
+              </SectionCard>
 
-                <Box>
-                  <Typography variant="subtitle1" fontWeight={700}>
-                    타입별 상세 정보
+              <SectionCard
+                title="식별 정보"
+                description="결과, 영상검사, 검사수행 식별값을 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField label="결과 ID" value={safeValue(detail.resultId)} />
+                  <DetailField label="영상검사 ID" value={safeValue(detail.examId)} />
+                  <DetailField
+                    label="검사수행 ID"
+                    value={safeValue(detail.testExecutionId)}
+                  />
+                </DetailGrid>
+              </SectionCard>
+            </Stack>
+          ) : isSpecimen ? (
+            <Stack spacing={3}>
+              <SectionCard
+                title="기본 정보"
+                description="검사유형, 검사코드, 환자 및 수행 정보를 먼저 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField
+                    label="검사유형"
+                    value={getResultTypeLabel(detail, resultType)}
+                  />
+                  <DetailField label="검사코드" value={safeValue(detail.detailCode)} />
+                  <DetailField label="환자명" value={safeValue(detail.patientName)} />
+                  <DetailField label="환자 ID" value={safeValue(detail.patientId)} />
+                  <DetailField label="진료과" value={safeValue(detail.departmentName)} />
+                  <DetailField
+                    label="검사수행자"
+                    value={formatNameWithId(detail.performerName, detail.performerId)}
+                  />
+                </DetailGrid>
+              </SectionCard>
+
+              <SectionCard
+                title="결과 관리 정보"
+                description="결과등록일시, 생성일시, 검사결과관리자와 상태를 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField
+                    label="결과등록일시"
+                    value={formatDateTime(detail.resultAt)}
+                  />
+                  <DetailField label="생성일시" value={formatDateTime(detail.createdAt)} />
+                  <DetailField
+                    label="검사결과관리자"
+                    value={formatNameWithId(
+                      detail.resultManagerName,
+                      detail.resultManagerId
+                    )}
+                  />
+                  <DetailField
+                    label="상태"
+                    value={
+                      <Chip
+                        label={formatStatus(detail.status)}
+                        color={getStatusColor(detail.status)}
+                        size="small"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
+                </DetailGrid>
+              </SectionCard>
+
+              <SectionCard
+                title="검체검사 결과 정보"
+                description="검체검사 결과 요약과 항목별 결과 정보를 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField
+                    label="결과 요약"
+                    value={safeValue(detail.summary)}
+                    fullWidth
+                  />
+                  <DetailField
+                    label="검사 항목 코드"
+                    value={formatDetailValue(detail.detail?.resultItemCode)}
+                  />
+                  <DetailField
+                    label="결과 단위"
+                    value={formatDetailValue(detail.detail?.unit)}
+                  />
+                  <DetailField
+                    label="참고치 범위"
+                    value={formatDetailValue(detail.detail?.referenceRange)}
+                  />
+                  <DetailField
+                    label="판정값"
+                    value={formatDetailValue(detail.detail?.judgement)}
+                  />
+                </DetailGrid>
+              </SectionCard>
+
+              <SectionCard
+                title="식별 정보"
+                description="결과, 검체검사, 검사수행 식별값을 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField label="결과 ID" value={safeValue(detail.resultId)} />
+                  <DetailField label="검체검사 ID" value={safeValue(detail.examId)} />
+                  <DetailField
+                    label="검사수행 ID"
+                    value={safeValue(detail.testExecutionId)}
+                  />
+                </DetailGrid>
+              </SectionCard>
+            </Stack>
+          ) : isPathology ? (
+            <Stack spacing={3}>
+              <SectionCard
+                title="기본 정보"
+                description="검사유형, 검사코드, 환자 및 수행 정보를 먼저 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField
+                    label="검사유형"
+                    value={getResultTypeLabel(detail, resultType)}
+                  />
+                  <DetailField label="검사코드" value={safeValue(detail.detailCode)} />
+                  <DetailField label="환자명" value={safeValue(detail.patientName)} />
+                  <DetailField label="환자 ID" value={safeValue(detail.patientId)} />
+                  <DetailField label="진료과" value={safeValue(detail.departmentName)} />
+                  <DetailField
+                    label="검사수행자"
+                    value={formatNameWithId(detail.performerName, detail.performerId)}
+                  />
+                </DetailGrid>
+              </SectionCard>
+
+              <SectionCard
+                title="결과 관리 정보"
+                description="결과등록일시, 생성일시, 검사결과관리자와 상태를 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField
+                    label="결과등록일시"
+                    value={formatDateTime(detail.resultAt)}
+                  />
+                  <DetailField label="생성일시" value={formatDateTime(detail.createdAt)} />
+                  <DetailField
+                    label="검사결과관리자"
+                    value={formatNameWithId(
+                      detail.resultManagerName,
+                      detail.resultManagerId
+                    )}
+                  />
+                  <DetailField
+                    label="상태"
+                    value={
+                      <Chip
+                        label={formatStatus(detail.status)}
+                        color={getStatusColor(detail.status)}
+                        size="small"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
+                </DetailGrid>
+              </SectionCard>
+
+              <SectionCard
+                title="병리 판정 정보"
+                description="결과 요약과 병리 판정 정보를 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField
+                    label="결과 요약"
+                    value={safeValue(detail.summary)}
+                    fullWidth
+                  />
+                  <DetailField
+                    label="병리판정일시"
+                    value={formatDetailDateTime(detail.detail?.judgedAt)}
+                  />
+                  <DetailField
+                    label="판독자 ID"
+                    value={formatDetailValue(detail.detail?.readerId)}
+                  />
+                  <DetailField
+                    label="병리진단명"
+                    value={formatDetailValue(detail.detail?.diagnosisName)}
+                  />
+                </DetailGrid>
+              </SectionCard>
+
+              <SectionCard
+                title="식별 정보"
+                description="결과, 병리검사, 검사수행 식별값을 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField label="결과 ID" value={safeValue(detail.resultId)} />
+                  <DetailField label="병리검사 ID" value={safeValue(detail.examId)} />
+                  <DetailField
+                    label="검사수행 ID"
+                    value={safeValue(detail.testExecutionId)}
+                  />
+                </DetailGrid>
+              </SectionCard>
+            </Stack>
+          ) : isEndoscopy ? (
+            <Stack spacing={3}>
+              <SectionCard
+                title="기본 정보"
+                description="검사유형, 검사코드, 환자 및 수행 정보를 먼저 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField
+                    label="검사유형"
+                    value={getResultTypeLabel(detail, resultType)}
+                  />
+                  <DetailField label="검사코드" value={safeValue(detail.detailCode)} />
+                  <DetailField label="환자명" value={safeValue(detail.patientName)} />
+                  <DetailField label="환자 ID" value={safeValue(detail.patientId)} />
+                  <DetailField label="진료과" value={safeValue(detail.departmentName)} />
+                  <DetailField
+                    label="검사수행자"
+                    value={formatNameWithId(detail.performerName, detail.performerId)}
+                  />
+                </DetailGrid>
+              </SectionCard>
+
+              <SectionCard
+                title="결과 관리 정보"
+                description="결과등록일시, 생성일시, 검사결과관리자와 상태를 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField
+                    label="결과등록일시"
+                    value={formatDateTime(detail.resultAt)}
+                  />
+                  <DetailField label="생성일시" value={formatDateTime(detail.createdAt)} />
+                  <DetailField
+                    label="검사결과관리자"
+                    value={formatNameWithId(
+                      detail.resultManagerName,
+                      detail.resultManagerId
+                    )}
+                  />
+                  <DetailField
+                    label="상태"
+                    value={
+                      <Chip
+                        label={formatStatus(detail.status)}
+                        color={getStatusColor(detail.status)}
+                        size="small"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
+                </DetailGrid>
+              </SectionCard>
+
+              <SectionCard
+                title="내시경 결과 정보"
+                description="결과 요약과 내시경 결과 정보를 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField
+                    label="결과 요약"
+                    value={safeValue(detail.summary)}
+                    fullWidth
+                  />
+                  <DetailField
+                    label="조직검사 여부"
+                    value={formatDetailYn(detail.detail?.biopsyYn)}
+                  />
+                  <DetailField
+                    label="판독자 ID"
+                    value={formatDetailValue(detail.detail?.readerId)}
+                  />
+                </DetailGrid>
+              </SectionCard>
+
+              <SectionCard
+                title="식별 정보"
+                description="결과, 내시경검사, 검사수행 식별값을 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField label="결과 ID" value={safeValue(detail.resultId)} />
+                  <DetailField label="내시경검사 ID" value={safeValue(detail.examId)} />
+                  <DetailField
+                    label="검사수행 ID"
+                    value={safeValue(detail.testExecutionId)}
+                  />
+                </DetailGrid>
+              </SectionCard>
+            </Stack>
+          ) : isPhysiological ? (
+            <Stack spacing={3}>
+              <SectionCard
+                title="기본 정보"
+                description="검사유형, 검사코드, 환자 및 수행 정보를 먼저 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField
+                    label="검사유형"
+                    value={getResultTypeLabel(detail, resultType)}
+                  />
+                  <DetailField label="검사코드" value={safeValue(detail.detailCode)} />
+                  <DetailField label="환자명" value={safeValue(detail.patientName)} />
+                  <DetailField label="환자 ID" value={safeValue(detail.patientId)} />
+                  <DetailField label="진료과" value={safeValue(detail.departmentName)} />
+                  <DetailField
+                    label="검사수행자"
+                    value={formatNameWithId(detail.performerName, detail.performerId)}
+                  />
+                </DetailGrid>
+              </SectionCard>
+
+              <SectionCard
+                title="결과 관리 정보"
+                description="결과등록일시, 생성일시, 검사결과관리자와 상태를 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField
+                    label="결과등록일시"
+                    value={formatDateTime(detail.resultAt)}
+                  />
+                  <DetailField label="생성일시" value={formatDateTime(detail.createdAt)} />
+                  <DetailField
+                    label="검사결과관리자"
+                    value={formatNameWithId(
+                      detail.resultManagerName,
+                      detail.resultManagerId
+                    )}
+                  />
+                  <DetailField
+                    label="상태"
+                    value={
+                      <Chip
+                        label={formatStatus(detail.status)}
+                        color={getStatusColor(detail.status)}
+                        size="small"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
+                </DetailGrid>
+              </SectionCard>
+
+              <SectionCard
+                title="생리기능검사 결과 정보"
+                description="결과 요약과 생리기능검사 결과 정보를 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField
+                    label="결과 요약"
+                    value={safeValue(detail.summary)}
+                    fullWidth
+                  />
+                  <DetailField
+                    label="검사 리포트 본문"
+                    value={formatDetailValue(detail.detail?.report)}
+                    fullWidth
+                  />
+                  <DetailField
+                    label="측정 항목 코드"
+                    value={formatDetailValue(detail.detail?.measuredItemCode)}
+                  />
+                </DetailGrid>
+              </SectionCard>
+
+              <SectionCard
+                title="식별 정보"
+                description="결과, 생리기능검사, 검사수행 식별값을 확인합니다."
+              >
+                <DetailGrid>
+                  <DetailField label="결과 ID" value={safeValue(detail.resultId)} />
+                  <DetailField
+                    label="생리기능검사 ID"
+                    value={safeValue(detail.examId)}
+                  />
+                  <DetailField
+                    label="검사수행 ID"
+                    value={safeValue(detail.testExecutionId)}
+                  />
+                </DetailGrid>
+              </SectionCard>
+            </Stack>
+          ) : (
+            <Stack spacing={4}>
+              <Section title="결과 요약">
+                <DetailGrid>
+                  <DetailField
+                    label="목록 결과 요약"
+                    value={safeValue(detail.summary)}
+                    fullWidth
+                  />
+                </DetailGrid>
+              </Section>
+
+              <Divider />
+
+              <Section title={detailSectionTitle}>
+                {detailFields.length > 0 ? (
+                  <DetailGrid>
+                    {detailFields.map((field) => (
+                      <DetailField
+                        key={field.key}
+                        label={field.label}
+                        fullWidth={field.fullWidth}
+                        value={
+                          field.formatter
+                            ? field.formatter(detail.detail?.[field.key])
+                            : formatDetailValue(detail.detail?.[field.key])
+                        }
+                      />
+                    ))}
+                  </DetailGrid>
+                ) : (
+                  <Typography color="text.secondary" sx={{ mt: 1.5 }}>
+                    등록된 상세 정보가 없습니다.
                   </Typography>
-                  {detailFields.length > 0 ? (
-                    <DetailGrid>
-                      {detailFields.map((field) => (
-                        <DetailField
-                          key={field.key}
-                          label={field.label}
-                          value={
-                            field.formatter
-                              ? field.formatter(detail.detail?.[field.key])
-                              : formatDetailValue(detail.detail?.[field.key])
-                          }
-                        />
-                      ))}
-                    </DetailGrid>
-                  ) : (
-                    <Typography color="text.secondary" sx={{ mt: 1.5 }}>
-                      타입별 상세 정보가 없습니다.
-                    </Typography>
-                  )}
-                </Box>
-              </>
-            ) : null}
-          </Stack>
+                )}
+              </Section>
+
+              <Divider />
+
+              <Section title="검사 정보">
+                <DetailGrid>
+                  <DetailField
+                    label="검사 종류"
+                    value={getResultTypeLabel(detail, resultType)}
+                  />
+                  <DetailField
+                    label="환자"
+                    value={formatNameWithId(detail.patientName, detail.patientId)}
+                  />
+                  <DetailField label="진료과" value={safeValue(detail.departmentName)} />
+                  <DetailField
+                    label="결과 확정 시각"
+                    value={formatDateTime(detail.resultAt)}
+                  />
+                  <DetailField
+                    label="검사 시행자"
+                    value={formatNameWithId(detail.performerName, detail.performerId)}
+                  />
+                  <DetailField
+                    label="결과 관리자"
+                    value={formatNameWithId(
+                      detail.resultManagerName,
+                      detail.resultManagerId
+                    )}
+                  />
+                  <DetailField
+                    label="상태"
+                    value={
+                      <Chip
+                        label={formatStatus(detail.status)}
+                        color={getStatusColor(detail.status)}
+                        size="small"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
+                  <DetailField label="생성 시각" value={formatDateTime(detail.createdAt)} />
+                </DetailGrid>
+              </Section>
+
+              <Divider />
+
+              <Section title="관리 정보">
+                <DetailGrid>
+                  <DetailField label="결과 ID" value={safeValue(detail.resultId)} />
+                  <DetailField label="원본 검사 실행 ID" value={safeValue(detail.examId)} />
+                  <DetailField
+                    label="상위 검사 실행 묶음 ID"
+                    value={safeValue(detail.testExecutionId)}
+                  />
+                  <DetailField label="검사코드" value={safeValue(detail.detailCode)} />
+                </DetailGrid>
+              </Section>
+            </Stack>
+          )}
         </Box>
       </Paper>
     </Box>

@@ -356,7 +356,7 @@ export function MedicationRecordListSection() {
                             {currentPage * rowsPerPage + index + 1}
                           </TableCell>
                           <TableCell align="center">
-                            {safeValue(row.medicationRecordId)}
+                            {safeValue(row.medicationId)}
                           </TableCell>
                           <TableCell align="center">{safeValue(row.patientName)}</TableCell>
                           <TableCell align="center">

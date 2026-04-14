@@ -23,7 +23,7 @@ import { fetchDepartmentsApi } from "@/lib/masterDataApi";
 import type { AppDispatch } from "@/store/store";
 import { useDispatch } from "react-redux";
 
-const DEFAULT_SEARCH_TYPE: RecordSearchType = "nurseName";
+const DEFAULT_SEARCH_TYPE: RecordSearchType = "patientName";
 const DATE_SEARCH_TYPE: RecordDateSearchType = "createdAt";
 
 const SEARCH_TYPE_OPTIONS: Array<{

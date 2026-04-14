@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   CardContent,
-  Chip,
   CircularProgress,
   MenuItem,
   Stack,
@@ -67,108 +66,6 @@ const toPhysiologicalFormData = (
   createdAt: item?.createdAt ?? "",
   updatedAt: item?.updatedAt ?? "",
 });
-
-const displayValue = (value?: string | number | null) => {
-  if (value === null || value === undefined) return "-";
-  const text = String(value).trim();
-  return text ? text : "-";
-};
-
-const formatProgressStatus = (value: string) => {
-  switch (value) {
-    case "WAITING":
-      return "대기중";
-    case "IN_PROGRESS":
-      return "검사중";
-    case "COMPLETED":
-      return "검사완료";
-    case "CANCELLED":
-      return "취소";
-    default:
-      return displayValue(value);
-  }
-};
-
-const formatActiveStatus = (value: string) => {
-  switch (value) {
-    case "ACTIVE":
-      return "활성";
-    case "INACTIVE":
-      return "비활성화";
-    default:
-      return displayValue(value);
-  }
-};
-
-const getProgressStatusColor = (
-  value: string
-): "default" | "warning" | "info" | "success" | "error" => {
-  switch (value) {
-    case "WAITING":
-      return "warning";
-    case "IN_PROGRESS":
-      return "info";
-    case "COMPLETED":
-      return "success";
-    case "CANCELLED":
-      return "error";
-    default:
-      return "default";
-  }
-};
-
-const getActiveStatusColor = (
-  value: string
-): "default" | "success" | "error" => {
-  switch (value) {
-    case "ACTIVE":
-      return "success";
-    case "INACTIVE":
-      return "error";
-    default:
-      return "default";
-  }
-};
-
-type SummaryItemProps = {
-  label: string;
-  value: React.ReactNode;
-  truncate?: boolean;
-};
-
-function SummaryItem({ label, value, truncate = false }: SummaryItemProps) {
-  return (
-    <Box sx={{ minWidth: 0 }}>
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{ display: "block", mb: 0.5 }}
-      >
-        {label}
-      </Typography>
-
-      {typeof value === "string" || typeof value === "number" ? (
-        <Typography
-          variant="body2"
-          fontWeight={700}
-          sx={
-            truncate
-              ? {
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }
-              : undefined
-          }
-        >
-          {value}
-        </Typography>
-      ) : (
-        value
-      )}
-    </Box>
-  );
-}
 
 export default function PhysiologicalEdit() {
   const params = useParams();
@@ -257,6 +154,7 @@ export default function PhysiologicalEdit() {
         physiologicalExamId,
         form: {
           testExecutionId: form.testExecutionId,
+          detailCode: form.detailCode,
           patientId: form.patientId.trim() ? Number(form.patientId) : null,
           patientName: form.patientName,
           departmentName: form.departmentName,
@@ -291,7 +189,7 @@ export default function PhysiologicalEdit() {
               생리기능 검사 등록
             </Typography>
             <Typography color="text.secondary">
-              환자 정보와 검사 상태를 먼저 확인하고, 장비 및 결과 정보를 등록하세요.
+              검사 기본 정보와 장비 및 결과 정보를 확인하고, 수행 상태를 등록하세요.
             </Typography>
           </Box>
 
@@ -316,102 +214,66 @@ export default function PhysiologicalEdit() {
             borderRadius: 3,
             border: "1px solid",
             borderColor: "grey.200",
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)",
+            backgroundColor: "#fff",
           }}
         >
-          <CardContent sx={{ px: { xs: 2, md: 3 }, py: 2.25 }}>
-            <Stack spacing={2}>
-              <Stack
-                direction={{ xs: "column", md: "row" }}
-                justifyContent="space-between"
-                alignItems={{ xs: "flex-start", md: "center" }}
-                gap={1.5}
-              >
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography
-                    variant="overline"
-                    color="text.secondary"
-                    sx={{ letterSpacing: 0.8 }}
-                  >
-                    환자 정보
-                  </Typography>
+          <Box
+            sx={{
+              px: { xs: 2, md: 3 },
+              py: 2,
+              borderBottom: "1px solid",
+              borderColor: "grey.200",
+              backgroundColor: "#fafafa",
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={700}>
+              검사 기본 정보
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              생리기능검사 식별 정보와 처방 검사명을 확인합니다.
+            </Typography>
+          </Box>
 
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    useFlexGap
-                    flexWrap="wrap"
-                    alignItems="center"
-                  >
-                    <Typography variant="h6" fontWeight={800}>
-                      {displayValue(form.patientName)}
-                    </Typography>
-                    <Chip
-                      label={`환자 ID ${displayValue(form.patientId)}`}
-                      size="small"
-                      variant="outlined"
-                    />
-                    <Chip
-                      label={displayValue(form.departmentName)}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </Stack>
-                </Box>
+          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 1.75,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                },
+              }}
+            >
+              <TextField
+                label="생리기능검사 ID"
+                size="small"
+                value={form.physiologicalExamId}
+                disabled
+                fullWidth
+              />
 
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  useFlexGap
-                  flexWrap="wrap"
-                  alignItems="center"
-                >
-                  <Chip
-                    label={formatProgressStatus(form.progressStatus)}
-                    color={getProgressStatusColor(form.progressStatus)}
-                  />
-                  <Chip
-                    label={formatActiveStatus(form.status)}
-                    color={getActiveStatusColor(form.status)}
-                    variant="outlined"
-                  />
-                </Stack>
-              </Stack>
+              <TextField
+                label="검사수행 ID"
+                size="small"
+                value={form.testExecutionId}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    testExecutionId: e.target.value,
+                  })
+                }
+                fullWidth
+              />
 
-              <Box
-                sx={{
-                  display: "grid",
-                  gap: 1.75,
-                  gridTemplateColumns: {
-                    xs: "1fr 1fr",
-                    lg: "repeat(5, minmax(0, 1fr))",
-                  },
-                }}
-              >
-                <SummaryItem
-                  label="생리기능검사 ID"
-                  value={displayValue(form.physiologicalExamId)}
-                />
-                <SummaryItem
-                  label="검사수행 ID"
-                  value={displayValue(form.testExecutionId)}
-                  truncate
-                />
-                <SummaryItem
-                  label="검사수행자 ID"
-                  value={displayValue(form.performerId)}
-                />
-                <SummaryItem
-                  label="검사수행자명"
-                  value={displayValue(form.performerName)}
-                />
-                <SummaryItem
-                  label="검사장비 ID"
-                  value={displayValue(form.examEquipmentId)}
-                />
-              </Box>
-            </Stack>
+              <TextField
+                label="검사명"
+                size="small"
+                value={form.detailCode}
+                InputProps={{ readOnly: true }}
+                fullWidth
+              />
+            </Box>
           </CardContent>
         </Card>
 
@@ -435,7 +297,91 @@ export default function PhysiologicalEdit() {
             }}
           >
             <Typography variant="subtitle1" fontWeight={700}>
-              수행 정보
+              장비 및 결과 정보
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              검사 장비, 결과 문서와 원본 데이터를 등록합니다.
+            </Typography>
+          </Box>
+
+          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 1.75,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                },
+              }}
+            >
+              <TextField
+                label="검사장비 ID"
+                size="small"
+                value={form.examEquipmentId}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    examEquipmentId: e.target.value,
+                  })
+                }
+                fullWidth
+              />
+
+              <TextField
+                label="리포트문서 ID"
+                size="small"
+                value={form.reportDocId}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    reportDocId: e.target.value,
+                  })
+                }
+                fullWidth
+              />
+
+              <Box sx={{ gridColumn: { md: "1 / -1" } }}>
+                <TextField
+                  label="원본데이터"
+                  size="small"
+                  value={form.rawData}
+                  onChange={(e) =>
+                    setDraftForm({
+                      ...form,
+                      rawData: e.target.value,
+                    })
+                  }
+                  multiline
+                  minRows={5}
+                  fullWidth
+                />
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            mb: 2,
+            borderRadius: 3,
+            border: "1px solid",
+            borderColor: "grey.200",
+            backgroundColor: "#fff",
+          }}
+        >
+          <Box
+            sx={{
+              px: { xs: 2, md: 3 },
+              py: 2,
+              borderBottom: "1px solid",
+              borderColor: "grey.200",
+              backgroundColor: "#fafafa",
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={700}>
+              수행 상태 정보
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
               진행 상태는 대기중 또는 검사중만 직접 변경하고, 완료/취소는 아래 버튼으로 처리합니다.
@@ -524,111 +470,6 @@ export default function PhysiologicalEdit() {
                 }
                 fullWidth
               />
-
-              <TextField
-                label="검사수행 ID"
-                size="small"
-                value={form.testExecutionId}
-                onChange={(e) =>
-                  setDraftForm({
-                    ...form,
-                    testExecutionId: e.target.value,
-                  })
-                }
-                fullWidth
-              />
-
-              <TextField
-                label="검사명"
-                size="small"
-                value={form.detailCode}
-                fullWidth
-                InputProps={{ readOnly: true }}
-              />
-            </Box>
-          </CardContent>
-        </Card>
-
-        <Card
-          elevation={0}
-          sx={{
-            mb: 2,
-            borderRadius: 3,
-            border: "1px solid",
-            borderColor: "grey.200",
-            backgroundColor: "#fff",
-          }}
-        >
-          <Box
-            sx={{
-              px: { xs: 2, md: 3 },
-              py: 2,
-              borderBottom: "1px solid",
-              borderColor: "grey.200",
-              backgroundColor: "#fafafa",
-            }}
-          >
-            <Typography variant="subtitle1" fontWeight={700}>
-              장비 및 결과 정보
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              검사 장비와 결과 문서, 원본 데이터를 수정할 수 있습니다.
-            </Typography>
-          </Box>
-
-          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-            <Box
-              sx={{
-                display: "grid",
-                gap: 1.75,
-                gridTemplateColumns: {
-                  xs: "1fr",
-                  md: "repeat(2, minmax(0, 1fr))",
-                },
-              }}
-            >
-              <TextField
-                label="검사장비 ID"
-                size="small"
-                value={form.examEquipmentId}
-                onChange={(e) =>
-                  setDraftForm({
-                    ...form,
-                    examEquipmentId: e.target.value,
-                  })
-                }
-                fullWidth
-              />
-
-              <TextField
-                label="리포트문서 ID"
-                size="small"
-                value={form.reportDocId}
-                onChange={(e) =>
-                  setDraftForm({
-                    ...form,
-                    reportDocId: e.target.value,
-                  })
-                }
-                fullWidth
-              />
-
-              <Box sx={{ gridColumn: { md: "1 / -1" } }}>
-                <TextField
-                  label="원본데이터"
-                  size="small"
-                  value={form.rawData}
-                  onChange={(e) =>
-                    setDraftForm({
-                      ...form,
-                      rawData: e.target.value,
-                    })
-                  }
-                  multiline
-                  minRows={5}
-                  fullWidth
-                />
-              </Box>
             </Box>
           </CardContent>
         </Card>
@@ -652,10 +493,10 @@ export default function PhysiologicalEdit() {
             }}
           >
             <Typography variant="subtitle1" fontWeight={700}>
-              참고 정보
+              환자 및 이력 정보
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              조회용 정보입니다.
+              환자 식별 정보와 생성/수정 이력은 조회용입니다.
             </Typography>
           </Box>
 

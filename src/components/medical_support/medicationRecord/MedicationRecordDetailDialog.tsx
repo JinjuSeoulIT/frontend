@@ -12,7 +12,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
+  Paper,
   Stack,
   Typography,
 } from "@mui/material";
@@ -42,11 +42,29 @@ type MedicationRecordDetailDialogProps = {
 type DetailFieldProps = {
   label: string;
   value: React.ReactNode;
+  fullWidth?: boolean;
 };
 
-function DetailField({ label, value }: DetailFieldProps) {
+type DetailSectionProps = {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+};
+
+function DetailField({ label, value, fullWidth = false }: DetailFieldProps) {
   return (
-    <Box sx={{ minWidth: 0 }}>
+    <Box
+      sx={{
+        minWidth: 0,
+        px: 2,
+        py: 1.75,
+        borderRadius: 2,
+        border: "1px solid",
+        borderColor: "grey.200",
+        backgroundColor: "#fafafa",
+        gridColumn: fullWidth ? { sm: "1 / -1" } : undefined,
+      }}
+    >
       <Typography variant="caption" color="text.secondary">
         {label}
       </Typography>
@@ -62,6 +80,39 @@ function DetailField({ label, value }: DetailFieldProps) {
         )}
       </Box>
     </Box>
+  );
+}
+
+function DetailSection({ title, description, children }: DetailSectionProps) {
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        borderRadius: 3,
+        overflow: "hidden",
+        border: "1px solid",
+        borderColor: "grey.200",
+      }}
+    >
+      <Box
+        sx={{
+          px: { xs: 2, sm: 2.5 },
+          py: 1.75,
+          borderBottom: "1px solid",
+          borderColor: "grey.200",
+          backgroundColor: "#fafafa",
+        }}
+      >
+        <Typography variant="subtitle2" fontWeight={700}>
+          {title}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          {description}
+        </Typography>
+      </Box>
+
+      <Box sx={{ p: { xs: 2, sm: 2.5 } }}>{children}</Box>
+    </Paper>
   );
 }
 
@@ -92,16 +143,120 @@ export default function MedicationRecordDetailDialog({
 
           {!loading && item ? (
             <>
-              <Box>
-                <Typography variant="subtitle2" fontWeight={700}>
-                  투약 정보
-                </Typography>
+              <Paper
+                elevation={0}
+                sx={{
+                  borderRadius: 3,
+                  px: { xs: 2, sm: 2.5 },
+                  py: 2.25,
+                  border: "1px solid",
+                  borderColor: "primary.100",
+                  background:
+                    "linear-gradient(135deg, rgba(25, 118, 210, 0.08) 0%, rgba(25, 118, 210, 0.02) 100%)",
+                }}
+              >
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  justifyContent="space-between"
+                  alignItems={{ xs: "flex-start", sm: "center" }}
+                  spacing={2}
+                >
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography
+                      variant="overline"
+                      color="primary.main"
+                      sx={{ letterSpacing: 0.8, fontWeight: 700 }}
+                    >
+                      환자/투약 요약
+                    </Typography>
+                    <Typography variant="h6" fontWeight={700}>
+                      {safeValue(item.patientName)}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mt: 0.5, wordBreak: "break-word" }}
+                    >
+                      환자 ID {safeValue(item.patientId)} · {safeValue(item.departmentName)}
+                    </Typography>
+                  </Box>
+
+                  <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                    <Chip
+                      label={formatMedicationRecordProgressStatus(item.progressStatus)}
+                      color={getMedicationRecordProgressStatusColor(
+                        item.progressStatus
+                      )}
+                      size="small"
+                      sx={getMedicationRecordProgressStatusSx()}
+                    />
+                    <Chip
+                      label={formatMedicationRecordActiveStatus(item.status)}
+                      color={getMedicationRecordActiveStatusColor(item.status)}
+                      size="small"
+                      sx={getMedicationRecordActiveStatusSx(item.status)}
+                    />
+                  </Stack>
+                </Stack>
 
                 <Box
                   sx={{
-                    mt: 1.5,
+                    mt: 2,
                     display: "grid",
-                    gap: 2,
+                    gap: 1.5,
+                    gridTemplateColumns: {
+                      xs: "1fr",
+                      sm: "repeat(3, minmax(0, 1fr))",
+                    },
+                  }}
+                >
+                  <DetailField
+                    label="투약일시"
+                    value={formatDateTime(item.administeredAt)}
+                  />
+                  <DetailField
+                    label="투약량"
+                    value={formatMedicationDose(item.doseNumber, item.doseUnit)}
+                  />
+                  <DetailField
+                    label="투약 ID"
+                    value={safeValue(item.medicationId)}
+                  />
+                </Box>
+              </Paper>
+
+              <DetailSection
+                title="환자 및 진료 정보"
+                description="어느 환자에게 어떤 진료과 기준으로 투약되었는지 먼저 확인합니다."
+              >
+                <Box
+                  sx={{
+                    display: "grid",
+                    gap: 1.5,
+                    gridTemplateColumns: {
+                      xs: "1fr",
+                      sm: "repeat(2, minmax(0, 1fr))",
+                    },
+                  }}
+                >
+                  <DetailField label="환자명" value={safeValue(item.patientName)} />
+                  <DetailField label="환자 ID" value={safeValue(item.patientId)} />
+                  <DetailField
+                    label="진료과"
+                    value={safeValue(item.departmentName)}
+                    fullWidth
+                  />
+                </Box>
+              </DetailSection>
+
+              <DetailSection
+                title="약제 및 용량 정보"
+                description="투약된 약제명과 실제 수량·단위를 함께 확인할 수 있도록 묶었습니다."
+              >
+                <Box
+                  sx={{
+                    display: "grid",
+                    gap: 1.5,
                     gridTemplateColumns: {
                       xs: "1fr",
                       sm: "repeat(2, minmax(0, 1fr))",
@@ -109,9 +264,58 @@ export default function MedicationRecordDetailDialog({
                   }}
                 >
                   <DetailField
-                    label="투약기록 ID"
-                    value={safeValue(item.medicationRecordId)}
+                    label="투약종류"
+                    value={safeValue(item.doseKind)}
+                    fullWidth
                   />
+                  <DetailField
+                    label="투약량"
+                    value={safeValue(item.doseNumber)}
+                  />
+                  <DetailField
+                    label="투약단위"
+                    value={safeValue(item.doseUnit)}
+                  />
+                </Box>
+              </DetailSection>
+
+              <DetailSection
+                title="투약 수행 정보"
+                description="실제 투약 시점과 수행 간호사 정보를 업무 흐름에 맞게 배치했습니다."
+              >
+                <Box
+                  sx={{
+                    display: "grid",
+                    gap: 1.5,
+                    gridTemplateColumns: {
+                      xs: "1fr",
+                      sm: "repeat(2, minmax(0, 1fr))",
+                    },
+                  }}
+                >
+                  <DetailField
+                    label="투약일시"
+                    value={formatDateTime(item.administeredAt)}
+                  />
+                  <DetailField label="간호사명" value={safeValue(item.nurseName)} />
+                  <DetailField label="간호사 ID" value={safeValue(item.nursingId)} />
+                </Box>
+              </DetailSection>
+
+              <DetailSection
+                title="상태 및 식별 정보"
+                description="상태값과 시스템 식별자를 분리해 조회·문의·추적 시 바로 확인할 수 있게 정리했습니다."
+              >
+                <Box
+                  sx={{
+                    display: "grid",
+                    gap: 1.5,
+                    gridTemplateColumns: {
+                      xs: "1fr",
+                      sm: "repeat(2, minmax(0, 1fr))",
+                    },
+                  }}
+                >
                   <DetailField
                     label="진행상태"
                     value={
@@ -136,59 +340,18 @@ export default function MedicationRecordDetailDialog({
                       />
                     }
                   />
+                  <DetailField label="투약 ID" value={safeValue(item.medicationId)} />
                   <DetailField
-                    label="투약일시"
-                    value={formatDateTime(item.administeredAt)}
+                    label="투약기록 관리 ID"
+                    value={safeValue(item.medicationRecordId)}
                   />
                   <DetailField
-                    label="투약량"
-                    value={formatMedicationDose(item.doseNumber, item.doseUnit)}
-                  />
-                  <DetailField
-                    label="투약단위"
-                    value={safeValue(item.doseUnit)}
-                  />
-                  <DetailField
-                    label="투약종류"
-                    value={safeValue(item.doseKind)}
-                  />
-                  <DetailField
-                    label="간호사명"
-                    value={safeValue(item.nurseName)}
-                  />
-                  <DetailField
-                    label="간호사 ID"
-                    value={safeValue(item.nursingId)}
-                  />
-                  <DetailField
-                    label="진료과"
-                    value={safeValue(item.departmentName)}
+                    label="등록일시"
+                    value={formatDateTime(item.createdAt)}
+                    fullWidth
                   />
                 </Box>
-              </Box>
-
-              <Divider />
-
-              <Box>
-                <Typography variant="subtitle2" fontWeight={700}>
-                  환자 정보
-                </Typography>
-
-                <Box
-                  sx={{
-                    mt: 1.5,
-                    display: "grid",
-                    gap: 2,
-                    gridTemplateColumns: {
-                      xs: "1fr",
-                      sm: "repeat(2, minmax(0, 1fr))",
-                    },
-                  }}
-                >
-                  <DetailField label="환자명" value={safeValue(item.patientName)} />
-                  <DetailField label="환자 ID" value={safeValue(item.patientId)} />
-                </Box>
-              </Box>
+              </DetailSection>
             </>
           ) : null}
 

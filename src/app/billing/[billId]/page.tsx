@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "@/store/store";
 import toast from "react-hot-toast";
@@ -19,10 +19,14 @@ declare global {
 
 import {
   fetchBillingDetailRequest,
+  fetchCalculatedBillRequest,
   fetchBillHistoryRequest,
   fetchPaymentsByBillRequest,
   createPaymentRequest,
   confirmBillRequest,
+  unconfirmBillRequest,
+  cancelBillRequest,
+  restoreBillRequest,
   cancelPaymentRequest,
   refundPaymentRequest,
 } from "@/features/billing/billingSlice";
@@ -35,6 +39,7 @@ import {
 
 /* MUI UI */
 import {
+  Alert,
   Chip,
   Card,
   CardContent,
@@ -209,66 +214,77 @@ const methodBoxStyle: React.CSSProperties = {
   borderRadius: "8px",
 };
 
+type PaymentMethodFilter = "ALL" | PaymentMethod;
+
 export default function BillingDetailPage() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const params = useParams<{ billId: string }>();
   const billId = Number(params.billId);
 
-  const { billingDetail, billHistory, payments, loading, error } = useSelector(
-    (state: RootState) => state.billing
+  const returnTo = searchParams.get("returnTo");
+
+  const billingDetail = useSelector(
+    (state: RootState) => state.billing.billingDetail
   );
+  const calculatedBill = useSelector(
+    (state: RootState) => state.billing.calculatedBill
+  );
+  const billHistory = useSelector(
+    (state: RootState) => state.billing.billHistory
+  );
+  const payments = useSelector((state: RootState) => state.billing.payments);
+  const loading = useSelector((state: RootState) => state.billing.loading);
+  const error = useSelector((state: RootState) => state.billing.error);
 
   const [payAmount, setPayAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
+  const [paymentMethodFilter, setPaymentMethodFilter] =
+    useState<PaymentMethodFilter>("ALL");
   const [refundTargetId, setRefundTargetId] = useState<number | null>(null);
   const [refundAmountInput, setRefundAmountInput] = useState<string>("");
 
-  /**
-   * 추가:
-   * patientId -> patientName 매핑용 상태
-   */
   const [patientNameById, setPatientNameById] = useState<Record<number, string>>(
     {}
   );
 
-  /**
-   * 추가:
-   * 수납 취소 모달 상태
-   */
   const [cancelTargetPayment, setCancelTargetPayment] = useState<{
     paymentId: number;
     paymentAmount: number;
     method: string;
   } | null>(null);
 
-  /**
-   * 추가:
-   * 취소 사유 / 확인 문구 입력 상태
-   */
   const [cancelReasonInput, setCancelReasonInput] = useState<string>("");
   const [cancelConfirmText, setCancelConfirmText] = useState<string>("");
 
-  /**
-   * 추가:
-   * 체크박스 / 카운트다운 상태
-   */
   const [cancelAcknowledgeChecked, setCancelAcknowledgeChecked] =
     useState<boolean>(false);
   const [cancelCountdown, setCancelCountdown] = useState<number>(3);
 
+  const [openBillCancelDialog, setOpenBillCancelDialog] = useState<boolean>(false);
+  const [openBillUnconfirmDialog, setOpenBillUnconfirmDialog] = useState<boolean>(false);
+  const [openBillRestoreDialog, setOpenBillRestoreDialog] = useState<boolean>(false);
+
+  const detailBackHref = useMemo(() => {
+    return returnTo || "/billing/list";
+  }, [returnTo]);
+
+  const detailSelfHref = useMemo(() => {
+    return returnTo
+      ? `/billing/${billId}?returnTo=${encodeURIComponent(returnTo)}`
+      : `/billing/${billId}`;
+  }, [billId, returnTo]);
+
   useEffect(() => {
     if (billId) {
       dispatch(fetchBillingDetailRequest(billId));
+      dispatch(fetchCalculatedBillRequest(billId));
       dispatch(fetchBillHistoryRequest(billId));
       dispatch(fetchPaymentsByBillRequest(billId));
     }
   }, [billId, dispatch]);
 
-  /**
-   * 추가:
-   * 환자 목록 전체 조회 후 patientId -> name 매핑 생성
-   */
   useEffect(() => {
     let active = true;
 
@@ -301,10 +317,6 @@ export default function BillingDetailPage() {
     };
   }, []);
 
-  /**
-   * 추가:
-   * patientId로 환자 이름 찾기
-   */
   const resolvePatientName = useCallback(
     (patientId: number) => {
       return patientNameById[patientId] || "-";
@@ -369,6 +381,7 @@ export default function BillingDetailPage() {
   useEffect(() => {
     setPayAmount(0);
     setPaymentMethod("CASH");
+    setPaymentMethodFilter("ALL");
     setRefundTargetId(null);
     setRefundAmountInput("");
     setCancelTargetPayment(null);
@@ -376,12 +389,11 @@ export default function BillingDetailPage() {
     setCancelConfirmText("");
     setCancelAcknowledgeChecked(false);
     setCancelCountdown(3);
+    setOpenBillCancelDialog(false);
+    setOpenBillUnconfirmDialog(false);
+    setOpenBillRestoreDialog(false);
   }, [billingDetail]);
 
-  /**
-   * 추가:
-   * 취소 모달이 열리면 3초 카운트다운 시작
-   */
   useEffect(() => {
     if (!cancelTargetPayment) {
       setCancelCountdown(3);
@@ -402,6 +414,11 @@ export default function BillingDetailPage() {
 
     return () => clearInterval(timer);
   }, [cancelTargetPayment]);
+
+  const hasCalculatedMismatch =
+    !!billingDetail &&
+    !!calculatedBill &&
+    billingDetail.totalAmount !== calculatedBill.calculatedAmount;
 
   const handlePayment = () => {
     if (!billingDetail) return;
@@ -518,6 +535,41 @@ export default function BillingDetailPage() {
     );
   };
 
+  const handleOpenBillUnconfirmDialog = () => {
+    if (!billingDetail) return;
+    setOpenBillUnconfirmDialog(true);
+  };
+
+  const handleConfirmBillUnconfirm = () => {
+    if (!billingDetail) return;
+    dispatch(unconfirmBillRequest(billingDetail.billId));
+    setOpenBillUnconfirmDialog(false);
+  };
+
+  const handleOpenBillCancelDialog = () => {
+    if (!billingDetail) return;
+    setOpenBillCancelDialog(true);
+  };
+
+  const handleConfirmBillCancel = () => {
+    if (!billingDetail) return;
+
+    dispatch(cancelBillRequest(billingDetail.billId));
+    setOpenBillCancelDialog(false);
+  };
+
+  const handleOpenBillRestoreDialog = () => {
+    if (!billingDetail) return;
+    setOpenBillRestoreDialog(true);
+  };
+
+  const handleConfirmBillRestore = () => {
+    if (!billingDetail) return;
+
+    dispatch(restoreBillRequest(billingDetail.billId));
+    setOpenBillRestoreDialog(false);
+  };
+
   const formatDateTime = (isoString: string) => {
     const date = new Date(isoString);
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
@@ -528,9 +580,19 @@ export default function BillingDetailPage() {
     ).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
   };
 
-  const sortedPayments = [...payments].sort(
-    (a, b) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime()
-  );
+  const sortedPayments = useMemo(() => {
+    return [...payments].sort(
+      (a, b) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime()
+    );
+  }, [payments]);
+
+  const filteredPayments = useMemo(() => {
+    if (paymentMethodFilter === "ALL") {
+      return sortedPayments;
+    }
+
+    return sortedPayments.filter((payment) => payment.method === paymentMethodFilter);
+  }, [sortedPayments, paymentMethodFilter]);
 
   const sortedBillHistory = [...billHistory].sort(
     (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
@@ -551,6 +613,25 @@ export default function BillingDetailPage() {
   const hasRefundHistory = sortedPayments.some(
     (p) => p.status === "REFUNDED"
   );
+
+  const filteredCompletedCount = filteredPayments.filter(
+    (p) => p.status === "COMPLETED"
+  ).length;
+
+  const filteredCanceledCount = filteredPayments.filter(
+    (p) => p.status === "CANCELED"
+  ).length;
+
+  const filteredRefundedCount = filteredPayments.filter(
+    (p) => p.status === "REFUNDED"
+  ).length;
+
+  const allMethodCount = sortedPayments.length;
+  const cashMethodCount = sortedPayments.filter((p) => p.method === "CASH").length;
+  const cardMethodCount = sortedPayments.filter((p) => p.method === "CARD").length;
+  const transferMethodCount = sortedPayments.filter(
+    (p) => p.method === "TRANSFER"
+  ).length;
 
   const billItemsTotal =
     billingDetail?.billItems?.reduce((sum, item) => sum + item.amount, 0) ?? 0;
@@ -587,7 +668,7 @@ export default function BillingDetailPage() {
           <Button
             variant="outlined"
             color="inherit"
-            onClick={() => router.back()}
+            onClick={() => router.push(detailBackHref)}
             sx={{ borderRadius: 2 }}
           >
             뒤로 가기
@@ -696,7 +777,9 @@ export default function BillingDetailPage() {
 
                   <Button
                     component={Link}
-                    href={`/billing/${billingDetail.billId}/statement`}
+                    href={`/billing/${billingDetail.billId}/statement?returnTo=${encodeURIComponent(
+                      detailSelfHref
+                    )}`}
                     variant="outlined"
                     size="small"
                   >
@@ -705,7 +788,9 @@ export default function BillingDetailPage() {
                 </Stack>
 
                 <Stack spacing={1}>
-                  <Typography>청구 ID: {billingDetail.billId}</Typography>
+                  <Typography>
+                    청구 번호: {billingDetail.billingNo ?? billingDetail.billId}
+                  </Typography>
 
                   <Typography>
                     환자명: {resolvePatientName(billingDetail.patientId)}
@@ -758,6 +843,58 @@ export default function BillingDetailPage() {
                   </Typography>
                 </Stack>
 
+                {calculatedBill && (
+                  <Card
+                    sx={{
+                      mt: 3,
+                      borderRadius: 2,
+                      backgroundColor: hasCalculatedMismatch ? "#fff7f7" : "#f8fbff",
+                      border: hasCalculatedMismatch
+                        ? "1px solid #f5c2c7"
+                        : "1px solid #dbeafe",
+                      boxShadow: "none",
+                    }}
+                  >
+                    <CardContent>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+                        자동 계산 진료비
+                      </Typography>
+
+                      <Stack spacing={1}>
+                        <Typography>
+                          원금액:{" "}
+                          <strong>
+                            {calculatedBill.originalAmount.toLocaleString()} 원
+                          </strong>
+                        </Typography>
+
+                        <Typography>
+                          계산 금액:{" "}
+                          <strong
+                            style={{
+                              color: hasCalculatedMismatch ? "#d32f2f" : "#1976d2",
+                            }}
+                          >
+                            {calculatedBill.calculatedAmount.toLocaleString()} 원
+                          </strong>
+                        </Typography>
+
+                        <Typography
+                          sx={{ fontSize: 13, color: "text.secondary" }}
+                        >
+                          {calculatedBill.calculationNote}
+                        </Typography>
+
+                        {hasCalculatedMismatch && (
+                          <Alert severity="error" sx={{ mt: 1 }}>
+                            청구 총액과 자동 계산 금액이 일치하지 않습니다. 금액을 확인한 뒤 청구 확정을 진행하세요.
+                          </Alert>
+                        )}
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {billingDetail.remainingAmount === 0 &&
                   billingDetail.status !== "CONFIRMED" &&
                   billingDetail.status !== "CANCELED" && (
@@ -768,11 +905,61 @@ export default function BillingDetailPage() {
                         onClick={() =>
                           dispatch(confirmBillRequest(billingDetail.billId))
                         }
-                        disabled={loading}
+                        disabled={loading || hasCalculatedMismatch}
                       >
                         {loading ? "처리 중..." : "청구 확정"}
                       </Button>
+
+                      {hasCalculatedMismatch && (
+                        <Typography
+                          sx={{
+                            mt: 1,
+                            fontSize: 13,
+                            color: "#d32f2f",
+                            fontWeight: 600,
+                          }}
+                        >
+                          자동 계산 금액이 일치하지 않아 청구 확정을 진행할 수 없습니다.
+                        </Typography>
+                      )}
                     </div>
+                  )}
+
+                {billingDetail.status === "CONFIRMED" &&
+                  billingDetail.remainingAmount === 0 && (
+                    <Stack direction="row" spacing={1.5} sx={{ mt: 1.5 }}>
+                      <Button
+                        variant="outlined"
+                        color="primary"
+                        onClick={handleOpenBillUnconfirmDialog}
+                        disabled={loading}
+                      >
+                        {loading ? "처리 중..." : "확정 해제"}
+                      </Button>
+
+                      <Button
+                        variant="contained"
+                        color="error"
+                        onClick={handleOpenBillCancelDialog}
+                        disabled={loading}
+                      >
+                        {loading ? "처리 중..." : "청구 취소"}
+                      </Button>
+                    </Stack>
+                  )}
+
+                {billingDetail.status === "CANCELED" &&
+                  billingDetail.remainingAmount === 0 && (
+                    <Stack direction="row" spacing={1.5} sx={{ mt: 1.5 }}>
+                      <Button
+                        variant="contained"
+                        color="success"
+                        onClick={handleOpenBillRestoreDialog}
+                        disabled={loading}
+                      >
+                        {loading ? "처리 중..." : "청구 복원"}
+                      </Button>
+                    </Stack>
                   )}
               </CardContent>
             </Card>
@@ -1060,9 +1247,21 @@ export default function BillingDetailPage() {
               </div>
             )}
 
-            <Typography variant="h6" sx={{ mb: 2, mt: 4 }}>
-              수납 내역
-            </Typography>
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              spacing={1.5}
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", md: "center" }}
+              sx={{ mb: 2, mt: 4 }}
+            >
+              <Typography variant="h6">수납 내역</Typography>
+
+              <Chip
+                label={`현재 표시 ${filteredPayments.length}건 / 전체 ${sortedPayments.length}건`}
+                color="primary"
+                variant="outlined"
+              />
+            </Stack>
 
             <Card
               sx={{
@@ -1098,7 +1297,7 @@ export default function BillingDetailPage() {
 
                   <Box>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      총 결제 건수
+                      전체 결제 완료 건수
                     </Typography>
                     <Typography sx={{ fontWeight: 700 }}>
                       {completedCount}건
@@ -1107,7 +1306,7 @@ export default function BillingDetailPage() {
 
                   <Box>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      총 취소 건수
+                      전체 수납 취소 건수
                     </Typography>
                     <Typography sx={{ fontWeight: 700 }}>
                       {canceledCount}건
@@ -1116,7 +1315,7 @@ export default function BillingDetailPage() {
 
                   <Box>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      총 환불 건수
+                      전체 부분 환불 건수
                     </Typography>
                     <Typography sx={{ fontWeight: 700 }}>
                       {refundedCount}건
@@ -1139,7 +1338,110 @@ export default function BillingDetailPage() {
               </CardContent>
             </Card>
 
-            {sortedPayments.map((p) => {
+            <Card
+              sx={{
+                mb: 2,
+                borderRadius: 3,
+                boxShadow: 1,
+                backgroundColor: "#ffffff",
+              }}
+            >
+              <CardContent>
+                <Stack spacing={2}>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                      결제 수단 필터
+                    </Typography>
+                    <Typography
+                      sx={{ fontSize: 13, color: "text.secondary", mt: 0.5 }}
+                    >
+                      청구 기준 결제 내역을 결제 수단별로 나눠서 조회할 수 있습니다.
+                    </Typography>
+                  </Box>
+
+                  <Stack direction="row" spacing={1} flexWrap="wrap">
+                    <Chip
+                      label={`전체 (${allMethodCount})`}
+                      clickable
+                      color={paymentMethodFilter === "ALL" ? "primary" : "default"}
+                      variant={
+                        paymentMethodFilter === "ALL" ? "filled" : "outlined"
+                      }
+                      onClick={() => setPaymentMethodFilter("ALL")}
+                    />
+
+                    <Chip
+                      label={`현금 (${cashMethodCount})`}
+                      clickable
+                      color={paymentMethodFilter === "CASH" ? "primary" : "default"}
+                      variant={
+                        paymentMethodFilter === "CASH" ? "filled" : "outlined"
+                      }
+                      onClick={() => setPaymentMethodFilter("CASH")}
+                    />
+
+                    <Chip
+                      label={`카드 (${cardMethodCount})`}
+                      clickable
+                      color={paymentMethodFilter === "CARD" ? "primary" : "default"}
+                      variant={
+                        paymentMethodFilter === "CARD" ? "filled" : "outlined"
+                      }
+                      onClick={() => setPaymentMethodFilter("CARD")}
+                    />
+
+                    <Chip
+                      label={`계좌이체 (${transferMethodCount})`}
+                      clickable
+                      color={
+                        paymentMethodFilter === "TRANSFER" ? "primary" : "default"
+                      }
+                      variant={
+                        paymentMethodFilter === "TRANSFER" ? "filled" : "outlined"
+                      }
+                      onClick={() => setPaymentMethodFilter("TRANSFER")}
+                    />
+                  </Stack>
+
+                  <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+                    <Chip
+                      label={`표시된 결제 완료 ${filteredCompletedCount}건`}
+                      color="success"
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={`표시된 수납 취소 ${filteredCanceledCount}건`}
+                      color="error"
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={`표시된 부분 환불 ${filteredRefundedCount}건`}
+                      color="warning"
+                      variant="outlined"
+                    />
+                  </Stack>
+                </Stack>
+              </CardContent>
+            </Card>
+
+            {filteredPayments.length === 0 && (
+              <Card
+                sx={{
+                  mb: 2,
+                  borderRadius: 3,
+                  boxShadow: 1,
+                  backgroundColor: "#ffffff",
+                }}
+              >
+                <CardContent>
+                  <Typography sx={{ color: "text.secondary" }}>
+                    선택한 결제 수단에 해당하는 수납 내역이 없습니다.
+                  </Typography>
+                </CardContent>
+              </Card>
+            )}
+
+            {filteredPayments.map((p) => {
               const parsedRefundAmount =
                 refundAmountInput.trim() === ""
                   ? 0
@@ -1168,7 +1470,9 @@ export default function BillingDetailPage() {
                       {canShowReceiptButton && (
                         <Button
                           component={Link}
-                          href={`/billing/${billingDetail.billId}/receipt/${p.paymentId}`}
+                          href={`/billing/${billingDetail.billId}/receipt/${
+                            p.paymentId
+                          }?returnTo=${encodeURIComponent(detailSelfHref)}`}
                           variant="outlined"
                           size="small"
                         >
@@ -1355,6 +1659,180 @@ export default function BillingDetailPage() {
             })}
           </section>
         )}
+
+        <Dialog
+          open={openBillUnconfirmDialog}
+          onClose={() => {
+            if (loading) return;
+            setOpenBillUnconfirmDialog(false);
+          }}
+          fullWidth
+          maxWidth="sm"
+        >
+          <DialogTitle sx={{ fontWeight: 700 }}>청구 확정 해제 확인</DialogTitle>
+
+          <DialogContent dividers>
+            <Stack spacing={2}>
+              <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
+                실수로 청구 확정한 경우, 확정 상태만 해제하고 다시 <strong>완납</strong> 상태로 되돌립니다.
+              </Typography>
+
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  backgroundColor: "#eff6ff",
+                  border: "1px solid #93c5fd",
+                }}
+              >
+                <Typography sx={{ fontWeight: 700, color: "#1d4ed8", mb: 1 }}>
+                  확정 해제 후 변경 사항
+                </Typography>
+                <Typography sx={{ fontSize: 14, color: "#1e3a8a" }}>
+                  청구 상태만 청구 확정에서 완납으로 변경됩니다. 결제 금액, 잔액, 수납 이력은 그대로 유지됩니다.
+                </Typography>
+              </Box>
+            </Stack>
+          </DialogContent>
+
+          <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button
+              variant="outlined"
+              color="inherit"
+              onClick={() => setOpenBillUnconfirmDialog(false)}
+              disabled={loading}
+            >
+              닫기
+            </Button>
+
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleConfirmBillUnconfirm}
+              disabled={loading}
+            >
+              {loading ? "처리 중..." : "확정 해제"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog
+          open={openBillCancelDialog}
+          onClose={() => {
+            if (loading) return;
+            setOpenBillCancelDialog(false);
+          }}
+          fullWidth
+          maxWidth="xs"
+        >
+          <DialogTitle sx={{ fontWeight: 700 }}>청구 취소 확인</DialogTitle>
+
+          <DialogContent dividers>
+            <Stack spacing={2}>
+              <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
+                확정된 청구를 취소하면 상태가 취소됨으로 변경됩니다.
+              </Typography>
+
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  backgroundColor: "#fef2f2",
+                  border: "1px solid #fecaca",
+                }}
+              >
+                <Typography sx={{ fontWeight: 700, color: "#b91c1c", mb: 1 }}>
+                  청구 취소 전 확인
+                </Typography>
+                <Typography sx={{ fontSize: 14, color: "#7f1d1d" }}>
+                  청구 취소는 청구 확정 상태에서만 가능합니다.
+                </Typography>
+                <Typography sx={{ fontSize: 14, color: "#7f1d1d", mt: 1 }}>
+                  취소 후에는 청구 확정 목록 및 통계에도 반영됩니다.
+                </Typography>
+              </Box>
+            </Stack>
+          </DialogContent>
+
+          <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button
+              variant="outlined"
+              color="inherit"
+              onClick={() => setOpenBillCancelDialog(false)}
+              disabled={loading}
+            >
+              닫기
+            </Button>
+
+            <Button
+              variant="contained"
+              color="error"
+              onClick={handleConfirmBillCancel}
+              disabled={loading}
+            >
+              {loading ? "취소 처리 중..." : "청구 취소 진행"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog
+          open={openBillRestoreDialog}
+          onClose={() => {
+            if (loading) return;
+            setOpenBillRestoreDialog(false);
+          }}
+          fullWidth
+          maxWidth="xs"
+        >
+          <DialogTitle sx={{ fontWeight: 700 }}>청구 복원 확인</DialogTitle>
+
+          <DialogContent dividers>
+            <Stack spacing={2}>
+              <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
+                취소된 청구를 다시 복원하면 상태가 완납으로 변경됩니다.
+              </Typography>
+
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  backgroundColor: "#f0fdf4",
+                  border: "1px solid #86efac",
+                }}
+              >
+                <Typography sx={{ fontWeight: 700, color: "#166534", mb: 1 }}>
+                  청구 복원 전 확인
+                </Typography>
+                <Typography sx={{ fontSize: 14, color: "#166534" }}>
+                  복원은 취소된 청구에만 가능하며, 복원 후 상태는 완납으로 변경됩니다.
+                </Typography>
+                <Typography sx={{ fontSize: 14, color: "#166534", mt: 1 }}>
+                  복원 후에는 상세 화면, 청구 이력, 통계에 다시 반영됩니다.
+                </Typography>
+              </Box>
+            </Stack>
+          </DialogContent>
+
+          <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button
+              variant="outlined"
+              color="inherit"
+              onClick={() => setOpenBillRestoreDialog(false)}
+              disabled={loading}
+            >
+              닫기
+            </Button>
+
+            <Button
+              variant="contained"
+              color="success"
+              onClick={handleConfirmBillRestore}
+              disabled={loading}
+            >
+              {loading ? "복원 처리 중..." : "청구 복원 진행"}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         <Dialog
           open={!!cancelTargetPayment}

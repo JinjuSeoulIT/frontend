@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   CardContent,
-  Chip,
   CircularProgress,
   MenuItem,
   Stack,
@@ -75,49 +74,6 @@ const toEndoscopyFormData = (
   updatedAt: item?.updatedAt ?? "",
 });
 
-const displayValue = (value?: string | number | null) => {
-  if (value === null || value === undefined) return "-";
-  const text = String(value).trim();
-  return text ? text : "-";
-};
-
-const formatProgressStatus = (value: string) => {
-  switch (value) {
-    case "WAITING":
-      return "대기중";
-    case "IN_PROGRESS":
-      return "검사중";
-    case "COMPLETED":
-      return "검사완료";
-    case "CANCELLED":
-      return "취소";
-    default:
-      return displayValue(value);
-  }
-};
-
-const formatActiveStatus = (value: string) => {
-  switch (value) {
-    case "ACTIVE":
-      return "활성";
-    case "INACTIVE":
-      return "비활성화";
-    default:
-      return displayValue(value);
-  }
-};
-
-const formatSedationYn = (value: string) => {
-  switch (value) {
-    case "Y":
-      return "예";
-    case "N":
-      return "아니오";
-    default:
-      return displayValue(value);
-  }
-};
-
 const toDateTimeInputValue = (value?: string | null) => {
   const normalized = value?.trim();
   if (!normalized) return "";
@@ -129,76 +85,6 @@ const toNullableDateTime = (value: string) => {
   if (!normalized) return null;
   return normalized.length === 16 ? `${normalized}:00` : normalized;
 };
-
-const getProgressStatusColor = (
-  value: string
-): "default" | "warning" | "info" | "success" | "error" => {
-  switch (value) {
-    case "WAITING":
-      return "warning";
-    case "IN_PROGRESS":
-      return "info";
-    case "COMPLETED":
-      return "success";
-    case "CANCELLED":
-      return "error";
-    default:
-      return "default";
-  }
-};
-
-const getActiveStatusColor = (
-  value: string
-): "default" | "success" | "error" => {
-  switch (value) {
-    case "ACTIVE":
-      return "success";
-    case "INACTIVE":
-      return "error";
-    default:
-      return "default";
-  }
-};
-
-type SummaryItemProps = {
-  label: string;
-  value: React.ReactNode;
-  truncate?: boolean;
-};
-
-function SummaryItem({ label, value, truncate = false }: SummaryItemProps) {
-  return (
-    <Box sx={{ minWidth: 0 }}>
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{ display: "block", mb: 0.5 }}
-      >
-        {label}
-      </Typography>
-
-      {typeof value === "string" || typeof value === "number" ? (
-        <Typography
-          variant="body2"
-          fontWeight={700}
-          sx={
-            truncate
-              ? {
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }
-              : undefined
-          }
-        >
-          {value}
-        </Typography>
-      ) : (
-        value
-      )}
-    </Box>
-  );
-}
 
 export default function EndoscopyEdit() {
   const params = useParams();
@@ -282,6 +168,7 @@ export default function EndoscopyEdit() {
         endoscopyExamId,
         form: {
           testExecutionId: form.testExecutionId,
+          detailCode: form.detailCode,
           patientId: form.patientId.trim() ? Number(form.patientId) : null,
           patientName: form.patientName,
           departmentName: form.departmentName,
@@ -317,7 +204,7 @@ export default function EndoscopyEdit() {
               내시경 검사 등록
             </Typography>
             <Typography color="text.secondary">
-              환자 정보와 검사 상태를 먼저 확인하고, 시술 및 수행 정보를 등록하세요.
+              검사 기본 정보와 시술 정보를 확인하고, 수행 상태를 등록하세요.
             </Typography>
           </Box>
 
@@ -342,102 +229,66 @@ export default function EndoscopyEdit() {
             borderRadius: 3,
             border: "1px solid",
             borderColor: "grey.200",
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)",
+            backgroundColor: "#fff",
           }}
         >
-          <CardContent sx={{ px: { xs: 2, md: 3 }, py: 2.25 }}>
-            <Stack spacing={2}>
-              <Stack
-                direction={{ xs: "column", md: "row" }}
-                justifyContent="space-between"
-                alignItems={{ xs: "flex-start", md: "center" }}
-                gap={1.5}
-              >
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography
-                    variant="overline"
-                    color="text.secondary"
-                    sx={{ letterSpacing: 0.8 }}
-                  >
-                    환자 정보
-                  </Typography>
+          <Box
+            sx={{
+              px: { xs: 2, md: 3 },
+              py: 2,
+              borderBottom: "1px solid",
+              borderColor: "grey.200",
+              backgroundColor: "#fafafa",
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={700}>
+              검사 기본 정보
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              내시경검사 식별 정보와 처방 검사명을 확인합니다.
+            </Typography>
+          </Box>
 
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    useFlexGap
-                    flexWrap="wrap"
-                    alignItems="center"
-                  >
-                    <Typography variant="h6" fontWeight={800}>
-                      {displayValue(form.patientName)}
-                    </Typography>
-                    <Chip
-                      label={`환자 ID ${displayValue(form.patientId)}`}
-                      size="small"
-                      variant="outlined"
-                    />
-                    <Chip
-                      label={displayValue(form.departmentName)}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </Stack>
-                </Box>
+          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 1.75,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                },
+              }}
+            >
+              <TextField
+                label="내시경검사 ID"
+                size="small"
+                value={form.endoscopyExamId}
+                disabled
+                fullWidth
+              />
 
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  useFlexGap
-                  flexWrap="wrap"
-                  alignItems="center"
-                >
-                  <Chip
-                    label={formatProgressStatus(form.progressStatus)}
-                    color={getProgressStatusColor(form.progressStatus)}
-                  />
-                  <Chip
-                    label={formatActiveStatus(form.status)}
-                    color={getActiveStatusColor(form.status)}
-                    variant="outlined"
-                  />
-                </Stack>
-              </Stack>
+              <TextField
+                label="검사수행 ID"
+                size="small"
+                value={form.testExecutionId}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    testExecutionId: e.target.value,
+                  })
+                }
+                fullWidth
+              />
 
-              <Box
-                sx={{
-                  display: "grid",
-                  gap: 1.75,
-                  gridTemplateColumns: {
-                    xs: "1fr 1fr",
-                    lg: "repeat(5, minmax(0, 1fr))",
-                  },
-                }}
-              >
-                <SummaryItem
-                  label="내시경검사 ID"
-                  value={displayValue(form.endoscopyExamId)}
-                />
-                <SummaryItem
-                  label="검사수행 ID"
-                  value={displayValue(form.testExecutionId)}
-                  truncate
-                />
-                <SummaryItem
-                  label="검사수행자 ID"
-                  value={displayValue(form.performerId)}
-                />
-                <SummaryItem
-                  label="검사수행자명"
-                  value={displayValue(form.performerName)}
-                />
-                <SummaryItem
-                  label="진정 여부"
-                  value={formatSedationYn(form.sedationYn)}
-                />
-              </Box>
-            </Stack>
+              <TextField
+                label="검사명"
+                size="small"
+                value={form.detailCode}
+                InputProps={{ readOnly: true }}
+                fullWidth
+              />
+            </Box>
           </CardContent>
         </Card>
 
@@ -461,7 +312,109 @@ export default function EndoscopyEdit() {
             }}
           >
             <Typography variant="subtitle1" fontWeight={700}>
-              수행 정보
+              시술 정보
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              시술실, 장비, 진정 여부와 시술 일시를 등록합니다.
+            </Typography>
+          </Box>
+
+          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 1.75,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                },
+              }}
+            >
+              <TextField
+                label="시술실"
+                size="small"
+                value={form.procedureRoom}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    procedureRoom: e.target.value,
+                  })
+                }
+                fullWidth
+              />
+
+              <TextField
+                label="장비"
+                size="small"
+                value={form.equipment}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    equipment: e.target.value,
+                  })
+                }
+                fullWidth
+              />
+
+              <TextField
+                select
+                label="진정 여부"
+                size="small"
+                value={form.sedationYn}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    sedationYn: e.target.value,
+                  })
+                }
+                fullWidth
+              >
+                {SEDATION_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              <TextField
+                label="시술일시"
+                type="datetime-local"
+                size="small"
+                value={form.procedureAt}
+                InputLabelProps={{ shrink: true }}
+                onChange={(e) =>
+                  setDraftForm({
+                    ...form,
+                    procedureAt: e.target.value,
+                  })
+                }
+                fullWidth
+              />
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            mb: 2,
+            borderRadius: 3,
+            border: "1px solid",
+            borderColor: "grey.200",
+            backgroundColor: "#fff",
+          }}
+        >
+          <Box
+            sx={{
+              px: { xs: 2, md: 3 },
+              py: 2,
+              borderBottom: "1px solid",
+              borderColor: "grey.200",
+              backgroundColor: "#fafafa",
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={700}>
+              수행 상태 정보
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
               진행 상태는 대기중 또는 검사중만 직접 변경하고, 완료/취소는 아래 버튼으로 처리합니다.
@@ -550,129 +503,6 @@ export default function EndoscopyEdit() {
                 }
                 fullWidth
               />
-
-              <TextField
-                label="검사수행 ID"
-                size="small"
-                value={form.testExecutionId}
-                onChange={(e) =>
-                  setDraftForm({
-                    ...form,
-                    testExecutionId: e.target.value,
-                  })
-                }
-                fullWidth
-              />
-
-              <TextField
-                label="검사명"
-                size="small"
-                value={form.detailCode}
-                fullWidth
-                InputProps={{ readOnly: true }}
-              />
-            </Box>
-          </CardContent>
-        </Card>
-
-        <Card
-          elevation={0}
-          sx={{
-            mb: 2,
-            borderRadius: 3,
-            border: "1px solid",
-            borderColor: "grey.200",
-            backgroundColor: "#fff",
-          }}
-        >
-          <Box
-            sx={{
-              px: { xs: 2, md: 3 },
-              py: 2,
-              borderBottom: "1px solid",
-              borderColor: "grey.200",
-              backgroundColor: "#fafafa",
-            }}
-          >
-            <Typography variant="subtitle1" fontWeight={700}>
-              시술 정보
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              내시경 시술과 관련된 주요 정보를 수정할 수 있습니다.
-            </Typography>
-          </Box>
-
-          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-            <Box
-              sx={{
-                display: "grid",
-                gap: 1.75,
-                gridTemplateColumns: {
-                  xs: "1fr",
-                  md: "repeat(2, minmax(0, 1fr))",
-                },
-              }}
-            >
-              <TextField
-                label="시술실"
-                size="small"
-                value={form.procedureRoom}
-                onChange={(e) =>
-                  setDraftForm({
-                    ...form,
-                    procedureRoom: e.target.value,
-                  })
-                }
-                fullWidth
-              />
-
-              <TextField
-                label="장비"
-                size="small"
-                value={form.equipment}
-                onChange={(e) =>
-                  setDraftForm({
-                    ...form,
-                    equipment: e.target.value,
-                  })
-                }
-                fullWidth
-              />
-
-              <TextField
-                select
-                label="진정 여부"
-                size="small"
-                value={form.sedationYn}
-                onChange={(e) =>
-                  setDraftForm({
-                    ...form,
-                    sedationYn: e.target.value,
-                  })
-                }
-                fullWidth
-              >
-                {SEDATION_OPTIONS.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-
-              <TextField
-                label="시술일시"
-                type="datetime-local"
-                size="small"
-                value={form.procedureAt}
-                InputLabelProps={{ shrink: true }}
-                onChange={(e) =>
-                  setDraftForm({
-                    ...form,
-                    procedureAt: e.target.value,
-                  })
-                }
-                fullWidth
-              />
             </Box>
           </CardContent>
         </Card>
@@ -696,10 +526,10 @@ export default function EndoscopyEdit() {
             }}
           >
             <Typography variant="subtitle1" fontWeight={700}>
-              참고 정보
+              환자 및 이력 정보
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              조회용 정보입니다.
+              환자 식별 정보와 생성/수정 이력은 조회용입니다.
             </Typography>
           </Box>
 

@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   CardContent,
-  Chip,
   CircularProgress,
   MenuItem,
   Stack,
@@ -22,14 +21,7 @@ import "dayjs/locale/ko";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
-import { formatDateTime } from "@/components/medical_support/common/ExamDisplay";
 import {
-  formatTreatmentResultActiveStatus,
-  formatTreatmentResultProgressStatus,
-  getTreatmentResultActiveStatusColor,
-  getTreatmentResultActiveStatusSx,
-  getTreatmentResultProgressStatusColor,
-  getTreatmentResultProgressStatusSx,
   TREATMENT_RESULT_ACTIVE_STATUS_OPTIONS,
   TREATMENT_RESULT_PROGRESS_STATUS_OPTIONS,
 } from "@/components/medical_support/treatmentResult/treatmentResultDisplay";
@@ -91,52 +83,6 @@ const parseTreatmentAt = (value: string): Dayjs | null => {
 
   return null;
 };
-
-const displayValue = (value?: string | number | null) => {
-  if (value === null || value === undefined) return "-";
-  const text = String(value).trim();
-  return text ? text : "-";
-};
-
-type SummaryItemProps = {
-  label: string;
-  value: React.ReactNode;
-  truncate?: boolean;
-};
-
-function SummaryItem({ label, value, truncate = false }: SummaryItemProps) {
-  return (
-    <Box sx={{ minWidth: 0 }}>
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{ display: "block", mb: 0.5 }}
-      >
-        {label}
-      </Typography>
-
-      {typeof value === "string" || typeof value === "number" ? (
-        <Typography
-          variant="body2"
-          fontWeight={700}
-          sx={
-            truncate
-              ? {
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }
-              : undefined
-          }
-        >
-          {value}
-        </Typography>
-      ) : (
-        value
-      )}
-    </Box>
-  );
-}
 
 export default function TreatmentResultEdit() {
   const params = useParams();
@@ -215,8 +161,7 @@ export default function TreatmentResultEdit() {
           처치 결과 수정
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>
-          환자와 결과 요약을 먼저 확인하고, 아래에서 진행상태와 활성여부를 포함한
-          상세 정보를 수정할 수 있습니다.
+          처치 기본 정보와 수행 상태, 처치 내용을 확인하고 수정할 수 있습니다.
         </Typography>
 
         {detailError ? (
@@ -238,100 +183,60 @@ export default function TreatmentResultEdit() {
             borderRadius: 3,
             border: "1px solid",
             borderColor: "grey.200",
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)",
+            backgroundColor: "#fff",
           }}
         >
-          <CardContent sx={{ px: { xs: 2, md: 3 }, py: 2.25 }}>
-            <Stack spacing={2}>
-              <Stack
-                direction={{ xs: "column", md: "row" }}
-                justifyContent="space-between"
-                alignItems={{ xs: "flex-start", md: "center" }}
-                gap={1.5}
-              >
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography
-                    variant="overline"
-                    color="text.secondary"
-                    sx={{ letterSpacing: 0.8 }}
-                  >
-                    환자 및 결과 요약
-                  </Typography>
+          <Box
+            sx={{
+              px: { xs: 2, md: 3 },
+              py: 2,
+              borderBottom: "1px solid",
+              borderColor: "grey.200",
+              backgroundColor: "#fafafa",
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={700}>
+              처치 기본 정보
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              처치 결과 식별 정보를 확인합니다.
+            </Typography>
+          </Box>
 
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    useFlexGap
-                    flexWrap="wrap"
-                    alignItems="center"
-                  >
-                    <Typography variant="h6" fontWeight={800}>
-                      {displayValue(form.patientName)}
-                    </Typography>
+          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 1.75,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                },
+              }}
+            >
+              <TextField
+                label="처치결과 ID"
+                size="small"
+                value={form.procedureResultId}
+                disabled
+                fullWidth
+              />
 
-                    <Chip
-                      label={`환자 ID ${displayValue(form.patientId)}`}
-                      size="small"
-                      variant="outlined"
-                    />
-                    <Chip
-                      label={displayValue(form.departmentName)}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </Stack>
-                </Box>
-
-                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                  <Chip
-                    label={formatTreatmentResultProgressStatus(form.progressStatus)}
-                    color={getTreatmentResultProgressStatusColor(form.progressStatus)}
-                    sx={getTreatmentResultProgressStatusSx()}
-                  />
-                  <Chip
-                    label={formatTreatmentResultActiveStatus(form.status)}
-                    color={getTreatmentResultActiveStatusColor(form.status)}
-                    sx={getTreatmentResultActiveStatusSx(form.status)}
-                  />
-                </Stack>
-              </Stack>
-
-              <Box
-                sx={{
-                  display: "grid",
-                  gap: 1.75,
-                  gridTemplateColumns: {
-                    xs: "1fr 1fr",
-                    lg: "repeat(4, minmax(0, 1fr))",
-                  },
-                }}
-              >
-                <SummaryItem
-                  label="처치결과 ID"
-                  value={displayValue(form.treatmentResultId)}
-                />
-                <SummaryItem
-                  label="처치일시"
-                  value={formatDateTime(form.treatmentAt)}
-                />
-                <SummaryItem
-                  label="담당 간호사"
-                  value={displayValue(form.nurseName)}
-                  truncate
-                />
-                <SummaryItem
-                  label="현재 진행상태"
-                  value={formatTreatmentResultProgressStatus(form.progressStatus)}
-                />
-              </Box>
-            </Stack>
+              <TextField
+                label="처치결과 관리 ID"
+                size="small"
+                value={form.treatmentResultId}
+                disabled
+                fullWidth
+              />
+            </Box>
           </CardContent>
         </Card>
 
         <Card
           elevation={0}
           sx={{
+            mb: 2,
             borderRadius: 3,
             border: "1px solid",
             borderColor: "grey.200",
@@ -348,11 +253,10 @@ export default function TreatmentResultEdit() {
             }}
           >
             <Typography variant="subtitle1" fontWeight={700}>
-              수정 항목
+              상태 및 처치 일시
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              진행상태와 활성여부를 분리해서 관리하고, 간호사 정보와 처치 내용을 함께
-              수정할 수 있습니다.
+              진행상태, 활성여부와 실제 처치일시를 관리합니다.
             </Typography>
           </Box>
 
@@ -390,7 +294,9 @@ export default function TreatmentResultEdit() {
                   label="활성여부"
                   size="small"
                   value={form.status}
-                  onChange={(e) => setDraftForm({ ...form, status: e.target.value })}
+                  onChange={(e) =>
+                    setDraftForm({ ...form, status: e.target.value })
+                  }
                   fullWidth
                 >
                   {TREATMENT_RESULT_ACTIVE_STATUS_OPTIONS.map((option) => (
@@ -399,14 +305,6 @@ export default function TreatmentResultEdit() {
                     </MenuItem>
                   ))}
                 </TextField>
-
-                <TextField
-                  label="간호사명"
-                  size="small"
-                  value={form.nurseName}
-                  onChange={(e) => setDraftForm({ ...form, nurseName: e.target.value })}
-                  fullWidth
-                />
 
                 <Box sx={{ gridColumn: { md: "1 / -1" } }}>
                   <DateTimePicker
@@ -431,48 +329,175 @@ export default function TreatmentResultEdit() {
                     }}
                   />
                 </Box>
-
-                <TextField
-                  label="간호사 ID"
-                  size="small"
-                  value={form.nursingId}
-                  onChange={(e) => setDraftForm({ ...form, nursingId: e.target.value })}
-                  fullWidth
-                />
-
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    px: 1.5,
-                    py: 1,
-                    borderRadius: 2,
-                    border: "1px dashed",
-                    borderColor: "grey.300",
-                    backgroundColor: "#fcfcfd",
-                    gridColumn: { md: "1 / -1" },
-                  }}
-                >
-                  <SummaryItem
-                    label="환자 요약"
-                    value={`${displayValue(form.patientName)} / ${displayValue(form.patientId)}`}
-                    truncate
-                  />
-                </Box>
-
-                <Box sx={{ gridColumn: { md: "1 / -1" } }}>
-                  <TextField
-                    label="처치내용"
-                    size="small"
-                    value={form.detail}
-                    onChange={(e) => setDraftForm({ ...form, detail: e.target.value })}
-                    multiline
-                    minRows={5}
-                    fullWidth
-                  />
-                </Box>
               </Box>
             </LocalizationProvider>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            mb: 2,
+            borderRadius: 3,
+            border: "1px solid",
+            borderColor: "grey.200",
+            backgroundColor: "#fff",
+          }}
+        >
+          <Box
+            sx={{
+              px: { xs: 2, md: 3 },
+              py: 2,
+              borderBottom: "1px solid",
+              borderColor: "grey.200",
+              backgroundColor: "#fafafa",
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={700}>
+              수행자 정보
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              처치를 수행한 간호사 정보를 확인하고 수정합니다.
+            </Typography>
+          </Box>
+
+          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 1.75,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                },
+              }}
+            >
+              <TextField
+                label="간호사 ID"
+                size="small"
+                value={form.nursingId}
+                onChange={(e) =>
+                  setDraftForm({ ...form, nursingId: e.target.value })
+                }
+                fullWidth
+              />
+
+              <TextField
+                label="간호사명"
+                size="small"
+                value={form.nurseName}
+                onChange={(e) =>
+                  setDraftForm({ ...form, nurseName: e.target.value })
+                }
+                fullWidth
+              />
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            mb: 2,
+            borderRadius: 3,
+            border: "1px solid",
+            borderColor: "grey.200",
+            backgroundColor: "#fff",
+          }}
+        >
+          <Box
+            sx={{
+              px: { xs: 2, md: 3 },
+              py: 2,
+              borderBottom: "1px solid",
+              borderColor: "grey.200",
+              backgroundColor: "#fafafa",
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={700}>
+              처치 상세 내용
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              실제 처치 내용을 상세히 기록합니다.
+            </Typography>
+          </Box>
+
+          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            <TextField
+              label="처치내용"
+              size="small"
+              value={form.detail}
+              onChange={(e) => setDraftForm({ ...form, detail: e.target.value })}
+              multiline
+              minRows={5}
+              fullWidth
+            />
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            borderRadius: 3,
+            border: "1px solid",
+            borderColor: "grey.200",
+            backgroundColor: "#fff",
+          }}
+        >
+          <Box
+            sx={{
+              px: { xs: 2, md: 3 },
+              py: 2,
+              borderBottom: "1px solid",
+              borderColor: "grey.200",
+              backgroundColor: "#fafafa",
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={700}>
+              환자 및 진료 정보
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              환자 식별 정보와 진료과는 조회용입니다.
+            </Typography>
+          </Box>
+
+          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 1.75,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                },
+              }}
+            >
+              <TextField
+                label="환자명"
+                size="small"
+                value={form.patientName}
+                disabled
+                fullWidth
+              />
+
+              <TextField
+                label="환자 ID"
+                size="small"
+                value={form.patientId}
+                disabled
+                fullWidth
+              />
+
+              <Box sx={{ gridColumn: { md: "1 / -1" } }}>
+                <TextField
+                  label="진료과"
+                  size="small"
+                  value={form.departmentName}
+                  disabled
+                  fullWidth
+                />
+              </Box>
+            </Box>
           </CardContent>
         </Card>
 

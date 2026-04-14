@@ -42,7 +42,7 @@ const LABELS = {
   detailCode: "\uAC80\uC0AC\uCF54\uB4DC",
   patientName: "\uD658\uC790\uBA85",
   departmentName: "\uC9C4\uB8CC\uACFC",
-  performer: "\uAC80\uC0AC\uC218\uD589\uC790\uBA85",
+  performer: "\uAC80\uC0AC\uC218\uD589\uC790",
   status: "\uC0C1\uD0DC",
   resultAt: "\uACB0\uACFC\uB4F1\uB85D\uC77C\uC2DC",
   includeInactive: "\uBE44\uD65C\uC131 \uD3EC\uD568",
@@ -125,6 +125,20 @@ const getResultTypeLabel = (item: TestResult) => {
   );
 
   return option?.label ?? safeValue(item.resultType);
+};
+
+const formatNameWithId = (
+  name?: string | null,
+  id?: string | number | null
+) => {
+  const displayName = safeValue(name);
+  const displayId = safeValue(id);
+
+  if (displayName !== "-" && displayId !== "-") {
+    return `${displayName} (${displayId})`;
+  }
+
+  return displayName !== "-" ? displayName : displayId;
 };
 
 export default function TestResultList() {
@@ -453,7 +467,7 @@ export default function TestResultList() {
                             {safeValue(row.departmentName)}
                           </TableCell>
                           <TableCell align="center">
-                            {safeValue(row.performerName)}
+                            {formatNameWithId(row.performerName, row.performerId)}
                           </TableCell>
                           <TableCell align="center">
                             {formatDateTime(row.resultAt)}

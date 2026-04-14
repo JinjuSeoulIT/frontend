@@ -195,7 +195,7 @@ export default function PhysiologicalEdit() {
 
           <Button
             variant="outlined"
-            onClick={() => router.push("/medical_support/physiological/list")}
+            onClick={() => router.push("/medical_support/testResult/list")}
           >
             목록으로
           </Button>
@@ -267,7 +267,7 @@ export default function PhysiologicalEdit() {
               />
 
               <TextField
-                label="검사명"
+                label="검사코드"
                 size="small"
                 value={form.detailCode}
                 InputProps={{ readOnly: true }}

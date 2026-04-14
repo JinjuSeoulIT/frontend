@@ -327,11 +327,7 @@ export default function TestResultEdit() {
   const searchParams = useSearchParams();
   const resultId = getRouteParam(params?.resultId).trim();
   const resultType = (searchParams.get("resultType") ?? "").trim().toUpperCase();
-  const listHref = resultType
-    ? `/medical_support/testResult/list?resultType=${encodeURIComponent(
-        resultType
-      )}&includeInactive=true`
-    : "/medical_support/testResult/list";
+  const listHref = "/medical_support/testResult/list";
   const detailHref =
     resultId && resultType
       ? `/medical_support/testResult/detail/${encodeURIComponent(

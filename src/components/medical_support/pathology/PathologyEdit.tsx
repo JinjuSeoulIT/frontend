@@ -240,7 +240,7 @@ export default function PathologyEdit() {
 
           <Button
             variant="outlined"
-            onClick={() => router.push("/medical_support/pathology/list")}
+            onClick={() => router.push("/medical_support/testResult/list")}
           >
             목록으로
           </Button>
@@ -312,7 +312,7 @@ export default function PathologyEdit() {
               />
 
               <TextField
-                label="검사명"
+                label="검사코드"
                 size="small"
                 value={form.detailCode}
                 InputProps={{ readOnly: true }}

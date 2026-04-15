@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { useDispatch, useSelector } from "react-redux";
-import MainLayout from "@/components/layout/MainLayout";
 import {
   Alert,
   Box,
@@ -439,10 +438,8 @@ export function MedicationRecordListSection() {
 
 export default function MedicationRecordList() {
   return (
-    <MainLayout>
-      <Box sx={{ px: 3, py: 3, maxWidth: 1600, mx: "auto" }}>
-        <MedicationRecordListSection />
-      </Box>
-    </MainLayout>
+    <Box sx={{ px: 3, py: 3, maxWidth: 1600, mx: "auto" }}>
+      <MedicationRecordListSection />
+    </Box>
   );
 }

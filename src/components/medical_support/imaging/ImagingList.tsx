@@ -3,7 +3,6 @@
 import * as React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
-import MainLayout from "@/components/layout/MainLayout";
 import ListSearchBar, {
   EXAM_PROGRESS_STATUS_FILTER_OPTIONS,
   useListSearchCriteria,
@@ -270,8 +269,7 @@ export default function ImagingList() {
   };
 
   return (
-    <MainLayout showSidebar={false}>
-      <Stack spacing={2}>
+    <Stack spacing={2}>
         <Card
           sx={{
             borderRadius: 3,
@@ -531,6 +529,5 @@ export default function ImagingList() {
           </CardContent>
         </Card>
       </Stack>
-    </MainLayout>
   );
 }

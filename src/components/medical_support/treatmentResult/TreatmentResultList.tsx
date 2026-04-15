@@ -24,7 +24,6 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import MainLayout from "@/components/layout/MainLayout";
 import {
   formatDateTime,
   safeValue,
@@ -455,10 +454,8 @@ export function TreatmentResultListSection() {
 
 export default function TreatmentResultList() {
   return (
-    <MainLayout>
-      <Box sx={{ px: 3, py: 3, maxWidth: 1400, mx: "auto" }}>
-        <TreatmentResultListSection />
-      </Box>
-    </MainLayout>
+    <Box sx={{ px: 3, py: 3, maxWidth: 1400, mx: "auto" }}>
+      <TreatmentResultListSection />
+    </Box>
   );
 }

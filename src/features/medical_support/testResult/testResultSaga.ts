@@ -6,6 +6,7 @@ import { TestResultActions as actions } from "./testResultSlice";
 import type {
   TestResult,
   TestResultDetailRequestPayload,
+  TestResultProgressStatusUpdateRequestPayload,
   TestResultSearchParams,
   TestResultUpdateRequestPayload,
 } from "@/features/medical_support/testResult/testResultType";
@@ -72,6 +73,22 @@ function* updateTestResultSaga(
   }
 }
 
+function* updateTestResultProgressStatusSaga(
+  action: PayloadAction<TestResultProgressStatusUpdateRequestPayload>
+): SagaIterator {
+  try {
+    const item: TestResult = yield call(
+      api.updateTestResultProgressStatusApi,
+      action.payload
+    );
+    yield put(actions.updateTestResultSuccess(item));
+  } catch (err: unknown) {
+    yield put(
+      actions.updateTestResultFailure(getErrorMessage(err, UPDATE_ERROR_MESSAGE))
+    );
+  }
+}
+
 export function* watchTestResultSaga(): SagaIterator {
   yield takeLatest(actions.fetchTestResultsRequest.type, fetchTestResultsSaga);
   yield takeLatest(
@@ -79,4 +96,8 @@ export function* watchTestResultSaga(): SagaIterator {
     fetchTestResultDetailSaga
   );
   yield takeLatest(actions.updateTestResultRequest.type, updateTestResultSaga);
+  yield takeLatest(
+    actions.updateTestResultProgressStatusRequest.type,
+    updateTestResultProgressStatusSaga
+  );
 }

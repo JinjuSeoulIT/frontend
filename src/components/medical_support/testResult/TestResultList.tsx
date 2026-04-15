@@ -52,6 +52,7 @@ const LABELS = {
   departmentName: "\uC9C4\uB8CC\uACFC",
   performer: "\uAC80\uC0AC\uC218\uD589\uC790",
   status: "\uC0C1\uD0DC",
+  progressStatus: "\uC9C4\uD589\uC0C1\uD0DC",
   resultAt: "\uACB0\uACFC\uB4F1\uB85D\uC77C\uC2DC",
   includeInactive: "\uBE44\uD65C\uC131 \uD3EC\uD568",
   refresh: "\uC0C8\uB85C\uACE0\uCE68",
@@ -82,6 +83,7 @@ const TABLE_HEADERS = [
   LABELS.patientName,
   LABELS.departmentName,
   LABELS.performer,
+  LABELS.progressStatus,
   LABELS.resultAt,
 ];
 
@@ -99,6 +101,17 @@ const normalizeValue = (value?: string | null) =>
 
 const isInactiveStatus = (value?: string | null) =>
   normalizeValue(value) === "INACTIVE";
+
+const formatProgressStatus = (value?: string | null) => {
+  const normalized = normalizeValue(value);
+  if (normalized === "COMPLETED") {
+    return "\uACB0\uACFC\uC791\uC131\uC644\uB8CC";
+  }
+  return "\uACB0\uACFC\uC791\uC131\uC911";
+};
+
+const getProgressStatusColor = (value?: string | null) =>
+  normalizeValue(value) === "COMPLETED" ? "success" : "warning";
 
 const formatDateTime = (value?: string | null) => {
   if (!value) {
@@ -620,6 +633,14 @@ export default function TestResultList() {
                           </TableCell>
                           <TableCell align="center">
                             {formatNameWithId(row.performerName, row.performerId)}
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              label={formatProgressStatus(row.progressStatus)}
+                              color={getProgressStatusColor(row.progressStatus)}
+                              size="small"
+                              variant="outlined"
+                            />
                           </TableCell>
                           <TableCell align="center">
                             {formatDateTime(row.resultAt)}

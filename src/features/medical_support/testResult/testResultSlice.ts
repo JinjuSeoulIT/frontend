@@ -2,6 +2,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type {
   TestResult,
   TestResultDetailRequestPayload,
+  TestResultProgressStatusUpdateRequestPayload,
   TestResultSearchParams,
   TestResultUpdateRequestPayload,
 } from "@/features/medical_support/testResult/testResultType";
@@ -88,6 +89,15 @@ const testResultSlice = createSlice({
     updateTestResultRequest: (
       state,
       action: PayloadAction<TestResultUpdateRequestPayload>
+    ) => {
+      void action;
+      state.updateLoading = true;
+      state.updateError = null;
+      state.updateSuccess = false;
+    },
+    updateTestResultProgressStatusRequest: (
+      state,
+      action: PayloadAction<TestResultProgressStatusUpdateRequestPayload>
     ) => {
       void action;
       state.updateLoading = true;

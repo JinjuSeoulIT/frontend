@@ -4,6 +4,7 @@ import type {
   TestResult,
   TestResultDetailData,
   TestResultDetailRequestPayload,
+  TestResultProgressStatusUpdateRequestPayload,
   TestResultSearchParams,
   TestResultUpdateRequestPayload,
 } from "@/features/medical_support/testResult/testResultType";
@@ -54,11 +55,23 @@ type TestResultApiRaw = Partial<TestResult> & {
   SUMMARY?: string | null;
   RESULT_AT?: string | null;
   STATUS?: string | null;
+  PROGRESS_STATUS?: string | null;
+  progress_status?: string | null;
   CREATED_AT?: string | null;
   DETAIL?: TestResultDetailData | null;
 };
 
-const normalizeTestResult = (item?: TestResultApiRaw | null): TestResult => ({
+const normalizeTestResult = (item?: TestResultApiRaw | null): TestResult => {
+  // Some responses return progress status in STATUS field.
+  // Keep ACTIVE/INACTIVE for activation state, and map IN_PROGRESS/COMPLETED to progress.
+  const rawStatus = item?.status ?? item?.STATUS ?? null;
+  const normalizedRawStatus = rawStatus?.trim().toUpperCase() ?? "";
+  const normalizedProgressStatusFromRawStatus =
+    normalizedRawStatus === "IN_PROGRESS" || normalizedRawStatus === "COMPLETED"
+      ? normalizedRawStatus
+      : null;
+
+  return {
   resultType: item?.resultType ?? item?.RESULT_TYPE ?? null,
   resultTypeName: item?.resultTypeName ?? item?.RESULT_TYPE_NAME ?? null,
   resultId: item?.resultId ?? item?.RESULT_ID ?? null,
@@ -83,10 +96,16 @@ const normalizeTestResult = (item?: TestResultApiRaw | null): TestResult => ({
     null,
   summary: item?.summary ?? item?.SUMMARY ?? null,
   resultAt: item?.resultAt ?? item?.RESULT_AT ?? null,
-  status: item?.status ?? item?.STATUS ?? null,
+  status: rawStatus,
+  progressStatus:
+    item?.progressStatus ??
+    item?.PROGRESS_STATUS ??
+    item?.progress_status ??
+    normalizedProgressStatusFromRawStatus,
   createdAt: item?.createdAt ?? item?.CREATED_AT ?? null,
   detail: item?.detail ?? item?.DETAIL ?? null,
-});
+  };
+};
 
 export const fetchTestResultsApi = async (
   params?: TestResultSearchParams
@@ -139,9 +158,37 @@ export const updateTestResultApi = async ({
 }: TestResultUpdateRequestPayload): Promise<TestResult> => {
   const encodedResultType = encodeURIComponent(resultType.trim());
   const encodedResultId = encodeURIComponent(String(resultId).trim());
+  const payload =
+    form.progressStatus !== undefined
+      ? {
+          ...form,
+          progressStatus: form.progressStatus,
+          progress_status: form.progressStatus,
+        }
+      : form;
+
   const res = await api.put<ApiResponse<TestResultApiRaw>>(
     `/api/testResult/${encodedResultType}/${encodedResultId}`,
-    form
+    payload
+  );
+
+  if (!res.data.success) {
+    throw new Error(res.data.message || UPDATE_ERROR_MESSAGE);
+  }
+
+  return normalizeTestResult(res.data.result);
+};
+
+export const updateTestResultProgressStatusApi = async ({
+  resultId,
+  progressStatus,
+}: TestResultProgressStatusUpdateRequestPayload): Promise<TestResult> => {
+  const encodedResultId = encodeURIComponent(String(resultId).trim());
+  const res = await api.patch<ApiResponse<TestResultApiRaw>>(
+    `/api/testResult/${encodedResultId}/status`,
+    {
+      progressStatus,
+    }
   );
 
   if (!res.data.success) {

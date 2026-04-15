@@ -1,24 +1,25 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { Box, Button, Divider, Paper, Stack, Typography } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import AssignmentIndOutlinedIcon from "@mui/icons-material/AssignmentIndOutlined";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
-import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
-import HotelOutlinedIcon from "@mui/icons-material/HotelOutlined";
+import FlagOutlinedIcon from "@mui/icons-material/FlagOutlined";
+import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
+import SpeakerNotesOutlinedIcon from "@mui/icons-material/SpeakerNotesOutlined";
 import type { Patient } from "@/features/patients/patientTypes";
 
 type Props = {
   patient: Patient | null;
   statusOptionsCount: number;
-  onBack: () => void;
   onOpenReceptionDialog: () => void;
   onOpenReservationDialog: () => void;
+  onOpenMemoDialog: () => void;
+  onOpenFlagDialog: () => void;
+  onOpenRestrictionDialog: () => void;
   onOpenStatusDialog: () => void;
   onOpenEditDialog: () => void;
   onDelete: () => void;
@@ -27,22 +28,15 @@ type Props = {
 export default function PatientDetailQuickActions({
   patient: p,
   statusOptionsCount,
-  onBack,
   onOpenReceptionDialog,
   onOpenReservationDialog,
+  onOpenMemoDialog,
+  onOpenFlagDialog,
+  onOpenRestrictionDialog,
   onOpenStatusDialog,
   onOpenEditDialog,
   onDelete,
 }: Props) {
-  const emergencyCreateHref = React.useMemo(() => {
-    if (!p) return "/reception/emergency/create";
-    const params = new URLSearchParams({
-      patientId: String(p.patientId),
-      patientName: (p.name ?? "").trim(),
-    });
-    return `/reception/emergency/create?${params.toString()}`;
-  }, [p]);
-
   return (
     <Paper
       elevation={0}
@@ -81,41 +75,11 @@ export default function PatientDetailQuickActions({
           >
             예약 등록
           </Button>
-          <Button
-            variant="contained"
-            color="error"
-            startIcon={<LocalHospitalOutlinedIcon />}
-            component={Link}
-            href={emergencyCreateHref}
-            disabled={!p}
-            sx={{ fontWeight: 800, whiteSpace: "nowrap", flex: "1 1 140px", minWidth: 140 }}
-          >
-            응급 등록
-          </Button>
-          <Button
-            variant="contained"
-            color="secondary"
-            startIcon={<HotelOutlinedIcon />}
-            component={Link}
-            href="/reception/inpatient/create"
-            disabled={!p}
-            sx={{ fontWeight: 800, whiteSpace: "nowrap", flex: "1 1 140px", minWidth: 140 }}
-          >
-            입원 등록
-          </Button>
         </Box>
 
         <Divider sx={{ borderColor: "#d7e4fb" }} />
 
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-          <Button
-            variant="outlined"
-            startIcon={<ArrowBackOutlinedIcon />}
-            onClick={onBack}
-            sx={{ fontWeight: 800, whiteSpace: "nowrap", flex: "1 1 120px", minWidth: 120 }}
-          >
-            뒤로
-          </Button>
           {p && (
             <Button
               variant="outlined"
@@ -134,6 +98,33 @@ export default function PatientDetailQuickActions({
             sx={{ fontWeight: 800, whiteSpace: "nowrap", flex: "1 1 120px", minWidth: 120 }}
           >
             상태 변경
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<SpeakerNotesOutlinedIcon />}
+            onClick={onOpenMemoDialog}
+            disabled={!p}
+            sx={{ fontWeight: 800, whiteSpace: "nowrap", flex: "1 1 120px", minWidth: 120 }}
+          >
+            메모
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<FlagOutlinedIcon />}
+            onClick={onOpenFlagDialog}
+            disabled={!p}
+            sx={{ fontWeight: 800, whiteSpace: "nowrap", flex: "1 1 120px", minWidth: 120 }}
+          >
+            플래그 관리
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<ReportProblemOutlinedIcon />}
+            onClick={onOpenRestrictionDialog}
+            disabled={!p}
+            sx={{ fontWeight: 800, whiteSpace: "nowrap", flex: "1 1 120px", minWidth: 120 }}
+          >
+            제한 관리
           </Button>
           {p && (
             <Button

@@ -3,8 +3,10 @@ import type { ApiResponse } from "@/features/patients/patientTypes";
 import type {
   ImagingExam,
   ImagingExamCreatePayload,
+  ImagingSearchParams,
   ImagingExamUpdatePayload,
 } from "@/features/medical_support/imaging/imagingType";
+import { cleanSearchParams } from "@/lib/medical_support/searchParams";
 
 const api = axios.create({
   baseURL:
@@ -12,23 +14,33 @@ const api = axios.create({
 });
 
 type ImagingExamApiRaw = ImagingExam & {
-  IMAGING_TYPE?: string | null;
-  imaging_type?: string | null;
   DETAIL_CODE?: string | null;
   PERFORMER_NAME?: string | null;
   performer_name?: string | null;
 };
 
 const normalizeImagingExam = (item: ImagingExamApiRaw): ImagingExam => ({
-  ...item,
-  imagingType: item.imagingType ?? item.IMAGING_TYPE ?? item.imaging_type ?? null,
+  imagingExamId: item.imagingExamId,
+  testExecutionId: item.testExecutionId ?? null,
   detailCode: item.detailCode ?? item.DETAIL_CODE ?? null,
+  patientId: item.patientId ?? null,
+  patientName: item.patientName ?? null,
+  departmentName: item.departmentName ?? null,
+  performerId: item.performerId ?? null,
   performerName:
     item.performerName ?? item.PERFORMER_NAME ?? item.performer_name ?? null,
+  progressStatus: item.progressStatus ?? null,
+  status: item.status ?? null,
+  createdAt: item.createdAt ?? null,
+  updatedAt: item.updatedAt ?? null,
 });
 
-export const fetchImagingExamsApi = async (): Promise<ImagingExam[]> => {
-  const res = await api.get<ApiResponse<ImagingExamApiRaw[]>>("/api/imaging");
+export const fetchImagingExamsApi = async (
+  params?: ImagingSearchParams
+): Promise<ImagingExam[]> => {
+  const res = await api.get<ApiResponse<ImagingExamApiRaw[]>>("/api/imaging", {
+    params: cleanSearchParams(params),
+  });
 
   if (!res.data.success) {
     throw new Error(res.data.message || "영상 검사 목록 조회에 실패했습니다.");

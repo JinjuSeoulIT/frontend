@@ -45,3 +45,12 @@ export interface PhysiologicalExamUpdatePayload {
   progressStatus?: string | null;
   status?: string | null;
 }
+
+export interface PhysiologicalSearchParams {
+  physiologicalExamId?: string;
+  patientName?: string;
+  departmentName?: string;
+  progressStatus?: string;
+  startDate?: string;
+  endDate?: string;
+}

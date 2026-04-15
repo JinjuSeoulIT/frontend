@@ -3,8 +3,10 @@ import type { ApiResponse } from "@/features/patients/patientTypes";
 import type {
   SpecimenExam,
   SpecimenExamCreatePayload,
+  SpecimenSearchParams,
   SpecimenExamUpdatePayload,
 } from "@/features/medical_support/specimen/specimenType";
+import { cleanSearchParams } from "@/lib/medical_support/searchParams";
 
 const api = axios.create({
   baseURL:
@@ -24,8 +26,12 @@ const normalizeSpecimenExam = (item: SpecimenExamApiRaw): SpecimenExam => ({
     item.performerName ?? item.PERFORMER_NAME ?? item.performer_name ?? null,
 });
 
-export const fetchSpecimenExamsApi = async (): Promise<SpecimenExam[]> => {
-  const res = await api.get<ApiResponse<SpecimenExamApiRaw[]>>("/api/specimen");
+export const fetchSpecimenExamsApi = async (
+  params?: SpecimenSearchParams
+): Promise<SpecimenExam[]> => {
+  const res = await api.get<ApiResponse<SpecimenExamApiRaw[]>>("/api/specimen", {
+    params: cleanSearchParams(params),
+  });
 
   if (!res.data.success) {
     throw new Error(res.data.message || "검체 검사 목록 조회에 실패했습니다.");

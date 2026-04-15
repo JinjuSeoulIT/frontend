@@ -4,6 +4,12 @@ import * as React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
+import ListSearchBar, {
+  EXAM_PROGRESS_STATUS_FILTER_OPTIONS,
+  buildDistinctSelectOptions,
+  useListSearchCriteria,
+  type ListSearchFieldConfig,
+} from "@/components/medical_support/common/ListSearchBar";
 import {
   formatProgressStatus,
   getProgressStatusColor,
@@ -35,7 +41,12 @@ import {
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { SpecimenActions } from "@/features/medical_support/specimen/specimenSlice";
+import type { SpecimenSearchParams } from "@/features/medical_support/specimen/specimenType";
+import { toDateOnlySearchParam } from "@/lib/medical_support/searchParams";
 import type { RootState, AppDispatch } from "@/store/store";
+
+const getTrimmedValue = (value: unknown) =>
+  typeof value === "string" ? value.trim() : "";
 
 export default function SpecimenList() {
   const dispatch = useDispatch<AppDispatch>();
@@ -44,10 +55,31 @@ export default function SpecimenList() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [includeInactive, setIncludeInactive] = React.useState(false);
+  const initialSearchCriteria = React.useMemo(
+    () => ({
+      patientName: "",
+      specimenType: "",
+      specimenStatus: "",
+      progressStatus: "",
+      startDate: null,
+      endDate: null,
+    }),
+    []
+  );
+  const [appliedSearchParams, setAppliedSearchParams] = React.useState<
+    SpecimenSearchParams | undefined
+  >(undefined);
 
   const { list: items, loading, error } = useSelector(
     (state: RootState) => state.specimens
   );
+  const {
+    criteria,
+    selectedFieldKey,
+    setCriterion,
+    selectField,
+    resetCriteria,
+  } = useListSearchCriteria("patientName", initialSearchCriteria);
 
   React.useEffect(() => {
     dispatch(SpecimenActions.fetchSpecimensRequest());
@@ -134,6 +166,121 @@ export default function SpecimenList() {
     setPage(0);
   };
 
+  const specimenTypeOptions = React.useMemo(
+    () => buildDistinctSelectOptions(items.map((item) => item.specimenType)),
+    [items]
+  );
+
+  const specimenStatusOptions = React.useMemo(
+    () => buildDistinctSelectOptions(items.map((item) => item.specimenStatus)),
+    [items]
+  );
+
+  const searchFields = React.useMemo<ListSearchFieldConfig[]>(
+    () => [
+      {
+        key: "patientName",
+        label: "환자명",
+        type: "text",
+      },
+      {
+        key: "specimenType",
+        label: "검체종류",
+        type: "select",
+        options: specimenTypeOptions,
+      },
+      {
+        key: "specimenStatus",
+        label: "검체상태",
+        type: "select",
+        options: specimenStatusOptions,
+      },
+      {
+        key: "progressStatus",
+        label: "진행상태",
+        type: "select",
+        options: EXAM_PROGRESS_STATUS_FILTER_OPTIONS,
+      },
+      {
+        key: "collectedAtRange",
+        label: "채취일시",
+        type: "dateTimeRange",
+        startKey: "startDate",
+        endKey: "endDate",
+        startLabel: "시작일",
+        endLabel: "종료일",
+      },
+    ],
+    [specimenStatusOptions, specimenTypeOptions]
+  );
+
+  const handleRefresh = () => {
+    dispatch(SpecimenActions.fetchSpecimensRequest(appliedSearchParams));
+  };
+
+  const buildSearchParams = React.useCallback((): SpecimenSearchParams | undefined => {
+    const nextSearchParams: SpecimenSearchParams = {};
+
+    switch (selectedFieldKey) {
+      case "patientName": {
+        const patientName = getTrimmedValue(criteria.patientName);
+        if (patientName) {
+          nextSearchParams.patientName = patientName;
+        }
+        break;
+      }
+      case "specimenType": {
+        const specimenType = getTrimmedValue(criteria.specimenType);
+        if (specimenType) {
+          nextSearchParams.specimenType = specimenType;
+        }
+        break;
+      }
+      case "specimenStatus": {
+        const specimenStatus = getTrimmedValue(criteria.specimenStatus);
+        if (specimenStatus) {
+          nextSearchParams.specimenStatus = specimenStatus;
+        }
+        break;
+      }
+      case "progressStatus": {
+        const progressStatus = getTrimmedValue(criteria.progressStatus);
+        if (progressStatus) {
+          nextSearchParams.progressStatus = progressStatus;
+        }
+        break;
+      }
+      case "collectedAtRange": {
+        const startDate = toDateOnlySearchParam(criteria.startDate);
+        const endDate = toDateOnlySearchParam(criteria.endDate);
+        if (startDate && endDate) {
+          nextSearchParams.startDate = startDate;
+          nextSearchParams.endDate = endDate;
+        }
+        break;
+      }
+      default:
+        break;
+    }
+
+    return Object.keys(nextSearchParams).length > 0 ? nextSearchParams : undefined;
+  }, [criteria, selectedFieldKey]);
+
+  const handleSearch = () => {
+    const nextSearchParams = buildSearchParams();
+    setAppliedSearchParams(nextSearchParams);
+    setPage(0);
+    dispatch(SpecimenActions.fetchSpecimensRequest(nextSearchParams));
+  };
+
+  const handleResetSearch = () => {
+    resetCriteria();
+    setAppliedSearchParams(undefined);
+    setIncludeInactive(false);
+    setPage(0);
+    dispatch(SpecimenActions.fetchSpecimensRequest());
+  };
+
   return (
     <MainLayout showSidebar={false}>
       <Stack spacing={2}>
@@ -185,7 +332,7 @@ export default function SpecimenList() {
                 <Button
                   variant="outlined"
                   startIcon={<RefreshIcon />}
-                  onClick={() => dispatch(SpecimenActions.fetchSpecimensRequest())}
+                  onClick={handleRefresh}
                   disabled={loading}
                 >
                   새로고침
@@ -222,6 +369,17 @@ export default function SpecimenList() {
 
         <Card sx={{ borderRadius: 3, border: "1px solid var(--line)" }}>
           <CardContent sx={{ p: 2.5 }}>
+            <ListSearchBar
+              fields={searchFields}
+              selectedFieldKey={selectedFieldKey}
+              criteria={criteria}
+              onSelectedFieldKeyChange={selectField}
+              onCriteriaChange={setCriterion}
+              onSearch={handleSearch}
+              onReset={handleResetSearch}
+              loading={loading}
+            />
+
             <Stack
               direction="row"
               spacing={1}
@@ -276,7 +434,7 @@ export default function SpecimenList() {
                         <TableCell align="center">번호</TableCell>
                         <TableCell align="center">환자명</TableCell>
                         <TableCell align="center">진료과</TableCell>
-                        <TableCell align="center">검사명</TableCell>
+                        <TableCell align="center">검사코드</TableCell>
                         <TableCell align="center">검체종류</TableCell>
                         <TableCell align="center">검체상태</TableCell>
                         <TableCell align="center">채취일시</TableCell>

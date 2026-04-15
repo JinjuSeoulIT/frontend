@@ -50,3 +50,12 @@ export interface SpecimenExamUpdatePayload {
   progressStatus?: string | null;
   status?: string | null;
 }
+
+export interface SpecimenSearchParams {
+  patientName?: string;
+  specimenType?: string;
+  specimenStatus?: string;
+  progressStatus?: string;
+  startDate?: string;
+  endDate?: string;
+}

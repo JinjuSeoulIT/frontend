@@ -3,8 +3,10 @@ import type { ApiResponse } from "@/features/patients/patientTypes";
 import type {
   EndoscopyExam,
   EndoscopyExamCreatePayload,
+  EndoscopySearchParams,
   EndoscopyExamUpdatePayload,
 } from "@/features/medical_support/endoscopy/endoscopyType";
+import { cleanSearchParams } from "@/lib/medical_support/searchParams";
 
 const api = axios.create({
   baseURL:
@@ -24,8 +26,12 @@ const normalizeEndoscopyExam = (item: EndoscopyExamApiRaw): EndoscopyExam => ({
     item.performerName ?? item.PERFORMER_NAME ?? item.performer_name ?? null,
 });
 
-export const fetchEndoscopyExamsApi = async (): Promise<EndoscopyExam[]> => {
-  const res = await api.get<ApiResponse<EndoscopyExamApiRaw[]>>("/api/endoscopy");
+export const fetchEndoscopyExamsApi = async (
+  params?: EndoscopySearchParams
+): Promise<EndoscopyExam[]> => {
+  const res = await api.get<ApiResponse<EndoscopyExamApiRaw[]>>("/api/endoscopy", {
+    params: cleanSearchParams(params),
+  });
 
   if (!res.data.success) {
     throw new Error(res.data.message || "내시경 검사 목록 조회에 실패했습니다.");

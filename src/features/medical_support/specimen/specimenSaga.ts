@@ -6,6 +6,7 @@ import { SpecimenActions as actions } from "./specimenSlice";
 import type {
   SpecimenExam,
   SpecimenExamCreatePayload,
+  SpecimenSearchParams,
   SpecimenExamUpdatePayload,
 } from "@/features/medical_support/specimen/specimenType";
 
@@ -17,9 +18,14 @@ const getErrorMessage = (err: unknown, fallback: string) => {
   return fallback;
 };
 
-function* fetchSpecimensSaga(): SagaIterator {
+function* fetchSpecimensSaga(
+  action: PayloadAction<SpecimenSearchParams | undefined>
+): SagaIterator {
   try {
-    const items: SpecimenExam[] = yield call(api.fetchSpecimenExamsApi);
+    const items: SpecimenExam[] = yield call(
+      api.fetchSpecimenExamsApi,
+      action.payload
+    );
     yield put(actions.fetchSpecimensSuccess(items));
   } catch (err: unknown) {
     yield put(

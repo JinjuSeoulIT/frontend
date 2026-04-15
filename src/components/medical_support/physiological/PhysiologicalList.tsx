@@ -4,6 +4,11 @@ import * as React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
+import ListSearchBar, {
+  EXAM_PROGRESS_STATUS_FILTER_OPTIONS,
+  useListSearchCriteria,
+  type ListSearchFieldConfig,
+} from "@/components/medical_support/common/ListSearchBar";
 import {
   formatProgressStatus,
   getProgressStatusColor,
@@ -35,7 +40,12 @@ import {
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { PhysiologicalActions } from "@/features/medical_support/physiological/physiologicalSlice";
+import type { PhysiologicalSearchParams } from "@/features/medical_support/physiological/physiologicalType";
+import { toDateOnlySearchParam } from "@/lib/medical_support/searchParams";
 import type { RootState, AppDispatch } from "@/store/store";
+
+const getTrimmedValue = (value: unknown) =>
+  typeof value === "string" ? value.trim() : "";
 
 export default function PhysiologicalList() {
   const dispatch = useDispatch<AppDispatch>();
@@ -44,10 +54,31 @@ export default function PhysiologicalList() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [includeInactive, setIncludeInactive] = React.useState(false);
+  const initialSearchCriteria = React.useMemo(
+    () => ({
+      physiologicalExamId: "",
+      patientName: "",
+      departmentName: "",
+      progressStatus: "",
+      startDate: null,
+      endDate: null,
+    }),
+    []
+  );
+  const [appliedSearchParams, setAppliedSearchParams] = React.useState<
+    PhysiologicalSearchParams | undefined
+  >(undefined);
 
   const { list: items, loading, error } = useSelector(
     (state: RootState) => state.physiologicals
   );
+  const {
+    criteria,
+    selectedFieldKey,
+    setCriterion,
+    selectField,
+    resetCriteria,
+  } = useListSearchCriteria("physiologicalExamId", initialSearchCriteria);
 
   React.useEffect(() => {
     dispatch(PhysiologicalActions.fetchPhysiologicalsRequest());
@@ -134,6 +165,113 @@ export default function PhysiologicalList() {
     setPage(0);
   };
 
+  const searchFields = React.useMemo<ListSearchFieldConfig[]>(
+    () => [
+      {
+        key: "physiologicalExamId",
+        label: "생리기능검사 ID",
+        type: "text",
+      },
+      {
+        key: "patientName",
+        label: "환자명",
+        type: "text",
+      },
+      {
+        key: "departmentName",
+        label: "진료과",
+        type: "select",
+        optionsSource: "departments",
+      },
+      {
+        key: "progressStatus",
+        label: "진행상태",
+        type: "select",
+        options: EXAM_PROGRESS_STATUS_FILTER_OPTIONS,
+      },
+      {
+        key: "createdAtRange",
+        label: "생성일시",
+        type: "dateTimeRange",
+        startKey: "startDate",
+        endKey: "endDate",
+        startLabel: "시작일",
+        endLabel: "종료일",
+      },
+    ],
+    []
+  );
+
+  const handleRefresh = () => {
+    dispatch(PhysiologicalActions.fetchPhysiologicalsRequest(appliedSearchParams));
+  };
+
+  const buildSearchParams = React.useCallback(
+    (): PhysiologicalSearchParams | undefined => {
+      const nextSearchParams: PhysiologicalSearchParams = {};
+
+      switch (selectedFieldKey) {
+        case "physiologicalExamId": {
+          const physiologicalExamId = getTrimmedValue(criteria.physiologicalExamId);
+          if (physiologicalExamId) {
+            nextSearchParams.physiologicalExamId = physiologicalExamId;
+          }
+          break;
+        }
+        case "patientName": {
+          const patientName = getTrimmedValue(criteria.patientName);
+          if (patientName) {
+            nextSearchParams.patientName = patientName;
+          }
+          break;
+        }
+        case "departmentName": {
+          const departmentName = getTrimmedValue(criteria.departmentName);
+          if (departmentName) {
+            nextSearchParams.departmentName = departmentName;
+          }
+          break;
+        }
+        case "progressStatus": {
+          const progressStatus = getTrimmedValue(criteria.progressStatus);
+          if (progressStatus) {
+            nextSearchParams.progressStatus = progressStatus;
+          }
+          break;
+        }
+        case "createdAtRange": {
+          const startDate = toDateOnlySearchParam(criteria.startDate);
+          const endDate = toDateOnlySearchParam(criteria.endDate);
+          if (startDate && endDate) {
+            nextSearchParams.startDate = startDate;
+            nextSearchParams.endDate = endDate;
+          }
+          break;
+        }
+        default:
+          break;
+      }
+
+      return Object.keys(nextSearchParams).length > 0 ? nextSearchParams : undefined;
+    },
+    [criteria, selectedFieldKey]
+  );
+
+  const handleSearch = () => {
+    const nextSearchParams = buildSearchParams();
+    setAppliedSearchParams(nextSearchParams);
+    setPage(0);
+    dispatch(PhysiologicalActions.fetchPhysiologicalsRequest(nextSearchParams));
+  };
+
+  const handleResetSearch = () => {
+    resetCriteria();
+    setAppliedSearchParams(undefined);
+    setIncludeInactive(false);
+    setPage(0);
+    dispatch(PhysiologicalActions.fetchPhysiologicalsRequest());
+  };
+
   return (
     <MainLayout showSidebar={false}>
       <Stack spacing={2}>
@@ -185,9 +323,7 @@ export default function PhysiologicalList() {
                 <Button
                   variant="outlined"
                   startIcon={<RefreshIcon />}
-                  onClick={() =>
-                    dispatch(PhysiologicalActions.fetchPhysiologicalsRequest())
-                  }
+                  onClick={handleRefresh}
                   disabled={loading}
                 >
                   새로고침
@@ -224,6 +360,17 @@ export default function PhysiologicalList() {
 
         <Card sx={{ borderRadius: 3, border: "1px solid var(--line)" }}>
           <CardContent sx={{ p: 2.5 }}>
+            <ListSearchBar
+              fields={searchFields}
+              selectedFieldKey={selectedFieldKey}
+              criteria={criteria}
+              onSelectedFieldKeyChange={selectField}
+              onCriteriaChange={setCriterion}
+              onSearch={handleSearch}
+              onReset={handleResetSearch}
+              loading={loading}
+            />
+
             <Stack
               direction="row"
               spacing={1}
@@ -279,7 +426,7 @@ export default function PhysiologicalList() {
                         <TableCell align="center">생리기능검사 ID</TableCell>
                         <TableCell align="center">환자명</TableCell>
                         <TableCell align="center">진료과</TableCell>
-                        <TableCell align="center">검사명</TableCell>
+                        <TableCell align="center">검사코드</TableCell>
                         <TableCell align="center">검사수행자명</TableCell>
                         <TableCell align="center">생성일시</TableCell>
                         <TableCell align="center">진행상태</TableCell>

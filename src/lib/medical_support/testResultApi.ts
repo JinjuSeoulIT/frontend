@@ -7,6 +7,7 @@ import type {
   TestResultSearchParams,
   TestResultUpdateRequestPayload,
 } from "@/features/medical_support/testResult/testResultType";
+import { cleanSearchParams } from "@/lib/medical_support/searchParams";
 
 const api = axios.create({
   baseURL:
@@ -22,6 +23,7 @@ const UPDATE_ERROR_MESSAGE =
 
 const SEARCH_PARAM_KEYS: Array<keyof TestResultSearchParams> = [
   "resultType",
+  "resultId",
   "patientName",
   "detailCode",
   "departmentName",
@@ -54,32 +56,6 @@ type TestResultApiRaw = Partial<TestResult> & {
   STATUS?: string | null;
   CREATED_AT?: string | null;
   DETAIL?: TestResultDetailData | null;
-};
-
-const cleanSearchParams = (params?: TestResultSearchParams) => {
-  if (!params) {
-    return undefined;
-  }
-
-  const cleaned: Record<string, string | boolean> = {};
-
-  SEARCH_PARAM_KEYS.forEach((key) => {
-    const value = params[key];
-
-    if (typeof value === "boolean") {
-      if (value) {
-        cleaned[key] = value;
-      }
-      return;
-    }
-
-    const normalized = value?.trim();
-    if (normalized) {
-      cleaned[key] = normalized;
-    }
-  });
-
-  return Object.keys(cleaned).length > 0 ? cleaned : undefined;
 };
 
 const normalizeTestResult = (item?: TestResultApiRaw | null): TestResult => ({
@@ -115,10 +91,20 @@ const normalizeTestResult = (item?: TestResultApiRaw | null): TestResult => ({
 export const fetchTestResultsApi = async (
   params?: TestResultSearchParams
 ): Promise<TestResult[]> => {
+  const filteredParams = cleanSearchParams(
+    SEARCH_PARAM_KEYS.reduce<Record<string, string | boolean | undefined>>(
+      (accumulator, key) => {
+        accumulator[key] = params?.[key];
+        return accumulator;
+      },
+      {}
+    )
+  );
+
   const res = await api.get<ApiResponse<TestResultApiRaw[]>>(
     "/api/testResult",
     {
-      params: cleanSearchParams(params),
+      params: filteredParams,
     }
   );
 

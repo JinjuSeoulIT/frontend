@@ -15,7 +15,55 @@ export type TestResultDetailValue =
   | null
   | undefined;
 
-export type TestResultDetailData = Record<string, TestResultDetailValue>;
+export interface BaseTestResultDetailData {
+  resultSummary?: string | null;
+  [key: string]: TestResultDetailValue;
+}
+
+export interface ImagingTestResultDetailData extends BaseTestResultDetailData {
+  readingDetail?: string | null;
+}
+
+export interface SpecimenTestResultDetailData extends BaseTestResultDetailData {
+  resultItemCode?: string | null;
+  unit?: string | null;
+  referenceRange?: string | null;
+  judgement?: string | null;
+}
+
+export interface PathologyTestResultDetailData extends BaseTestResultDetailData {
+  judgedAt?: string | null;
+  readerId?: string | null;
+  diagnosisName?: string | null;
+  tissueStatus?: string | null;
+  collectionMethod?: string | null;
+  tissueSite?: string | null;
+  tissueType?: string | null;
+  collectedAt?: string | null;
+  reexamYn?: string | null;
+}
+
+export interface EndoscopyTestResultDetailData extends BaseTestResultDetailData {
+  biopsyYn?: string | null;
+  readerId?: string | null;
+}
+
+export interface PhysiologicalTestResultDetailData
+  extends BaseTestResultDetailData {
+  report?: string | null;
+  measuredItemCode?: string | null;
+  examEquipmentId?: string | null;
+  rawData?: string | null;
+  reportDocId?: string | null;
+}
+
+export type TestResultDetailData =
+  | ImagingTestResultDetailData
+  | SpecimenTestResultDetailData
+  | PathologyTestResultDetailData
+  | EndoscopyTestResultDetailData
+  | PhysiologicalTestResultDetailData
+  | BaseTestResultDetailData;
 
 export interface TestResultDetailRequestPayload {
   resultType: string;

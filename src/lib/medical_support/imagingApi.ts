@@ -12,6 +12,8 @@ const api = axios.create({
 });
 
 type ImagingExamApiRaw = ImagingExam & {
+  IMAGING_TYPE?: string | null;
+  imaging_type?: string | null;
   DETAIL_CODE?: string | null;
   PERFORMER_NAME?: string | null;
   performer_name?: string | null;
@@ -19,6 +21,7 @@ type ImagingExamApiRaw = ImagingExam & {
 
 const normalizeImagingExam = (item: ImagingExamApiRaw): ImagingExam => ({
   ...item,
+  imagingType: item.imagingType ?? item.IMAGING_TYPE ?? item.imaging_type ?? null,
   detailCode: item.detailCode ?? item.DETAIL_CODE ?? null,
   performerName:
     item.performerName ?? item.PERFORMER_NAME ?? item.performer_name ?? null,

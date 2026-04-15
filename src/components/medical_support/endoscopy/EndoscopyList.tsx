@@ -262,7 +262,7 @@ export default function EndoscopyList() {
                     size="small"
                     stickyHeader
                     sx={{
-                      minWidth: 1100,
+                      minWidth: 1000,
                       "& .MuiTableCell-root": {
                         px: 1,
                         py: 1,
@@ -274,14 +274,12 @@ export default function EndoscopyList() {
                     <TableHead>
                       <TableRow>
                         <TableCell align="center">번호</TableCell>
-                        <TableCell align="center">내시경검사 ID</TableCell>
                         <TableCell align="center">환자명</TableCell>
                         <TableCell align="center">진료과</TableCell>
-                        <TableCell align="center">시술실</TableCell>
-                        <TableCell align="center">장비</TableCell>
                         <TableCell align="center">검사명</TableCell>
-                        <TableCell align="center">검사수행 ID</TableCell>
-                        <TableCell align="center">검사수행자 ID</TableCell>
+                        <TableCell align="center">시술실</TableCell>
+                        <TableCell align="center">진정 여부</TableCell>
+                        <TableCell align="center">시술일시</TableCell>
                         <TableCell align="center">진행상태</TableCell>
                       </TableRow>
                     </TableHead>
@@ -289,7 +287,7 @@ export default function EndoscopyList() {
                     <TableBody>
                       {paginatedItems.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={10} align="center" sx={{ py: 5 }}>
+                          <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
                             표시할 내시경 검사 데이터가 없습니다.
                           </TableCell>
                         </TableRow>
@@ -323,28 +321,22 @@ export default function EndoscopyList() {
                               {currentPage * rowsPerPage + index + 1}
                             </TableCell>
                             <TableCell align="center">
-                              {safeValue(item.endoscopyExamId)}
-                            </TableCell>
-                            <TableCell align="center">
                               {safeValue(item.patientName)}
                             </TableCell>
                             <TableCell align="center">
                               {safeValue(item.departmentName)}
                             </TableCell>
                             <TableCell align="center">
-                              {safeValue(item.procedureRoom)}
-                            </TableCell>
-                            <TableCell align="center">
-                              {safeValue(item.equipment)}
-                            </TableCell>
-                            <TableCell align="center">
                               {safeValue(item.detailCode)}
                             </TableCell>
                             <TableCell align="center">
-                              {safeValue(item.testExecutionId)}
+                              {safeValue(item.procedureRoom)}
                             </TableCell>
                             <TableCell align="center">
-                              {safeValue(item.performerId)}
+                              {safeValue(item.sedationYn)}
+                            </TableCell>
+                            <TableCell align="center">
+                              {safeValue(item.procedureAt)}
                             </TableCell>
                             <TableCell align="center">
                               <Stack

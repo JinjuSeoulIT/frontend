@@ -48,3 +48,12 @@ export interface EndoscopyExamUpdatePayload {
   progressStatus?: string | null;
   status?: string | null;
 }
+
+export interface EndoscopySearchParams {
+  patientName?: string;
+  departmentName?: string;
+  sedationYn?: string;
+  progressStatus?: string;
+  startDate?: string;
+  endDate?: string;
+}

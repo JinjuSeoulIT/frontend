@@ -39,13 +39,18 @@ const testResultSlice = createSlice({
   name: "testResults",
   initialState,
   reducers: {
-    fetchTestResultsRequest: (
-      state,
-      action: PayloadAction<TestResultSearchParams | undefined>
-    ) => {
-      void action;
-      state.loading = true;
-      state.error = null;
+    fetchTestResultsRequest: {
+      reducer: (
+        state,
+        action: PayloadAction<TestResultSearchParams | undefined>
+      ) => {
+        void action;
+        state.loading = true;
+        state.error = null;
+      },
+      prepare: (params?: TestResultSearchParams) => ({
+        payload: params,
+      }),
     },
     fetchTestResultsSuccess: (state, action: PayloadAction<TestResult[]>) => {
       state.loading = false;

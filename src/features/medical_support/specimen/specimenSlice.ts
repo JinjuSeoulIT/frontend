@@ -2,6 +2,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type {
   SpecimenExam,
   SpecimenExamCreatePayload,
+  SpecimenSearchParams,
   SpecimenExamUpdatePayload,
 } from "@/features/medical_support/specimen/specimenType";
 
@@ -27,10 +28,19 @@ const specimenSlice = createSlice({
   name: "specimens",
   initialState,
   reducers: {
-    fetchSpecimensRequest: (state) => {
-      state.loading = true;
-      state.error = null;
-      state.createSuccess = false;
+    fetchSpecimensRequest: {
+      reducer: (
+        state,
+        action: PayloadAction<SpecimenSearchParams | undefined>
+      ) => {
+        void action;
+        state.loading = true;
+        state.error = null;
+        state.createSuccess = false;
+      },
+      prepare: (params?: SpecimenSearchParams) => ({
+        payload: params,
+      }),
     },
     fetchSpecimensSuccess: (state, action: PayloadAction<SpecimenExam[]>) => {
       state.loading = false;

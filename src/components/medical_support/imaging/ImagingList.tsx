@@ -4,6 +4,11 @@ import * as React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
+import ListSearchBar, {
+  EXAM_PROGRESS_STATUS_FILTER_OPTIONS,
+  useListSearchCriteria,
+  type ListSearchFieldConfig,
+} from "@/components/medical_support/common/ListSearchBar";
 import {
   formatProgressStatus,
   getProgressStatusColor,
@@ -35,7 +40,12 @@ import {
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { ImagingActions } from "@/features/medical_support/imaging/imagingSlice";
+import type { ImagingSearchParams } from "@/features/medical_support/imaging/imagingType";
+import { toDateOnlySearchParam } from "@/lib/medical_support/searchParams";
 import type { RootState, AppDispatch } from "@/store/store";
+
+const getTrimmedValue = (value: unknown) =>
+  typeof value === "string" ? value.trim() : "";
 
 export default function ImagingList() {
   const dispatch = useDispatch<AppDispatch>();
@@ -44,10 +54,31 @@ export default function ImagingList() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [includeInactive, setIncludeInactive] = React.useState(false);
+  const initialSearchCriteria = React.useMemo(
+    () => ({
+      patientName: "",
+      departmentName: "",
+      progressStatus: "",
+      examName: "",
+      startDate: null,
+      endDate: null,
+    }),
+    []
+  );
+  const [appliedSearchParams, setAppliedSearchParams] = React.useState<
+    ImagingSearchParams | undefined
+  >(undefined);
 
   const { list: items, loading, error } = useSelector(
     (state: RootState) => state.imagings
   );
+  const {
+    criteria,
+    selectedFieldKey,
+    setCriterion,
+    selectField,
+    resetCriteria,
+  } = useListSearchCriteria("patientName", initialSearchCriteria);
 
   React.useEffect(() => {
     dispatch(ImagingActions.fetchImagingsRequest());
@@ -134,6 +165,110 @@ export default function ImagingList() {
     setPage(0);
   };
 
+  const searchFields = React.useMemo<ListSearchFieldConfig[]>(
+    () => [
+      {
+        key: "patientName",
+        label: "환자명",
+        type: "text",
+      },
+      {
+        key: "departmentName",
+        label: "진료과",
+        type: "select",
+        optionsSource: "departments",
+      },
+      {
+        key: "progressStatus",
+        label: "진행상태",
+        type: "select",
+        options: EXAM_PROGRESS_STATUS_FILTER_OPTIONS,
+      },
+      {
+        key: "examName",
+        label: "검사코드",
+        type: "text",
+      },
+      {
+        key: "createdAtRange",
+        label: "생성일시",
+        type: "dateTimeRange",
+        startKey: "startDate",
+        endKey: "endDate",
+        startLabel: "시작일",
+        endLabel: "종료일",
+      },
+    ],
+    []
+  );
+
+  const handleRefresh = () => {
+    dispatch(ImagingActions.fetchImagingsRequest(appliedSearchParams));
+  };
+
+  const buildSearchParams = React.useCallback((): ImagingSearchParams | undefined => {
+    const nextSearchParams: ImagingSearchParams = {};
+
+    switch (selectedFieldKey) {
+      case "patientName": {
+        const patientName = getTrimmedValue(criteria.patientName);
+        if (patientName) {
+          nextSearchParams.patientName = patientName;
+        }
+        break;
+      }
+      case "departmentName": {
+        const departmentName = getTrimmedValue(criteria.departmentName);
+        if (departmentName) {
+          nextSearchParams.departmentName = departmentName;
+        }
+        break;
+      }
+      case "progressStatus": {
+        const progressStatus = getTrimmedValue(criteria.progressStatus);
+        if (progressStatus) {
+          nextSearchParams.progressStatus = progressStatus;
+        }
+        break;
+      }
+      case "examName": {
+        const examName = getTrimmedValue(criteria.examName);
+        if (examName) {
+          nextSearchParams.examName = examName;
+        }
+        break;
+      }
+      case "createdAtRange": {
+        const startDate = toDateOnlySearchParam(criteria.startDate);
+        const endDate = toDateOnlySearchParam(criteria.endDate);
+        if (startDate && endDate) {
+          nextSearchParams.startDate = startDate;
+          nextSearchParams.endDate = endDate;
+        }
+        break;
+      }
+      default:
+        break;
+    }
+
+    return Object.keys(nextSearchParams).length > 0 ? nextSearchParams : undefined;
+  }, [criteria, selectedFieldKey]);
+
+  const handleSearch = () => {
+    const nextSearchParams = buildSearchParams();
+    setAppliedSearchParams(nextSearchParams);
+    setPage(0);
+    dispatch(ImagingActions.fetchImagingsRequest(nextSearchParams));
+  };
+
+  const handleResetSearch = () => {
+    resetCriteria();
+    setAppliedSearchParams(undefined);
+    setIncludeInactive(false);
+    setPage(0);
+    dispatch(ImagingActions.fetchImagingsRequest());
+  };
+
   return (
     <MainLayout showSidebar={false}>
       <Stack spacing={2}>
@@ -185,7 +320,7 @@ export default function ImagingList() {
                 <Button
                   variant="outlined"
                   startIcon={<RefreshIcon />}
-                  onClick={() => dispatch(ImagingActions.fetchImagingsRequest())}
+                  onClick={handleRefresh}
                   disabled={loading}
                 >
                   새로고침
@@ -213,8 +348,8 @@ export default function ImagingList() {
             color="error"
             variant="outlined"
           />
-          {loading && <Chip label="불러오는 중" variant="outlined" />}
-          {error && <Chip label={`오류: ${error}`} color="error" />}
+          {loading ? <Chip label="불러오는 중" variant="outlined" /> : null}
+          {error ? <Chip label={`오류: ${error}`} color="error" /> : null}
           {includeInactive && inactiveCount > 0 ? (
             <Chip label={`비활성 ${inactiveCount}`} variant="outlined" />
           ) : null}
@@ -222,6 +357,17 @@ export default function ImagingList() {
 
         <Card sx={{ borderRadius: 3, border: "1px solid var(--line)" }}>
           <CardContent sx={{ p: 2.5 }}>
+            <ListSearchBar
+              fields={searchFields}
+              selectedFieldKey={selectedFieldKey}
+              criteria={criteria}
+              onSelectedFieldKeyChange={selectField}
+              onCriteriaChange={setCriterion}
+              onSearch={handleSearch}
+              onReset={handleResetSearch}
+              loading={loading}
+            />
+
             <Stack
               direction="row"
               spacing={1}
@@ -235,19 +381,19 @@ export default function ImagingList() {
               <Chip label={`표시 ${visibleItems.length}`} size="small" />
             </Stack>
 
-            {loading && (
+            {loading ? (
               <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
                 <CircularProgress size={28} />
               </Box>
-            )}
+            ) : null}
 
-            {error && (
+            {error ? (
               <Alert severity="error" sx={{ mt: 2 }}>
                 {error}
               </Alert>
-            )}
+            ) : null}
 
-            {!loading && !error && (
+            {!loading && !error ? (
               <Paper
                 elevation={0}
                 sx={{
@@ -274,7 +420,7 @@ export default function ImagingList() {
                     <TableHead>
                       <TableRow>
                         <TableCell align="center">번호</TableCell>
-                        <TableCell align="center">검사명</TableCell>
+                        <TableCell align="center">검사코드</TableCell>
                         <TableCell align="center">환자명</TableCell>
                         <TableCell align="center">진료과</TableCell>
                         <TableCell align="center">검사수행자명</TableCell>
@@ -284,13 +430,13 @@ export default function ImagingList() {
                     </TableHead>
 
                     <TableBody>
-                      {paginatedItems.length === 0 && (
+                      {paginatedItems.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
                             표시할 영상 검사 데이터가 없습니다.
                           </TableCell>
                         </TableRow>
-                      )}
+                      ) : null}
 
                       {paginatedItems.map((item, index) => {
                         const inactive =
@@ -381,7 +527,7 @@ export default function ImagingList() {
                   }
                 />
               </Paper>
-            )}
+            ) : null}
           </CardContent>
         </Card>
       </Stack>

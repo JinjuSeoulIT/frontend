@@ -63,3 +63,12 @@ export interface PathologyExamUpdatePayload {
   progressStatus?: string | null;
   status?: string | null;
 }
+
+export interface PathologySearchParams {
+  patientName?: string;
+  departmentName?: string;
+  tissueStatus?: string;
+  progressStatus?: string;
+  startDate?: string;
+  endDate?: string;
+}

@@ -106,6 +106,7 @@ export interface TestResult {
 
 export interface TestResultSearchParams {
   resultType?: string;
+  resultId?: string;
   patientName?: string;
   detailCode?: string;
   departmentName?: string;

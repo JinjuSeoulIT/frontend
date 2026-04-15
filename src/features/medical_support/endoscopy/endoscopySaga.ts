@@ -6,6 +6,7 @@ import { EndoscopyActions as actions } from "./endoscopySlice";
 import type {
   EndoscopyExam,
   EndoscopyExamCreatePayload,
+  EndoscopySearchParams,
   EndoscopyExamUpdatePayload,
 } from "@/features/medical_support/endoscopy/endoscopyType";
 
@@ -17,9 +18,14 @@ const getErrorMessage = (err: unknown, fallback: string) => {
   return fallback;
 };
 
-function* fetchEndoscopiesSaga(): SagaIterator {
+function* fetchEndoscopiesSaga(
+  action: PayloadAction<EndoscopySearchParams | undefined>
+): SagaIterator {
   try {
-    const items: EndoscopyExam[] = yield call(api.fetchEndoscopyExamsApi);
+    const items: EndoscopyExam[] = yield call(
+      api.fetchEndoscopyExamsApi,
+      action.payload
+    );
     yield put(actions.fetchEndoscopiesSuccess(items));
   } catch (err: unknown) {
     yield put(

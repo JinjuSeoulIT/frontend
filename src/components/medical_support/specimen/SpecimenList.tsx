@@ -262,7 +262,7 @@ export default function SpecimenList() {
                     size="small"
                     stickyHeader
                     sx={{
-                      minWidth: 1100,
+                      minWidth: 1000,
                       "& .MuiTableCell-root": {
                         px: 1,
                         py: 1,
@@ -274,14 +274,12 @@ export default function SpecimenList() {
                     <TableHead>
                       <TableRow>
                         <TableCell align="center">번호</TableCell>
-                        <TableCell align="center">검체검사 ID</TableCell>
                         <TableCell align="center">환자명</TableCell>
                         <TableCell align="center">진료과</TableCell>
+                        <TableCell align="center">검사명</TableCell>
                         <TableCell align="center">검체종류</TableCell>
                         <TableCell align="center">검체상태</TableCell>
-                        <TableCell align="center">검사명</TableCell>
-                        <TableCell align="center">검사수행 ID</TableCell>
-                        <TableCell align="center">검사수행자 ID</TableCell>
+                        <TableCell align="center">채취일시</TableCell>
                         <TableCell align="center">진행상태</TableCell>
                       </TableRow>
                     </TableHead>
@@ -289,7 +287,7 @@ export default function SpecimenList() {
                     <TableBody>
                       {paginatedItems.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={10} align="center" sx={{ py: 5 }}>
+                          <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
                             표시할 검체 검사 데이터가 없습니다.
                           </TableCell>
                         </TableRow>
@@ -323,13 +321,13 @@ export default function SpecimenList() {
                               {currentPage * rowsPerPage + index + 1}
                             </TableCell>
                             <TableCell align="center">
-                              {safeValue(item.specimenExamId)}
-                            </TableCell>
-                            <TableCell align="center">
                               {safeValue(item.patientName)}
                             </TableCell>
                             <TableCell align="center">
                               {safeValue(item.departmentName)}
+                            </TableCell>
+                            <TableCell align="center">
+                              {safeValue(item.detailCode)}
                             </TableCell>
                             <TableCell align="center">
                               {safeValue(item.specimenType)}
@@ -338,13 +336,7 @@ export default function SpecimenList() {
                               {safeValue(item.specimenStatus)}
                             </TableCell>
                             <TableCell align="center">
-                              {safeValue(item.detailCode)}
-                            </TableCell>
-                            <TableCell align="center">
-                              {safeValue(item.testExecutionId)}
-                            </TableCell>
-                            <TableCell align="center">
-                              {safeValue(item.performerId)}
+                              {safeValue(item.collectedAt)}
                             </TableCell>
                             <TableCell align="center">
                               <Stack

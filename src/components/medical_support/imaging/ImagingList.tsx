@@ -262,7 +262,7 @@ export default function ImagingList() {
                     size="small"
                     stickyHeader
                     sx={{
-                      minWidth: 1040,
+                      minWidth: 900,
                       "& .MuiTableCell-root": {
                         px: 1,
                         py: 1,
@@ -274,12 +274,11 @@ export default function ImagingList() {
                     <TableHead>
                       <TableRow>
                         <TableCell align="center">번호</TableCell>
-                        <TableCell align="center">영상검사 ID</TableCell>
+                        <TableCell align="center">검사명</TableCell>
                         <TableCell align="center">환자명</TableCell>
                         <TableCell align="center">진료과</TableCell>
-                        <TableCell align="center">검사명</TableCell>
-                        <TableCell align="center">검사수행 ID</TableCell>
-                        <TableCell align="center">검사수행자 ID</TableCell>
+                        <TableCell align="center">검사수행자명</TableCell>
+                        <TableCell align="center">생성일시</TableCell>
                         <TableCell align="center">진행상태</TableCell>
                       </TableRow>
                     </TableHead>
@@ -287,7 +286,7 @@ export default function ImagingList() {
                     <TableBody>
                       {paginatedItems.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                          <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
                             표시할 영상 검사 데이터가 없습니다.
                           </TableCell>
                         </TableRow>
@@ -321,7 +320,7 @@ export default function ImagingList() {
                               {currentPage * rowsPerPage + index + 1}
                             </TableCell>
                             <TableCell align="center">
-                              {safeValue(item.imagingExamId)}
+                              {safeValue(item.detailCode)}
                             </TableCell>
                             <TableCell align="center">
                               {safeValue(item.patientName)}
@@ -330,13 +329,10 @@ export default function ImagingList() {
                               {safeValue(item.departmentName)}
                             </TableCell>
                             <TableCell align="center">
-                              {safeValue(item.detailCode)}
+                              {safeValue(item.performerName)}
                             </TableCell>
                             <TableCell align="center">
-                              {safeValue(item.testExecutionId)}
-                            </TableCell>
-                            <TableCell align="center">
-                              {safeValue(item.performerId)}
+                              {safeValue(item.createdAt)}
                             </TableCell>
                             <TableCell align="center">
                               <Stack

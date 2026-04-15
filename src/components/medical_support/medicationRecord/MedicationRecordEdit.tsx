@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   CardContent,
-  Chip,
   CircularProgress,
   MenuItem,
   Stack,
@@ -24,13 +23,6 @@ import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { MedicationRecordActions } from "@/features/medical_support/medicationRecord/medicationRecordSlice";
 import {
-  formatMedicationDose,
-  formatMedicationRecordActiveStatus,
-  formatMedicationRecordProgressStatus,
-  getMedicationRecordActiveStatusColor,
-  getMedicationRecordActiveStatusSx,
-  getMedicationRecordProgressStatusColor,
-  getMedicationRecordProgressStatusSx,
   MEDICATION_RECORD_ACTIVE_STATUS_OPTIONS,
   MEDICATION_RECORD_PROGRESS_STATUS_OPTIONS,
 } from "@/components/medical_support/medicationRecord/medicationRecordDisplay";
@@ -95,51 +87,6 @@ const parseAdministeredAt = (value: string): Dayjs | null => {
 
   return null;
 };
-
-const displayValue = (value?: string | number | null) => {
-  if (value === null || value === undefined) return "-";
-  const text = String(value).trim();
-  return text ? text : "-";
-};
-
-type SummaryItemProps = {
-  label: string;
-  value: React.ReactNode;
-  truncate?: boolean;
-};
-
-function SummaryItem({ label, value, truncate = false }: SummaryItemProps) {
-  return (
-    <Box sx={{ minWidth: 0 }}>
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{ display: "block", mb: 0.5 }}
-      >
-        {label}
-      </Typography>
-      {typeof value === "string" || typeof value === "number" ? (
-        <Typography
-          variant="body2"
-          fontWeight={700}
-          sx={
-            truncate
-              ? {
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }
-              : undefined
-          }
-        >
-          {value}
-        </Typography>
-      ) : (
-        value
-      )}
-    </Box>
-  );
-}
 
 export default function MedicationRecordEdit() {
   const params = useParams();
@@ -221,7 +168,7 @@ export default function MedicationRecordEdit() {
           투약 기록 수정
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>
-          환자와 기록 요약을 먼저 확인하고, 아래에서 진행상태와 활성여부를 포함한 상세 정보를 수정할 수 있습니다.
+          투약 기본 정보와 투약 상태, 투약 내용을 확인하고 수정할 수 있습니다.
         </Typography>
 
         {detailError ? (
@@ -240,102 +187,7 @@ export default function MedicationRecordEdit() {
           elevation={0}
           sx={{
             mb: 2,
-            borderRadius: 3,
-            border: "1px solid",
-            borderColor: "grey.200",
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)",
-          }}
-        >
-          <CardContent sx={{ px: { xs: 2, md: 3 }, py: 2.25 }}>
-            <Stack spacing={2}>
-              <Stack
-                direction={{ xs: "column", md: "row" }}
-                justifyContent="space-between"
-                alignItems={{ xs: "flex-start", md: "center" }}
-                gap={1.5}
-              >
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography
-                    variant="overline"
-                    color="text.secondary"
-                    sx={{ letterSpacing: 0.8 }}
-                  >
-                    환자 및 기록 요약
-                  </Typography>
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    useFlexGap
-                    flexWrap="wrap"
-                    alignItems="center"
-                  >
-                    <Typography variant="h6" fontWeight={800}>
-                      {displayValue(form.patientName)}
-                    </Typography>
-                    <Chip
-                      label={`환자 ID ${displayValue(form.patientId)}`}
-                      size="small"
-                      variant="outlined"
-                    />
-                    <Chip
-                      label={displayValue(form.departmentName)}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </Stack>
-                </Box>
-
-                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                  <Chip
-                    label={formatMedicationRecordProgressStatus(form.progressStatus)}
-                    color={getMedicationRecordProgressStatusColor(form.progressStatus)}
-                    sx={getMedicationRecordProgressStatusSx()}
-                  />
-                  <Chip
-                    label={formatMedicationRecordActiveStatus(form.status)}
-                    color={getMedicationRecordActiveStatusColor(form.status)}
-                    sx={getMedicationRecordActiveStatusSx(form.status)}
-                  />
-                </Stack>
-              </Stack>
-
-              <Box
-                sx={{
-                  display: "grid",
-                  gap: 1.75,
-                  gridTemplateColumns: {
-                    xs: "1fr 1fr",
-                    lg: "repeat(4, minmax(0, 1fr))",
-                  },
-                }}
-              >
-                <SummaryItem
-                  label="투약기록 ID"
-                  value={displayValue(form.medicationId)}
-                />
-                <SummaryItem
-                  label="현재 투약일시"
-                  value={displayValue(form.administeredAt)}
-                />
-                <SummaryItem
-                  label="투약량"
-                  value={formatMedicationDose(form.doseNumber, form.doseUnit)}
-                />
-                <SummaryItem
-                  label="담당 간호사"
-                  value={displayValue(form.nurseName)}
-                  truncate
-                />
-              </Box>
-            </Stack>
-          </CardContent>
-        </Card>
-
-        <Card
-          elevation={0}
-          sx={{
-            borderRadius: 3,
+            borderRadius: 2,
             border: "1px solid",
             borderColor: "grey.200",
             backgroundColor: "#fff",
@@ -351,10 +203,67 @@ export default function MedicationRecordEdit() {
             }}
           >
             <Typography variant="subtitle1" fontWeight={700}>
-              수정 항목
+              투약 기본 정보
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              진행상태와 활성여부를 분리해서 관리하며, 투약 정보와 담당자 정보도 함께 수정할 수 있습니다.
+              투약 기록과 연결된 식별 정보를 확인합니다.
+            </Typography>
+          </Box>
+
+          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 1.75,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                },
+              }}
+            >
+              <TextField
+                label="투약기록 ID"
+                size="small"
+                value={form.medicationRecordId}
+                disabled
+                fullWidth
+              />
+
+              <TextField
+                label="투약 ID"
+                size="small"
+                value={form.medicationId}
+                disabled
+                fullWidth
+              />
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            mb: 2,
+            borderRadius: 2,
+            border: "1px solid",
+            borderColor: "grey.200",
+            backgroundColor: "#fff",
+          }}
+        >
+          <Box
+            sx={{
+              px: { xs: 2, md: 3 },
+              py: 2,
+              borderBottom: "1px solid",
+              borderColor: "grey.200",
+              backgroundColor: "#fafafa",
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={700}>
+              상태 및 투약 일시
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              진행상태, 활성여부와 실제 투약일시를 관리합니다.
             </Typography>
           </Box>
 
@@ -392,7 +301,9 @@ export default function MedicationRecordEdit() {
                   label="활성여부"
                   size="small"
                   value={form.status}
-                  onChange={(e) => setDraftForm({ ...form, status: e.target.value })}
+                  onChange={(e) =>
+                    setDraftForm({ ...form, status: e.target.value })
+                  }
                   fullWidth
                 >
                   {MEDICATION_RECORD_ACTIVE_STATUS_OPTIONS.map((option) => (
@@ -401,16 +312,6 @@ export default function MedicationRecordEdit() {
                     </MenuItem>
                   ))}
                 </TextField>
-
-                <TextField
-                  label="간호사명"
-                  size="small"
-                  value={form.nurseName}
-                  onChange={(e) =>
-                    setDraftForm({ ...form, nurseName: e.target.value })
-                  }
-                  fullWidth
-                />
 
                 <Box sx={{ gridColumn: { md: "1 / -1" } }}>
                   <DateTimePicker
@@ -429,74 +330,214 @@ export default function MedicationRecordEdit() {
                       textField: {
                         size: "small",
                         fullWidth: true,
-                        helperText: "입력값이나 시간 선택기로 투약일시를 수정할 수 있습니다.",
+                        helperText:
+                          "시간 선택기를 사용해 투약일시를 수정할 수 있습니다.",
                       },
                     }}
                   />
                 </Box>
-
-                <TextField
-                  label="투약량"
-                  size="small"
-                  value={form.doseNumber}
-                  onChange={(e) =>
-                    setDraftForm({ ...form, doseNumber: e.target.value })
-                  }
-                  fullWidth
-                />
-
-                <TextField
-                  label="간호사 ID"
-                  size="small"
-                  value={form.nursingId}
-                  onChange={(e) =>
-                    setDraftForm({ ...form, nursingId: e.target.value })
-                  }
-                  fullWidth
-                />
-
-                <TextField
-                  label="투약단위"
-                  size="small"
-                  value={form.doseUnit}
-                  onChange={(e) =>
-                    setDraftForm({ ...form, doseUnit: e.target.value })
-                  }
-                  fullWidth
-                />
-
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    px: 1.5,
-                    py: 1,
-                    borderRadius: 2,
-                    border: "1px dashed",
-                    borderColor: "grey.300",
-                    backgroundColor: "#fcfcfd",
-                  }}
-                >
-                  <SummaryItem
-                    label="환자 요약"
-                    value={`${displayValue(form.patientName)} / ${displayValue(form.patientId)}`}
-                    truncate
-                  />
-                </Box>
-
-                <Box sx={{ gridColumn: { md: "1 / -1" } }}>
-                  <TextField
-                    label="투약종류"
-                    size="small"
-                    value={form.doseKind}
-                    onChange={(e) =>
-                      setDraftForm({ ...form, doseKind: e.target.value })
-                    }
-                    fullWidth
-                  />
-                </Box>
               </Box>
             </LocalizationProvider>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            mb: 2,
+            borderRadius: 2,
+            border: "1px solid",
+            borderColor: "grey.200",
+            backgroundColor: "#fff",
+          }}
+        >
+          <Box
+            sx={{
+              px: { xs: 2, md: 3 },
+              py: 2,
+              borderBottom: "1px solid",
+              borderColor: "grey.200",
+              backgroundColor: "#fafafa",
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={700}>
+              투약 정보
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              투여량, 단위와 투약 종류를 관리합니다.
+            </Typography>
+          </Box>
+
+          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 1.75,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                },
+              }}
+            >
+              <TextField
+                label="투약량"
+                size="small"
+                value={form.doseNumber}
+                onChange={(e) =>
+                  setDraftForm({ ...form, doseNumber: e.target.value })
+                }
+                fullWidth
+              />
+
+              <TextField
+                label="투약단위"
+                size="small"
+                value={form.doseUnit}
+                onChange={(e) =>
+                  setDraftForm({ ...form, doseUnit: e.target.value })
+                }
+                fullWidth
+              />
+
+              <Box sx={{ gridColumn: { md: "1 / -1" } }}>
+                <TextField
+                  label="투약종류"
+                  size="small"
+                  value={form.doseKind}
+                  onChange={(e) =>
+                    setDraftForm({ ...form, doseKind: e.target.value })
+                  }
+                  fullWidth
+                />
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            mb: 2,
+            borderRadius: 2,
+            border: "1px solid",
+            borderColor: "grey.200",
+            backgroundColor: "#fff",
+          }}
+        >
+          <Box
+            sx={{
+              px: { xs: 2, md: 3 },
+              py: 2,
+              borderBottom: "1px solid",
+              borderColor: "grey.200",
+              backgroundColor: "#fafafa",
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={700}>
+              수행자 정보
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              투약을 수행한 간호사 정보를 확인하고 수정합니다.
+            </Typography>
+          </Box>
+
+          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 1.75,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                },
+              }}
+            >
+              <TextField
+                label="간호사 ID"
+                size="small"
+                value={form.nursingId}
+                onChange={(e) =>
+                  setDraftForm({ ...form, nursingId: e.target.value })
+                }
+                fullWidth
+              />
+
+              <TextField
+                label="간호사명"
+                size="small"
+                value={form.nurseName}
+                onChange={(e) =>
+                  setDraftForm({ ...form, nurseName: e.target.value })
+                }
+                fullWidth
+              />
+            </Box>
+          </CardContent>
+        </Card>
+
+        <Card
+          elevation={0}
+          sx={{
+            borderRadius: 2,
+            border: "1px solid",
+            borderColor: "grey.200",
+            backgroundColor: "#fff",
+          }}
+        >
+          <Box
+            sx={{
+              px: { xs: 2, md: 3 },
+              py: 2,
+              borderBottom: "1px solid",
+              borderColor: "grey.200",
+              backgroundColor: "#fafafa",
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={700}>
+              환자 및 진료 정보
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              환자 식별 정보와 진료과는 조회용입니다.
+            </Typography>
+          </Box>
+
+          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 1.75,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                },
+              }}
+            >
+              <TextField
+                label="환자명"
+                size="small"
+                value={form.patientName}
+                disabled
+                fullWidth
+              />
+
+              <TextField
+                label="환자 ID"
+                size="small"
+                value={form.patientId}
+                disabled
+                fullWidth
+              />
+
+              <Box sx={{ gridColumn: { md: "1 / -1" } }}>
+                <TextField
+                  label="진료과"
+                  size="small"
+                  value={form.departmentName}
+                  disabled
+                  fullWidth
+                />
+              </Box>
+            </Box>
           </CardContent>
         </Card>
 

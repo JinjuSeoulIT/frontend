@@ -13,6 +13,24 @@ const api = axios.create({
     process.env.NEXT_PUBLIC_NURSING_API_BASE_URL ?? "http://192.168.1.66:8181",
 });
 
+const LIST_ERROR_MESSAGE =
+  "\uAC80\uC0AC \uACB0\uACFC \uBAA9\uB85D \uC870\uD68C\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.";
+const DETAIL_ERROR_MESSAGE =
+  "\uAC80\uC0AC \uACB0\uACFC \uC0C1\uC138 \uC870\uD68C\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.";
+const UPDATE_ERROR_MESSAGE =
+  "\uAC80\uC0AC \uACB0\uACFC \uC218\uC815\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.";
+
+const SEARCH_PARAM_KEYS: Array<keyof TestResultSearchParams> = [
+  "resultType",
+  "patientName",
+  "detailCode",
+  "departmentName",
+  "status",
+  "startDate",
+  "endDate",
+  "includeInactive",
+];
+
 type TestResultApiRaw = Partial<TestResult> & {
   RESULT_TYPE?: string | null;
   RESULT_TYPE_NAME?: string | null;
@@ -45,7 +63,9 @@ const cleanSearchParams = (params?: TestResultSearchParams) => {
 
   const cleaned: Record<string, string | boolean> = {};
 
-  Object.entries(params).forEach(([key, value]) => {
+  SEARCH_PARAM_KEYS.forEach((key) => {
+    const value = params[key];
+
     if (typeof value === "boolean") {
       if (value) {
         cleaned[key] = value;
@@ -103,10 +123,7 @@ export const fetchTestResultsApi = async (
   );
 
   if (!res.data.success) {
-    throw new Error(
-      res.data.message ||
-        "\uAC80\uC0AC \uACB0\uACFC \uBAA9\uB85D \uC870\uD68C\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4."
-    );
+    throw new Error(res.data.message || LIST_ERROR_MESSAGE);
   }
 
   return (res.data.result ?? []).map(normalizeTestResult);
@@ -123,9 +140,7 @@ export const fetchTestResultDetailApi = async ({
   );
 
   if (!res.data.success) {
-    throw new Error(
-      res.data.message || "검사 결과 상세 조회에 실패했습니다."
-    );
+    throw new Error(res.data.message || DETAIL_ERROR_MESSAGE);
   }
 
   return normalizeTestResult(res.data.result);
@@ -144,7 +159,7 @@ export const updateTestResultApi = async ({
   );
 
   if (!res.data.success) {
-    throw new Error(res.data.message || "검사 결과 수정에 실패했습니다.");
+    throw new Error(res.data.message || UPDATE_ERROR_MESSAGE);
   }
 
   return normalizeTestResult(res.data.result);

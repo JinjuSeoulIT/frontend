@@ -10,6 +10,13 @@ import type {
   TestResultUpdateRequestPayload,
 } from "@/features/medical_support/testResult/testResultType";
 
+const LIST_ERROR_MESSAGE =
+  "\uAC80\uC0AC \uACB0\uACFC \uBAA9\uB85D \uC870\uD68C\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.";
+const DETAIL_ERROR_MESSAGE =
+  "\uAC80\uC0AC \uACB0\uACFC \uC0C1\uC138 \uC870\uD68C\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.";
+const UPDATE_ERROR_MESSAGE =
+  "\uAC80\uC0AC \uACB0\uACFC \uC218\uC815\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.";
+
 const getErrorMessage = (err: unknown, fallback: string) => {
   if (err instanceof Error && err.message) {
     return err.message;
@@ -29,12 +36,7 @@ function* fetchTestResultsSaga(
     yield put(actions.fetchTestResultsSuccess(items));
   } catch (err: unknown) {
     yield put(
-      actions.fetchTestResultsFailure(
-        getErrorMessage(
-          err,
-          "\uAC80\uC0AC \uACB0\uACFC \uBAA9\uB85D \uC870\uD68C\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4."
-        )
-      )
+      actions.fetchTestResultsFailure(getErrorMessage(err, LIST_ERROR_MESSAGE))
     );
   }
 }
@@ -51,7 +53,7 @@ function* fetchTestResultDetailSaga(
   } catch (err: unknown) {
     yield put(
       actions.fetchTestResultDetailFailure(
-        getErrorMessage(err, "검사 결과 상세 조회에 실패했습니다.")
+        getErrorMessage(err, DETAIL_ERROR_MESSAGE)
       )
     );
   }
@@ -65,9 +67,7 @@ function* updateTestResultSaga(
     yield put(actions.updateTestResultSuccess(item));
   } catch (err: unknown) {
     yield put(
-      actions.updateTestResultFailure(
-        getErrorMessage(err, "검사 결과 수정에 실패했습니다.")
-      )
+      actions.updateTestResultFailure(getErrorMessage(err, UPDATE_ERROR_MESSAGE))
     );
   }
 }

@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "@/store/store";
+import { useRouter } from "next/navigation";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 import MainLayout from "@/components/layout/MainLayout";
 import Link from "next/link";
@@ -18,37 +20,36 @@ import {
   TableContainer,
   Paper,
   Chip,
+  Button,
+  Stack,
 } from "@mui/material";
 
 import { fetchOutstandingBillsRequest } from "@/features/billing/billingSlice";
 import { fetchPatientsApi } from "@/lib/patient/patientApi";
 import type { Patient } from "@/features/patients/patientTypes";
-import { getBillingStatusLabel } from "@/lib/billing/billingStatus";
+import {
+  getBillingStatusLabel,
+  getBillingStatusColor,
+} from "@/lib/billing/billingStatus";
 
 export default function OutstandingBillingPage() {
   const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
 
   const { billingList, loading, error } = useSelector(
     (state: RootState) => state.billing
   );
 
-  /**
-   * 추가:
-   * patientId -> patientName 매핑용 상태
-   */
   const [patientNameById, setPatientNameById] = useState<Record<number, string>>(
     {}
   );
 
-  //미수금 조회
+  // 미수금 조회
   useEffect(() => {
     dispatch(fetchOutstandingBillsRequest());
   }, [dispatch]);
 
-  /**
-   * 추가:
-   * 환자 목록 전체 조회 후 patientId -> name 매핑 생성
-   */
+  // 환자 목록 조회 후 patientId -> patientName 매핑
   useEffect(() => {
     let active = true;
 
@@ -81,10 +82,6 @@ export default function OutstandingBillingPage() {
     };
   }, []);
 
-  /**
-   * 추가:
-   * patientId로 환자 이름 찾기
-   */
   const resolvePatientName = useCallback(
     (patientId: number) => {
       return patientNameById[patientId] || "-";
@@ -92,11 +89,7 @@ export default function OutstandingBillingPage() {
     [patientNameById]
   );
 
-  /* ================================
-     추가: 진료일 최신순(내림차순) 정렬용 목록
-     - 원본 billingList는 건드리지 않고
-     - 화면 출력용으로만 복사 후 정렬
-  ================================= */
+  // 진료일 최신순 정렬
   const sortedBillingList = [...(billingList ?? [])].sort((a, b) => {
     return (
       new Date(b.treatmentDate).getTime() -
@@ -107,14 +100,49 @@ export default function OutstandingBillingPage() {
   return (
     <MainLayout>
       <Box sx={{ display: "grid", gap: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>
-          미수금 목록
-        </Typography>
+        {/* [추가] 상단 헤더 + 뒤로 가기 */}
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1.5}
+          justifyContent="space-between"
+          alignItems={{ xs: "flex-start", sm: "center" }}
+        >
+          <Button
+            startIcon={<ArrowBackIcon />}
+            variant="outlined"
+            onClick={() => router.push("/billing")}
+          >
+            뒤로 가기
+          </Button>
+
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            미수금 목록
+          </Typography>
+        </Stack>
+
+        {/* [추가] 안내 문구 */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            borderRadius: 2,
+            border: "1px solid #e5e7eb",
+            backgroundColor: "#f8fafc",
+          }}
+        >
+          <Typography sx={{ fontWeight: 700, mb: 0.5 }}>
+            미수금 정산 안내
+          </Typography>
+          <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
+            남은 금액이 있는 청구를 조회한 뒤, 우측의
+            <strong> 정산 처리</strong> 버튼으로 상세 페이지에 들어가
+            전액 또는 부분 수납을 진행할 수 있습니다.
+          </Typography>
+        </Paper>
 
         {loading && <Typography>로딩 중...</Typography>}
         {error && <Typography color="error">{error}</Typography>}
 
-        {/* 테이블 */}
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
@@ -124,26 +152,28 @@ export default function OutstandingBillingPage() {
                 <TableCell>환자ID</TableCell>
                 <TableCell>진료일</TableCell>
                 <TableCell>총 금액</TableCell>
+                <TableCell>미수금 금액</TableCell>
                 <TableCell>상태</TableCell>
+                <TableCell align="center">정산</TableCell>
               </TableRow>
             </TableHead>
 
             <TableBody>
-              {/* ================================
-                 수정: 화면에는 최신 진료일 순으로 정렬된 목록 사용
-              ================================= */}
               {sortedBillingList.map((bill) => (
                 <TableRow key={bill.billId}>
                   <TableCell>
                     <Link
-                      href={`/billing/${bill.billId}`}
+                      href={`/billing/${bill.billId}?returnTo=${encodeURIComponent(
+                        "/billing/outstanding"
+                      )}`}
                       style={{
                         textDecoration: "none",
                         color: "#1976d2",
                         fontWeight: 600,
                       }}
                     >
-                      {bill.billId}
+                      {/* [수정] billingNo 우선 표시 */}
+                      {bill.billingNo ?? bill.billId}
                     </Link>
                   </TableCell>
 
@@ -153,32 +183,49 @@ export default function OutstandingBillingPage() {
 
                   <TableCell>{bill.treatmentDate}</TableCell>
 
+                  <TableCell>{bill.totalAmount.toLocaleString()} 원</TableCell>
+
+                  {/* [추가] 미수금 금액 표시 */}
                   <TableCell>
-                    {bill.totalAmount.toLocaleString()} 원
+                    <Typography sx={{ fontWeight: 700, color: "#d32f2f" }}>
+                      {bill.remainingAmount.toLocaleString()} 원
+                    </Typography>
                   </TableCell>
 
                   <TableCell>
                     <Chip
-                      label={getBillingStatusLabel(bill.status)}
+                      label={getBillingStatusLabel(
+                        bill.status,
+                        bill.remainingAmount
+                      )}
                       color={
-                        bill.status === "PAID"
-                          ? "success"
-                          : bill.status === "CONFIRMED"
-                          ? "warning"
-                          : "default"
+                        getBillingStatusColor(
+                          bill.status,
+                          bill.remainingAmount
+                        ) as any
                       }
                     />
+                  </TableCell>
+
+                  {/* [추가] 정산 처리 버튼 */}
+                  <TableCell align="center">
+                    <Button
+                      component={Link}
+                      href={`/billing/${bill.billId}?returnTo=${encodeURIComponent(
+                        "/billing/outstanding"
+                      )}`}
+                      variant="contained"
+                      size="small"
+                    >
+                      정산 처리
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
 
-              {/* 데이터 없을 때 */}
-              {/* ================================
-                 수정: 정렬된 목록 기준으로 빈 결과 여부 판단
-              ================================= */}
               {sortedBillingList.length === 0 && !loading && (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={8} align="center">
                     미수금 데이터가 없습니다
                   </TableCell>
                 </TableRow>

@@ -19,6 +19,7 @@ export interface EndoscopyExam {
 
 export interface EndoscopyExamCreatePayload {
   testExecutionId?: string | number | null;
+  detailCode?: string | null;
   patientId?: string | number | null;
   patientName?: string | null;
   departmentName?: string | null;
@@ -34,6 +35,7 @@ export interface EndoscopyExamCreatePayload {
 
 export interface EndoscopyExamUpdatePayload {
   testExecutionId?: string | number | null;
+  detailCode?: string | null;
   patientId?: string | number | null;
   patientName?: string | null;
   departmentName?: string | null;

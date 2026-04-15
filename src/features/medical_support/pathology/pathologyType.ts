@@ -24,6 +24,7 @@ export interface PathologyExam {
 
 export interface PathologyExamCreatePayload {
   testExecutionId?: string | number | null;
+  detailCode?: string | null;
   patientId?: string | number | null;
   patientName?: string | null;
   departmentName?: string | null;
@@ -44,6 +45,7 @@ export interface PathologyExamCreatePayload {
 
 export interface PathologyExamUpdatePayload {
   testExecutionId?: string | number | null;
+  detailCode?: string | null;
   patientId?: string | number | null;
   patientName?: string | null;
   departmentName?: string | null;

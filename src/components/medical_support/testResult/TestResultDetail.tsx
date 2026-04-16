@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   Alert,
   Box,
@@ -334,6 +334,7 @@ function DetailGrid({ children }: { children: ReactNode }) {
 
 export default function TestResultDetail() {
   const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const resultId = getRouteParam(params?.resultId).trim();
@@ -380,7 +381,8 @@ export default function TestResultDetail() {
     alert(message);
     pendingSuccessMessageRef.current = null;
     dispatch(TestResultActions.resetUpdateSuccess());
-  }, [dispatch, updateSuccess]);
+    router.push(listHref);
+  }, [dispatch, listHref, router, updateSuccess]);
 
   useEffect(() => {
     if (!updateError) {

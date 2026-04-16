@@ -32,8 +32,11 @@ import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { RecActions } from "@/features/medical_support/record/recordSlice";
 import type { RecordFormType } from "@/features/medical_support/record/recordTypes";
-import { receptionActions } from "@/features/Reception/ReceptionSlice";
 import type { Reception } from "@/features/Reception/ReceptionTypes";
+import {
+  fetchReceptionDetailApi,
+  fetchReceptionQueueApi,
+} from "@/lib/medical_support/receptionApi";
 import type { AppDispatch, RootState } from "@/store/store";
 import RecordSearch from "./RecordSearch";
 
@@ -104,18 +107,12 @@ const getReceptionStatusChipColor = (status?: string | null) => {
   }
 };
 
-const isToday = (value?: string | null) => {
-  if (!value) return false;
+const getErrorMessage = (error: unknown, fallbackMessage: string) => {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return false;
-
-  const today = new Date();
-  return (
-    date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate()
-  );
+  return fallbackMessage;
 };
 
 export default function RecordList() {
@@ -125,15 +122,13 @@ export default function RecordList() {
   const { list, loading, error, statusToggleSuccess } = useSelector(
     (state: RootState) => state.records
   );
-  const {
-    list: receptions,
-    loading: receptionsLoading,
-    error: receptionsError,
-  } = useSelector((state: RootState) => state.receptions);
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [includeInactive, setIncludeInactive] = useState(false);
+  const [receptions, setReceptions] = useState<Reception[]>([]);
+  const [receptionsLoading, setReceptionsLoading] = useState(false);
+  const [receptionsError, setReceptionsError] = useState<string | null>(null);
   const [selectedReceptionId, setSelectedReceptionId] = useState<number | null>(
     null
   );
@@ -147,8 +142,36 @@ export default function RecordList() {
 
   useEffect(() => {
     dispatch(RecActions.fetchRecordsRequest());
-    dispatch(receptionActions.fetchReceptionsRequest());
   }, [dispatch]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setReceptionsLoading(true);
+    setReceptionsError(null);
+
+    void fetchReceptionQueueApi()
+      .then((queue) => {
+        if (cancelled) return;
+        setReceptions(queue);
+      })
+      .catch((requestError: unknown) => {
+        if (cancelled) return;
+        setReceptions([]);
+        setReceptionsError(
+          getErrorMessage(requestError, "접수 목록 조회에 실패했습니다.")
+        );
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setReceptionsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!statusToggleSuccess) return;
@@ -199,21 +222,7 @@ export default function RecordList() {
     [currentPage, rowsPerPage, visibleRecords]
   );
 
-  const receptionList = useMemo(
-    () =>
-      receptions
-        .filter((item) => item.visitType === "OUTPATIENT")
-        .filter((item) => isToday(item.createdAt) || isToday(item.arrivedAt))
-        .filter((item) =>
-          ["WAITING", "CALLED", "IN_PROGRESS"].includes(item.status)
-        )
-        .sort((a, b) => {
-          const left = new Date(a.arrivedAt ?? a.createdAt ?? 0).getTime();
-          const right = new Date(b.arrivedAt ?? b.createdAt ?? 0).getTime();
-          return right - left;
-        }),
-    [receptions]
-  );
+  const receptionList = receptions;
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
@@ -259,16 +268,13 @@ export default function RecordList() {
     setSelectedReceptionId(reception.receptionId);
 
     try {
-      const res = await fetch(
-        `http://192.168.1.55:8283/api/receptions/${reception.receptionId}`
-      );
-      const data = await res.json();
+      const detail = await fetchReceptionDetailApi(reception.receptionId);
 
-      if (!data.success) {
-        throw new Error(data.message || "접수 상세 조회 실패");
+      if (!detail) {
+        throw new Error("Reception detail fetch failed");
       }
 
-      setSelectedReceptionDetail(data.result);
+      setSelectedReceptionDetail(detail);
       setIsReceptionDialogOpen(true);
     } catch {
       alert("접수 상세 정보를 불러오지 못했습니다.");
@@ -396,7 +402,25 @@ export default function RecordList() {
                   startIcon={<RefreshIcon />}
                   onClick={() => {
                     dispatch(RecActions.fetchRecordsRequest());
-                    dispatch(receptionActions.fetchReceptionsRequest());
+                    setReceptionsLoading(true);
+                    setReceptionsError(null);
+
+                    void fetchReceptionQueueApi()
+                      .then((queue) => {
+                        setReceptions(queue);
+                      })
+                      .catch((requestError: unknown) => {
+                        setReceptions([]);
+                        setReceptionsError(
+                          getErrorMessage(
+                            requestError,
+                            "접수 목록 조회에 실패했습니다."
+                          )
+                        );
+                      })
+                      .finally(() => {
+                        setReceptionsLoading(false);
+                      });
                   }}
                   disabled={loading || receptionsLoading}
                 >

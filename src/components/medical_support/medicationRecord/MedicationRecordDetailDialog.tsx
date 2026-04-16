@@ -250,6 +250,29 @@ export default function MedicationRecordDetailDialog({
               </DetailSection>
 
               <DetailSection
+                title="투약 수행 정보"
+                description="실제 투약 시점과 수행 간호사 정보를 업무 흐름에 맞게 배치했습니다."
+              >
+                <Box
+                  sx={{
+                    display: "grid",
+                    gap: 1.5,
+                    gridTemplateColumns: {
+                      xs: "1fr",
+                      sm: "repeat(2, minmax(0, 1fr))",
+                    },
+                  }}
+                >
+                  <DetailField
+                    label="투약일시"
+                    value={formatDateTime(item.administeredAt)}
+                  />
+                  <DetailField label="간호사명" value={safeValue(item.nurseName)} />
+                  <DetailField label="간호사 ID" value={safeValue(item.nursingId)} />
+                </Box>
+              </DetailSection>
+
+              <DetailSection
                 title="약제 및 용량 정보"
                 description="투약된 약제명과 실제 수량·단위를 함께 확인할 수 있도록 묶었습니다."
               >
@@ -276,29 +299,6 @@ export default function MedicationRecordDetailDialog({
                     label="투약단위"
                     value={safeValue(item.doseUnit)}
                   />
-                </Box>
-              </DetailSection>
-
-              <DetailSection
-                title="투약 수행 정보"
-                description="실제 투약 시점과 수행 간호사 정보를 업무 흐름에 맞게 배치했습니다."
-              >
-                <Box
-                  sx={{
-                    display: "grid",
-                    gap: 1.5,
-                    gridTemplateColumns: {
-                      xs: "1fr",
-                      sm: "repeat(2, minmax(0, 1fr))",
-                    },
-                  }}
-                >
-                  <DetailField
-                    label="투약일시"
-                    value={formatDateTime(item.administeredAt)}
-                  />
-                  <DetailField label="간호사명" value={safeValue(item.nurseName)} />
-                  <DetailField label="간호사 ID" value={safeValue(item.nursingId)} />
                 </Box>
               </DetailSection>
 

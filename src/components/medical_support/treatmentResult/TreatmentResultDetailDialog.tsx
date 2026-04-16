@@ -267,6 +267,25 @@ export default function TreatmentResultDetailDialog({
               </DetailSection>
 
               <DetailSection
+                title="처치 내용"
+                description="실제 처치 결과와 세부 내용을 본문 중심으로 확인합니다."
+              >
+                <Box
+                  sx={{
+                    display: "grid",
+                    gap: 1.5,
+                    gridTemplateColumns: "1fr",
+                  }}
+                >
+                  <DetailField
+                    label="처치내용"
+                    value={safeValue(item.detail)}
+                    fullWidth
+                  />
+                </Box>
+              </DetailSection>
+
+              <DetailSection
                 title="상태 및 식별 정보"
                 description="상태값과 시스템 식별자를 분리해 조회·문의·추적 시 바로 확인할 수 있게 정리했습니다."
               >
@@ -311,25 +330,6 @@ export default function TreatmentResultDetailDialog({
                   <DetailField
                     label="처치결과 관리 ID"
                     value={safeValue(item.treatmentResultId)}
-                  />
-                </Box>
-              </DetailSection>
-
-              <DetailSection
-                title="처치 내용"
-                description="실제 처치 결과와 세부 내용을 본문 중심으로 확인합니다."
-              >
-                <Box
-                  sx={{
-                    display: "grid",
-                    gap: 1.5,
-                    gridTemplateColumns: "1fr",
-                  }}
-                >
-                  <DetailField
-                    label="처치내용"
-                    value={safeValue(item.detail)}
-                    fullWidth
                   />
                 </Box>
               </DetailSection>

@@ -149,8 +149,8 @@ const RecordForm: React.FC<Props> = ({
 
     if (painScore) {
       const pain = Number(painScore);
-      if (!Number.isInteger(pain) || pain < 1 || pain > 10) {
-        newErrors.painScore = "통증 점수는 1~10만 선택할 수 있습니다.";
+      if (!Number.isInteger(pain) || pain < 0 || pain > 10) {
+        newErrors.painScore = "통증 점수는 0~10만 선택할 수 있습니다.";
       }
     }
 
@@ -501,7 +501,7 @@ const RecordForm: React.FC<Props> = ({
                     helperText={errors.painScore}
                   >
                     <MenuItem value="">선택</MenuItem>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
+                    {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
                       <MenuItem key={score} value={String(score)}>
                         {score}
                       </MenuItem>

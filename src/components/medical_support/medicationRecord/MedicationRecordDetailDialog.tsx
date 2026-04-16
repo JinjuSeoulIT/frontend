@@ -345,11 +345,6 @@ export default function MedicationRecordDetailDialog({
                     label="투약기록 관리 ID"
                     value={safeValue(item.medicationRecordId)}
                   />
-                  <DetailField
-                    label="등록일시"
-                    value={formatDateTime(item.createdAt)}
-                    fullWidth
-                  />
                 </Box>
               </DetailSection>
             </>

@@ -312,11 +312,6 @@ export default function TreatmentResultDetailDialog({
                     label="처치결과 관리 ID"
                     value={safeValue(item.treatmentResultId)}
                   />
-                  <DetailField
-                    label="등록일시"
-                    value={formatDateTime(item.createdAt)}
-                    fullWidth
-                  />
                 </Box>
               </DetailSection>
 

@@ -430,9 +430,9 @@ export default function SpecimenList() {
                     <TableHead>
                       <TableRow>
                         <TableCell align="center">번호</TableCell>
+                        <TableCell align="center">검사코드</TableCell>
                         <TableCell align="center">환자명</TableCell>
                         <TableCell align="center">진료과</TableCell>
-                        <TableCell align="center">검사코드</TableCell>
                         <TableCell align="center">검체종류</TableCell>
                         <TableCell align="center">검체상태</TableCell>
                         <TableCell align="center">채취일시</TableCell>
@@ -477,13 +477,13 @@ export default function SpecimenList() {
                               {currentPage * rowsPerPage + index + 1}
                             </TableCell>
                             <TableCell align="center">
+                              {safeValue(item.detailCode)}
+                            </TableCell>
+                            <TableCell align="center">
                               {safeValue(item.patientName)}
                             </TableCell>
                             <TableCell align="center">
                               {safeValue(item.departmentName)}
-                            </TableCell>
-                            <TableCell align="center">
-                              {safeValue(item.detailCode)}
                             </TableCell>
                             <TableCell align="center">
                               {safeValue(item.specimenType)}

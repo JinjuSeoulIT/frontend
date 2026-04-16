@@ -421,10 +421,10 @@ export default function PhysiologicalList() {
                     <TableHead>
                       <TableRow>
                         <TableCell align="center">번호</TableCell>
-                        <TableCell align="center">생리기능검사 ID</TableCell>
+                        <TableCell align="center">검사코드</TableCell>
                         <TableCell align="center">환자명</TableCell>
                         <TableCell align="center">진료과</TableCell>
-                        <TableCell align="center">검사코드</TableCell>
+                        <TableCell align="center">생리기능검사 ID</TableCell>
                         <TableCell align="center">검사수행자명</TableCell>
                         <TableCell align="center">생성일시</TableCell>
                         <TableCell align="center">진행상태</TableCell>
@@ -467,9 +467,7 @@ export default function PhysiologicalList() {
                             <TableCell align="center">
                               {currentPage * rowsPerPage + index + 1}
                             </TableCell>
-                            <TableCell align="center">
-                              {safeValue(item.physiologicalExamId)}
-                            </TableCell>
+                            <TableCell align="center">{safeValue(item.detailCode)}</TableCell>
                             <TableCell align="center">
                               {safeValue(item.patientName)}
                             </TableCell>
@@ -477,7 +475,7 @@ export default function PhysiologicalList() {
                               {safeValue(item.departmentName)}
                             </TableCell>
                             <TableCell align="center">
-                              {safeValue(item.detailCode)}
+                              {safeValue(item.physiologicalExamId)}
                             </TableCell>
                             <TableCell align="center">
                               {safeValue(item.performerName)}

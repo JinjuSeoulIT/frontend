@@ -131,6 +131,8 @@ export function clinicalStatusView(status?: string | null) {
     case "DONE":
     case "COMPLETED":
       return { label: "완료", color: "default" as const };
+    case "AUTO_CLOSED":
+      return { label: "자동마감", color: "default" as const };
     case "CANCELLED":
       return { label: "취소", color: "error" as const };
     default:
@@ -140,6 +142,11 @@ export function clinicalStatusView(status?: string | null) {
 
 export function resolveClinicalStatus(v?: ClinicalRes | null) {
   return v?.status ?? v?.clinicalStatus ?? null;
+}
+
+export function isTerminalVisitClinicalStatus(s?: string | null) {
+  const u = (s ?? "").trim().toUpperCase();
+  return u === "COMPLETED" || u === "DONE" || u === "AUTO_CLOSED";
 }
 
 const ORDER_STATUS_LABELS: Record<string, string> = {

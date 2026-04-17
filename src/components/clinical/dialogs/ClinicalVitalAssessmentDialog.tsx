@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import {
+  Box,
   Button,
   Dialog,
   DialogActions,
@@ -12,7 +13,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { saveVitalsApi, saveAssessmentApi } from "@/lib/clinical/clinicalVitalsApi";
+import { saveVitalAssessApi } from "@/lib/clinical/clinicalVitalsApi";
 
 export type VitalsFormState = {
   temperature: string;
@@ -21,6 +22,11 @@ export type VitalsFormState = {
   bpDiastolic: string;
   respiratoryRate: string;
   measuredAt: string;
+  spo2: string;
+  painScore: string;
+  consciousnessLevel: string;
+  heightCm: string;
+  weightKg: string;
 };
 
 export type AssessmentFormState = {
@@ -42,6 +48,7 @@ type Props = {
   assessmentForm: AssessmentFormState;
   onAssessmentFormChange: (f: AssessmentFormState) => void;
   onSaved: () => void | Promise<void>;
+  onBackToVitalsOverview?: () => void;
 };
 
 export function ClinicalVitalAssessmentDialog({
@@ -53,6 +60,7 @@ export function ClinicalVitalAssessmentDialog({
   assessmentForm,
   onAssessmentFormChange,
   onSaved,
+  onBackToVitalsOverview,
 }: Props) {
   const [saving, setSaving] = React.useState(false);
 
@@ -124,6 +132,56 @@ export function ClinicalVitalAssessmentDialog({
               value={vitalsForm.measuredAt}
               onChange={(e) => onVitalsFormChange({ ...vitalsForm, measuredAt: e.target.value })}
               InputLabelProps={{ shrink: true }}
+            />
+          </Stack>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            <TextField
+              fullWidth
+              size="small"
+              type="number"
+              inputProps={{ step: 1, min: 0, max: 100 }}
+              label="산소포화도 SpO₂ (%)"
+              value={vitalsForm.spo2}
+              onChange={(e) => onVitalsFormChange({ ...vitalsForm, spo2: e.target.value })}
+            />
+            <TextField
+              fullWidth
+              size="small"
+              type="number"
+              inputProps={{ step: 1, min: 0, max: 10 }}
+              label="통증 점수 (0–10)"
+              value={vitalsForm.painScore}
+              onChange={(e) => onVitalsFormChange({ ...vitalsForm, painScore: e.target.value })}
+            />
+          </Stack>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            <TextField
+              fullWidth
+              size="small"
+              label="의식 수준"
+              placeholder="예: Alert, Verbal, Pain, Unresponsive"
+              value={vitalsForm.consciousnessLevel}
+              onChange={(e) =>
+                onVitalsFormChange({ ...vitalsForm, consciousnessLevel: e.target.value })
+              }
+            />
+            <TextField
+              fullWidth
+              size="small"
+              type="number"
+              inputProps={{ step: 0.1, min: 0 }}
+              label="신장 (cm)"
+              value={vitalsForm.heightCm}
+              onChange={(e) => onVitalsFormChange({ ...vitalsForm, heightCm: e.target.value })}
+            />
+            <TextField
+              fullWidth
+              size="small"
+              type="number"
+              inputProps={{ step: 0.1, min: 0 }}
+              label="체중 (kg)"
+              value={vitalsForm.weightKg}
+              onChange={(e) => onVitalsFormChange({ ...vitalsForm, weightKg: e.target.value })}
             />
           </Stack>
         </Stack>
@@ -215,29 +273,53 @@ export function ClinicalVitalAssessmentDialog({
           </Stack>
         </Stack>
       </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} disabled={saving}>
-          취소
-        </Button>
-        <Button
-          variant="contained"
-          sx={{ bgcolor: "var(--brand)" }}
-          disabled={visitId == null || saving}
-          onClick={async () => {
+      <DialogActions
+        sx={{
+          px: 3,
+          py: 2,
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 1,
+        }}
+      >
+        <Box>
+          {onBackToVitalsOverview ? (
+            <Button variant="outlined" disabled={saving} onClick={() => onBackToVitalsOverview()}>
+              이전
+            </Button>
+          ) : null}
+        </Box>
+        <Stack direction="row" spacing={1}>
+          <Button onClick={onClose} disabled={saving}>
+            취소
+          </Button>
+          <Button
+            variant="contained"
+            sx={{ bgcolor: "var(--brand)" }}
+            disabled={visitId == null || saving}
+            onClick={async () => {
             if (visitId == null) return;
             setSaving(true);
             try {
-              await saveVitalsApi(visitId, {
+              const recordedAt = vitalsForm.measuredAt
+                ? new Date(vitalsForm.measuredAt).toISOString()
+                : new Date().toISOString();
+              await saveVitalAssessApi(visitId, {
                 temperature: vitalsForm.temperature ? Number(vitalsForm.temperature) : null,
                 pulse: vitalsForm.pulse ? Number(vitalsForm.pulse) : null,
-                bpSystolic: vitalsForm.bpSystolic ? Number(vitalsForm.bpSystolic) : null,
-                bpDiastolic: vitalsForm.bpDiastolic ? Number(vitalsForm.bpDiastolic) : null,
-                respiratoryRate: vitalsForm.respiratoryRate
+                systolicBp: vitalsForm.bpSystolic ? Number(vitalsForm.bpSystolic) : null,
+                diastolicBp: vitalsForm.bpDiastolic ? Number(vitalsForm.bpDiastolic) : null,
+                respiration: vitalsForm.respiratoryRate
                   ? Number(vitalsForm.respiratoryRate)
                   : null,
-                measuredAt: vitalsForm.measuredAt || new Date().toISOString(),
-              });
-              await saveAssessmentApi(visitId, {
+                spo2: vitalsForm.spo2.trim() ? Number(vitalsForm.spo2) : null,
+                painScore: vitalsForm.painScore.trim() ? Number(vitalsForm.painScore) : null,
+                consciousnessLevel: vitalsForm.consciousnessLevel.trim() || null,
+                heightCm: vitalsForm.heightCm.trim() || null,
+                weightKg: vitalsForm.weightKg.trim() || null,
+                recordedAt,
                 chiefComplaint: assessmentForm.chiefComplaint || null,
                 visitReason: assessmentForm.visitReason || null,
                 historyPresentIllness: assessmentForm.historyPresentIllness || null,
@@ -245,7 +327,6 @@ export function ClinicalVitalAssessmentDialog({
                 familyHistory: assessmentForm.familyHistory || null,
                 allergy: assessmentForm.allergy || null,
                 currentMedication: assessmentForm.currentMedication || null,
-                assessedAt: new Date().toISOString(),
               });
               await onSaved();
               onClose();
@@ -258,6 +339,7 @@ export function ClinicalVitalAssessmentDialog({
         >
           {saving ? "저장 중…" : "활력·문진 저장"}
         </Button>
+        </Stack>
       </DialogActions>
     </Dialog>
   );

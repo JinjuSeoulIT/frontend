@@ -1,7 +1,6 @@
 import type { RecordFormType } from "@/features/medical_support/record/recordTypes";
 import {
-  fetchAssessmentApi,
-  fetchVitalsApi,
+  fetchVitalsAndAssessmentFromClinical,
   type AssessmentRes,
   type VitalSignsRes,
 } from "@/lib/clinical/clinicalVitalsApi";
@@ -31,6 +30,71 @@ function parseEnvelopeArray(body: unknown): RecordFormType[] | null {
   return Array.isArray(raw) ? (raw as RecordFormType[]) : null;
 }
 
+function strTrim(v: unknown): string {
+  if (v == null || v === "") return "";
+  return String(v).trim();
+}
+
+function firstNonEmpty(...vals: unknown[]): string {
+  for (const v of vals) {
+    const s = strTrim(v);
+    if (s) return s;
+  }
+  return "";
+}
+
+function normalizeSupportApiRecord(raw: unknown): RecordFormType {
+  if (!raw || typeof raw !== "object") return raw as RecordFormType;
+  const r = raw as Record<string, unknown>;
+  const b = raw as RecordFormType;
+  return {
+    ...b,
+    recordedAt: firstNonEmpty(b.recordedAt, r.recordedAt, r.RECORDED_AT),
+    createdAt: firstNonEmpty(b.createdAt, r.createdAt, r.CREATED_AT),
+    updatedAt: firstNonEmpty(b.updatedAt, r.updatedAt, r.UPDATED_AT),
+    painScore: firstNonEmpty(b.painScore, r.painScore, r.PAIN_SCORE, r.pain_score),
+    pastMedicalHistory: firstNonEmpty(
+      b.pastMedicalHistory,
+      r.pastMedicalHistory,
+      r.PAST_MEDICAL_HISTORY,
+      r.past_medical_history
+    ),
+  };
+}
+
+function normalizeSupportRecordList(records: RecordFormType[] | null): RecordFormType[] | null {
+  if (!records) return null;
+  return records.map((row) => normalizeSupportApiRecord(row));
+}
+
+function parseEnvelopeSingle(body: unknown): RecordFormType | null {
+  if (!body || typeof body !== "object") return null;
+  const raw =
+    (body as { result?: unknown; data?: unknown }).result ?? (body as { data?: unknown }).data;
+  if (raw == null || typeof raw !== "object") return null;
+  return normalizeSupportApiRecord(raw);
+}
+
+async function fetchSupportRecordDetailById(recordId: string): Promise<RecordFormType | null> {
+  const id = recordId.trim();
+  if (!id) return null;
+  try {
+    const res = await fetch(
+      `${MEDICAL_SUPPORT_RECORD_BASE}/api/record/${encodeURIComponent(id)}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return null;
+    const body: unknown = await res.json();
+    return parseEnvelopeSingle(body);
+  } catch {
+    return null;
+  }
+}
+
+function supportRecordInstant(record: RecordFormType): string {
+  return firstNonEmpty(record.recordedAt, record.createdAt, record.updatedAt);
+}
+
 async function fetchSupportRecordSearch(receptionId: number): Promise<RecordFormType[] | null> {
   try {
     const u = new URL(`${MEDICAL_SUPPORT_RECORD_BASE}/api/record/search`);
@@ -39,7 +103,7 @@ async function fetchSupportRecordSearch(receptionId: number): Promise<RecordForm
     const res = await fetch(u.toString(), { cache: "no-store" });
     if (!res.ok) return null;
     const body: unknown = await res.json();
-    return parseEnvelopeArray(body);
+    return normalizeSupportRecordList(parseEnvelopeArray(body));
   } catch {
     return null;
   }
@@ -50,7 +114,7 @@ async function fetchSupportRecordList(): Promise<RecordFormType[] | null> {
     const res = await fetch(`${MEDICAL_SUPPORT_RECORD_BASE}/api/record`, { cache: "no-store" });
     if (!res.ok) return null;
     const body: unknown = await res.json();
-    return parseEnvelopeArray(body);
+    return normalizeSupportRecordList(parseEnvelopeArray(body));
   } catch {
     return null;
   }
@@ -80,8 +144,8 @@ function pickLatestSupportRecord(
   });
   if (filtered.length === 0) return null;
   filtered.sort((a, b) => {
-    const ta = new Date(a.recordedAt || a.updatedAt || 0).getTime();
-    const tb = new Date(b.recordedAt || b.updatedAt || 0).getTime();
+    const ta = Date.parse(supportRecordInstant(a)) || 0;
+    const tb = Date.parse(supportRecordInstant(b)) || 0;
     return tb - ta;
   });
   return filtered[0] ?? null;
@@ -99,7 +163,13 @@ async function fetchLatestSupportRecord(
     pool = await fetchSupportRecordList();
   }
   if (!pool || pool.length === 0) return null;
-  return pickLatestSupportRecord(pool, clinicalVisitId, receptionId);
+  const picked = pickLatestSupportRecord(pool, clinicalVisitId, receptionId);
+  if (!picked) return null;
+  const rid = String(picked.recordId ?? "").trim();
+  if (!rid) return picked;
+  const detail = await fetchSupportRecordDetailById(rid);
+  if (!detail) return picked;
+  return normalizeSupportApiRecord({ ...picked, ...detail });
 }
 
 function parseNum(v: string | number | undefined | null): number | null {
@@ -147,7 +217,8 @@ function supportRecordToVitals(
 
   if (!hasCore && !hasExt) return null;
 
-  const measuredAt = record.recordedAt?.trim() ? record.recordedAt : null;
+  const measuredRaw = supportRecordInstant(record);
+  const measuredAt = measuredRaw || null;
   return {
     vitalSignsId: 0,
     clinicalId: clinicalVisitId,
@@ -190,18 +261,19 @@ function supportRecordToAssessment(
   push("신장(cm)", record.heightCm);
   push("체중(kg)", record.weightKg);
   const block = chunks.join("\n");
-  if (!block) return null;
+  const pastHistory = nonEmpty(record.pastMedicalHistory);
+  if (!block && !pastHistory) return null;
   return {
     assessmentId: 0,
     clinicalId: clinicalVisitId,
     chiefComplaint: null,
     visitReason: null,
-    historyPresentIllness: block,
-    pastHistory: null,
+    historyPresentIllness: block || null,
+    pastHistory,
     familyHistory: null,
     allergy: null,
     currentMedication: null,
-    assessedAt: record.recordedAt?.trim() ? record.recordedAt : null,
+    assessedAt: supportRecordInstant(record) || null,
     createdAt: null,
     updatedAt: null,
   };
@@ -274,11 +346,12 @@ export async function fetchVitalsAndAssessmentWithMedicalSupport(
   clinicalVisitId: number,
   receptionId: number | null
 ): Promise<{ vitals: VitalSignsRes | null; assessment: AssessmentRes | null }> {
-  const [clinicalV, clinicalA, supportRec] = await Promise.all([
-    fetchVitalsApi(clinicalVisitId),
-    fetchAssessmentApi(clinicalVisitId),
+  const [clinicalPair, supportRec] = await Promise.all([
+    fetchVitalsAndAssessmentFromClinical(clinicalVisitId),
     fetchLatestSupportRecord(clinicalVisitId, receptionId),
   ]);
+  const clinicalV = clinicalPair.vitals;
+  const clinicalA = clinicalPair.assessment;
   if (!supportRec) {
     return { vitals: clinicalV, assessment: clinicalA };
   }

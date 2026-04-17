@@ -399,6 +399,7 @@ type Props = {
   onDiagnosesReload: () => void;
   onPrescriptionsReload: () => void;
   onVisitCompleted: () => Promise<void>;
+  reopenVitalsSoapTick?: number;
 };
 
 function ModalTitleBar({
@@ -425,11 +426,20 @@ function ModalTitleBar({
 
 export function ClinicalChartCenter(p: Props) {
   const [vitalsOpen, setVitalsOpen] = React.useState(false);
+  const reopenVitalsSoapPrevTickRef = React.useRef(0);
   const [pastHistoryOpen, setPastHistoryOpen] = React.useState(false);
   const [pastVisitsOpen, setPastVisitsOpen] = React.useState(false);
   const [testResultsOpen, setTestResultsOpen] = React.useState(false);
   const [vitalHistoryPoints, setVitalHistoryPoints] = React.useState<{ v: VitalSignsRes }[]>([]);
   const [vitalHistoryLoading, setVitalHistoryLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    const tick = p.reopenVitalsSoapTick ?? 0;
+    if (tick > reopenVitalsSoapPrevTickRef.current) {
+      reopenVitalsSoapPrevTickRef.current = tick;
+      setVitalsOpen(true);
+    }
+  }, [p.reopenVitalsSoapTick]);
 
   const pat = p.selectedPatient;
   const displayName = pat?.name ?? "환자 미선택";
@@ -818,7 +828,6 @@ export function ClinicalChartCenter(p: Props) {
             assessmentLoading={p.assessmentLoading}
             pastHistoryList={p.pastHistoryList}
             pastHistoryLoading={p.pastHistoryLoading}
-            onAddPhx={p.onAddPhx}
             onEditPhx={p.onEditPhx}
             onDeletePhx={p.onDeletePhx}
           />
@@ -831,9 +840,9 @@ export function ClinicalChartCenter(p: Props) {
             variant="contained"
             disabled={p.selectedPatient == null || p.visitId == null || p.pastHistoryLoading}
             onClick={p.onAddPhx}
-            sx={{ textTransform: "none", fontWeight: 700 }}
+            sx={{ textTransform: "none", fontWeight: 700, bgcolor: "var(--brand)" }}
           >
-            항목 추가
+            구조화 항목 추가
           </Button>
         </DialogActions>
       </Dialog>

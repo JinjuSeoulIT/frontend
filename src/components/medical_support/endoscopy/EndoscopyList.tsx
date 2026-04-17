@@ -3,7 +3,12 @@
 import * as React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
-import MainLayout from "@/components/layout/MainLayout";
+import ListSearchBar, {
+  EXAM_PROGRESS_STATUS_FILTER_OPTIONS,
+  YES_NO_FILTER_OPTIONS,
+  useListSearchCriteria,
+  type ListSearchFieldConfig,
+} from "@/components/medical_support/common/ListSearchBar";
 import {
   formatProgressStatus,
   getProgressStatusColor,
@@ -35,7 +40,12 @@ import {
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { EndoscopyActions } from "@/features/medical_support/endoscopy/endoscopySlice";
+import type { EndoscopySearchParams } from "@/features/medical_support/endoscopy/endoscopyType";
+import { toDateOnlySearchParam } from "@/lib/medical_support/searchParams";
 import type { RootState, AppDispatch } from "@/store/store";
+
+const getTrimmedValue = (value: unknown) =>
+  typeof value === "string" ? value.trim() : "";
 
 export default function EndoscopyList() {
   const dispatch = useDispatch<AppDispatch>();
@@ -44,10 +54,31 @@ export default function EndoscopyList() {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [includeInactive, setIncludeInactive] = React.useState(false);
+  const initialSearchCriteria = React.useMemo(
+    () => ({
+      patientName: "",
+      departmentName: "",
+      sedationYn: "",
+      progressStatus: "",
+      startDate: null,
+      endDate: null,
+    }),
+    []
+  );
+  const [appliedSearchParams, setAppliedSearchParams] = React.useState<
+    EndoscopySearchParams | undefined
+  >(undefined);
 
   const { list: items, loading, error } = useSelector(
     (state: RootState) => state.endoscopies
   );
+  const {
+    criteria,
+    selectedFieldKey,
+    setCriterion,
+    selectField,
+    resetCriteria,
+  } = useListSearchCriteria("patientName", initialSearchCriteria);
 
   React.useEffect(() => {
     dispatch(EndoscopyActions.fetchEndoscopiesRequest());
@@ -134,9 +165,113 @@ export default function EndoscopyList() {
     setPage(0);
   };
 
+  const searchFields = React.useMemo<ListSearchFieldConfig[]>(
+    () => [
+      {
+        key: "patientName",
+        label: "환자명",
+        type: "text",
+      },
+      {
+        key: "departmentName",
+        label: "진료과",
+        type: "select",
+        optionsSource: "departments",
+      },
+      {
+        key: "sedationYn",
+        label: "진정여부",
+        type: "select",
+        options: YES_NO_FILTER_OPTIONS,
+      },
+      {
+        key: "progressStatus",
+        label: "진행상태",
+        type: "select",
+        options: EXAM_PROGRESS_STATUS_FILTER_OPTIONS,
+      },
+      {
+        key: "procedureAtRange",
+        label: "시술일시",
+        type: "dateTimeRange",
+        startKey: "startDate",
+        endKey: "endDate",
+        startLabel: "시작일",
+        endLabel: "종료일",
+      },
+    ],
+    []
+  );
+
+  const handleRefresh = () => {
+    dispatch(EndoscopyActions.fetchEndoscopiesRequest(appliedSearchParams));
+  };
+
+  const buildSearchParams = React.useCallback((): EndoscopySearchParams | undefined => {
+    const nextSearchParams: EndoscopySearchParams = {};
+
+    switch (selectedFieldKey) {
+      case "patientName": {
+        const patientName = getTrimmedValue(criteria.patientName);
+        if (patientName) {
+          nextSearchParams.patientName = patientName;
+        }
+        break;
+      }
+      case "departmentName": {
+        const departmentName = getTrimmedValue(criteria.departmentName);
+        if (departmentName) {
+          nextSearchParams.departmentName = departmentName;
+        }
+        break;
+      }
+      case "sedationYn": {
+        const sedationYn = getTrimmedValue(criteria.sedationYn);
+        if (sedationYn) {
+          nextSearchParams.sedationYn = sedationYn;
+        }
+        break;
+      }
+      case "progressStatus": {
+        const progressStatus = getTrimmedValue(criteria.progressStatus);
+        if (progressStatus) {
+          nextSearchParams.progressStatus = progressStatus;
+        }
+        break;
+      }
+      case "procedureAtRange": {
+        const startDate = toDateOnlySearchParam(criteria.startDate);
+        const endDate = toDateOnlySearchParam(criteria.endDate);
+        if (startDate && endDate) {
+          nextSearchParams.startDate = startDate;
+          nextSearchParams.endDate = endDate;
+        }
+        break;
+      }
+      default:
+        break;
+    }
+
+    return Object.keys(nextSearchParams).length > 0 ? nextSearchParams : undefined;
+  }, [criteria, selectedFieldKey]);
+
+  const handleSearch = () => {
+    const nextSearchParams = buildSearchParams();
+    setAppliedSearchParams(nextSearchParams);
+    setPage(0);
+    dispatch(EndoscopyActions.fetchEndoscopiesRequest(nextSearchParams));
+  };
+
+  const handleResetSearch = () => {
+    resetCriteria();
+    setAppliedSearchParams(undefined);
+    setIncludeInactive(false);
+    setPage(0);
+    dispatch(EndoscopyActions.fetchEndoscopiesRequest());
+  };
+
   return (
-    <MainLayout showSidebar={false}>
-      <Stack spacing={2}>
+    <Stack spacing={2}>
         <Card
           sx={{
             borderRadius: 3,
@@ -185,7 +320,7 @@ export default function EndoscopyList() {
                 <Button
                   variant="outlined"
                   startIcon={<RefreshIcon />}
-                  onClick={() => dispatch(EndoscopyActions.fetchEndoscopiesRequest())}
+                  onClick={handleRefresh}
                   disabled={loading}
                 >
                   새로고침
@@ -222,6 +357,17 @@ export default function EndoscopyList() {
 
         <Card sx={{ borderRadius: 3, border: "1px solid var(--line)" }}>
           <CardContent sx={{ p: 2.5 }}>
+            <ListSearchBar
+              fields={searchFields}
+              selectedFieldKey={selectedFieldKey}
+              criteria={criteria}
+              onSelectedFieldKeyChange={selectField}
+              onCriteriaChange={setCriterion}
+              onSearch={handleSearch}
+              onReset={handleResetSearch}
+              loading={loading}
+            />
+
             <Stack
               direction="row"
               spacing={1}
@@ -274,11 +420,11 @@ export default function EndoscopyList() {
                     <TableHead>
                       <TableRow>
                         <TableCell align="center">번호</TableCell>
+                        <TableCell align="center">검사코드</TableCell>
                         <TableCell align="center">환자명</TableCell>
                         <TableCell align="center">진료과</TableCell>
-                        <TableCell align="center">검사명</TableCell>
                         <TableCell align="center">시술실</TableCell>
-                        <TableCell align="center">진정 여부</TableCell>
+                        <TableCell align="center">진정여부</TableCell>
                         <TableCell align="center">시술일시</TableCell>
                         <TableCell align="center">진행상태</TableCell>
                       </TableRow>
@@ -321,13 +467,13 @@ export default function EndoscopyList() {
                               {currentPage * rowsPerPage + index + 1}
                             </TableCell>
                             <TableCell align="center">
+                              {safeValue(item.detailCode)}
+                            </TableCell>
+                            <TableCell align="center">
                               {safeValue(item.patientName)}
                             </TableCell>
                             <TableCell align="center">
                               {safeValue(item.departmentName)}
-                            </TableCell>
-                            <TableCell align="center">
-                              {safeValue(item.detailCode)}
                             </TableCell>
                             <TableCell align="center">
                               {safeValue(item.procedureRoom)}
@@ -389,6 +535,5 @@ export default function EndoscopyList() {
           </CardContent>
         </Card>
       </Stack>
-    </MainLayout>
   );
 }

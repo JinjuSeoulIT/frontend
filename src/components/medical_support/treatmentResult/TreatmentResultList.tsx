@@ -24,7 +24,6 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import MainLayout from "@/components/layout/MainLayout";
 import {
   formatDateTime,
   safeValue,
@@ -325,8 +324,8 @@ export function TreatmentResultListSection() {
                       <TableCell align="center">진료과</TableCell>
                       <TableCell align="center">간호사명</TableCell>
                       <TableCell align="center">처치일시</TableCell>
+                      <TableCell align="center">처치내용</TableCell>
                       <TableCell align="center">진행상태</TableCell>
-                      <TableCell align="left">처치내용</TableCell>
                     </TableRow>
                   </TableHead>
 
@@ -377,6 +376,17 @@ export function TreatmentResultListSection() {
                           <TableCell align="center">
                             {formatDateTime(row.treatmentAt)}
                           </TableCell>
+                          <TableCell
+                            align="center"
+                            sx={{
+                              maxWidth: 280,
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {summarizeDetail(row.detail)}
+                          </TableCell>
                           <TableCell align="center">
                             <Stack
                               direction="row"
@@ -407,17 +417,6 @@ export function TreatmentResultListSection() {
                                 />
                               ) : null}
                             </Stack>
-                          </TableCell>
-                          <TableCell
-                            align="left"
-                            sx={{
-                              maxWidth: 280,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {summarizeDetail(row.detail)}
                           </TableCell>
                         </TableRow>
                       );
@@ -455,10 +454,8 @@ export function TreatmentResultListSection() {
 
 export default function TreatmentResultList() {
   return (
-    <MainLayout>
-      <Box sx={{ px: 3, py: 3, maxWidth: 1400, mx: "auto" }}>
-        <TreatmentResultListSection />
-      </Box>
-    </MainLayout>
+    <Box sx={{ px: 3, py: 3, maxWidth: 1400, mx: "auto" }}>
+      <TreatmentResultListSection />
+    </Box>
   );
 }

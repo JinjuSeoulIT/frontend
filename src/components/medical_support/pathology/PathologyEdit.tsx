@@ -345,7 +345,7 @@ export default function PathologyEdit() {
               조직 채취 정보
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              조직 상태, 부위, 종류와 채취 관련 정보를 등록합니다.
+              조직상태, 부위, 종류와 채취 관련 정보를 등록합니다.
             </Typography>
           </Box>
 
@@ -361,7 +361,7 @@ export default function PathologyEdit() {
               }}
             >
               <TextField
-                label="조직 상태"
+                label="조직상태"
                 size="small"
                 value={form.tissueStatus}
                 onChange={(e) =>
@@ -413,7 +413,7 @@ export default function PathologyEdit() {
               />
 
               <TextField
-                label="채취 일시"
+                label="채취일시"
                 type="datetime-local"
                 size="small"
                 value={form.collectedAt}

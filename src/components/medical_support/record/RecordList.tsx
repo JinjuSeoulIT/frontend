@@ -32,10 +32,15 @@ import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { RecActions } from "@/features/medical_support/record/recordSlice";
 import type { RecordFormType } from "@/features/medical_support/record/recordTypes";
-import { receptionActions } from "@/features/Reception/ReceptionSlice";
 import type { Reception } from "@/features/Reception/ReceptionTypes";
+import {
+  fetchReceptionDetailApi,
+  fetchReceptionQueueApi,
+} from "@/lib/medical_support/receptionApi";
 import type { AppDispatch, RootState } from "@/store/store";
 import RecordSearch from "./RecordSearch";
+
+const RECEPTION_DETAIL_CACHE_TTL_MS = 60 * 1000;
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return "-";
@@ -104,18 +109,12 @@ const getReceptionStatusChipColor = (status?: string | null) => {
   }
 };
 
-const isToday = (value?: string | null) => {
-  if (!value) return false;
+const getErrorMessage = (error: unknown, fallbackMessage: string) => {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return false;
-
-  const today = new Date();
-  return (
-    date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate()
-  );
+  return fallbackMessage;
 };
 
 export default function RecordList() {
@@ -125,30 +124,67 @@ export default function RecordList() {
   const { list, loading, error, statusToggleSuccess } = useSelector(
     (state: RootState) => state.records
   );
-  const {
-    list: receptions,
-    loading: receptionsLoading,
-    error: receptionsError,
-  } = useSelector((state: RootState) => state.receptions);
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [includeInactive, setIncludeInactive] = useState(false);
+  const [receptions, setReceptions] = useState<Reception[]>([]);
+  const [receptionsLoading, setReceptionsLoading] = useState(false);
+  const [receptionsError, setReceptionsError] = useState<string | null>(null);
   const [selectedReceptionId, setSelectedReceptionId] = useState<number | null>(
     null
   );
   const [isReceptionDialogOpen, setIsReceptionDialogOpen] = useState(false);
   const [selectedReceptionDetail, setSelectedReceptionDetail] =
     useState<Reception | null>(null);
+  const [receptionDetailLoading, setReceptionDetailLoading] = useState(false);
+  const [receptionDetailError, setReceptionDetailError] = useState<string | null>(
+    null
+  );
+  const [inFlightReceptionId, setInFlightReceptionId] = useState<number | null>(
+    null
+  );
   const [pendingStatusRecordId, setPendingStatusRecordId] = useState<
     string | null
   >(null);
   const pendingStatusActionRef = useRef<"ACTIVE" | "INACTIVE" | null>(null);
+  const receptionDetailCacheRef = useRef<
+    Map<number, { data: Reception; fetchedAt: number }>
+  >(new Map());
+  const selectedReceptionIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     dispatch(RecActions.fetchRecordsRequest());
-    dispatch(receptionActions.fetchReceptionsRequest());
   }, [dispatch]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setReceptionsLoading(true);
+    setReceptionsError(null);
+
+    void fetchReceptionQueueApi()
+      .then((queue) => {
+        if (cancelled) return;
+        setReceptions(queue);
+      })
+      .catch((requestError: unknown) => {
+        if (cancelled) return;
+        setReceptions([]);
+        setReceptionsError(
+          getErrorMessage(requestError, "접수 목록 조회에 실패했습니다.")
+        );
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setReceptionsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!statusToggleSuccess) return;
@@ -199,21 +235,7 @@ export default function RecordList() {
     [currentPage, rowsPerPage, visibleRecords]
   );
 
-  const receptionList = useMemo(
-    () =>
-      receptions
-        .filter((item) => item.visitType === "OUTPATIENT")
-        .filter((item) => isToday(item.createdAt) || isToday(item.arrivedAt))
-        .filter((item) =>
-          ["WAITING", "CALLED", "IN_PROGRESS"].includes(item.status)
-        )
-        .sort((a, b) => {
-          const left = new Date(a.arrivedAt ?? a.createdAt ?? 0).getTime();
-          const right = new Date(b.arrivedAt ?? b.createdAt ?? 0).getTime();
-          return right - left;
-        }),
-    [receptions]
-  );
+  const receptionList = receptions;
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
@@ -255,24 +277,72 @@ export default function RecordList() {
     );
   };
 
-  const handleReceptionClick = async (reception: Reception) => {
-    setSelectedReceptionId(reception.receptionId);
+  const loadReceptionDetail = async (
+    receptionId: number,
+    options?: { forceRefresh?: boolean }
+  ) => {
+    const forceRefresh = options?.forceRefresh ?? false;
+
+    if (inFlightReceptionId === receptionId) {
+      return;
+    }
+
+    const cached = receptionDetailCacheRef.current.get(receptionId);
+    const isCacheValid =
+      !forceRefresh &&
+      cached !== undefined &&
+      Date.now() - cached.fetchedAt < RECEPTION_DETAIL_CACHE_TTL_MS;
+
+    if (isCacheValid) {
+      setSelectedReceptionDetail(cached.data);
+      setReceptionDetailError(null);
+      setReceptionDetailLoading(false);
+      return;
+    }
+
+    setReceptionDetailLoading(true);
+    setReceptionDetailError(null);
+    setSelectedReceptionDetail(null);
+    setInFlightReceptionId(receptionId);
 
     try {
-      const res = await fetch(
-        `http://192.168.1.55:8283/api/receptions/${reception.receptionId}`
-      );
-      const data = await res.json();
+      const detail = await fetchReceptionDetailApi(receptionId);
 
-      if (!data.success) {
-        throw new Error(data.message || "접수 상세 조회 실패");
+      if (!detail) {
+        throw new Error("Reception detail fetch failed");
       }
 
-      setSelectedReceptionDetail(data.result);
-      setIsReceptionDialogOpen(true);
-    } catch {
-      alert("접수 상세 정보를 불러오지 못했습니다.");
+      receptionDetailCacheRef.current.set(receptionId, {
+        data: detail,
+        fetchedAt: Date.now(),
+      });
+
+      if (selectedReceptionIdRef.current === receptionId) {
+        setSelectedReceptionDetail(detail);
+      }
+    } catch (requestError: unknown) {
+      if (selectedReceptionIdRef.current === receptionId) {
+        setSelectedReceptionDetail(null);
+        setReceptionDetailError(
+          getErrorMessage(requestError, "접수 상세 정보를 불러오지 못했습니다.")
+        );
+      }
+    } finally {
+      if (selectedReceptionIdRef.current === receptionId) {
+        setReceptionDetailLoading(false);
+      }
+      setInFlightReceptionId((current) =>
+        current === receptionId ? null : current
+      );
     }
+  };
+
+  const handleReceptionClick = (reception: Reception) => {
+    const receptionId = reception.receptionId;
+    selectedReceptionIdRef.current = receptionId;
+    setSelectedReceptionId(receptionId);
+    setIsReceptionDialogOpen(true);
+    void loadReceptionDetail(receptionId);
   };
 
   const handleCreateWithReception = () => {
@@ -396,7 +466,25 @@ export default function RecordList() {
                   startIcon={<RefreshIcon />}
                   onClick={() => {
                     dispatch(RecActions.fetchRecordsRequest());
-                    dispatch(receptionActions.fetchReceptionsRequest());
+                    setReceptionsLoading(true);
+                    setReceptionsError(null);
+
+                    void fetchReceptionQueueApi()
+                      .then((queue) => {
+                        setReceptions(queue);
+                      })
+                      .catch((requestError: unknown) => {
+                        setReceptions([]);
+                        setReceptionsError(
+                          getErrorMessage(
+                            requestError,
+                            "접수 목록 조회에 실패했습니다."
+                          )
+                        );
+                      })
+                      .finally(() => {
+                        setReceptionsLoading(false);
+                      });
                   }}
                   disabled={loading || receptionsLoading}
                 >
@@ -712,15 +800,27 @@ export default function RecordList() {
 
       <Dialog
         open={isReceptionDialogOpen}
-        onClose={() => setIsReceptionDialogOpen(false)}
+        onClose={() => {
+          setIsReceptionDialogOpen(false);
+          setReceptionDetailError(null);
+          setReceptionDetailLoading(false);
+        }}
         fullWidth
         maxWidth="sm"
       >
         <DialogTitle>접수 환자 상세</DialogTitle>
 
         <DialogContent dividers>
-          {!selectedReceptionDetail ? (
-            <Typography>상세 정보를 불러오는 중입니다.</Typography>
+          {receptionDetailLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : receptionDetailError ? (
+            <Alert severity="error" sx={{ mb: 1 }}>
+              {receptionDetailError}
+            </Alert>
+          ) : !selectedReceptionDetail ? (
+            <Typography>표시할 접수 상세 정보가 없습니다.</Typography>
           ) : (
             <Box sx={{ display: "grid", gap: 2 }}>
               <Box>
@@ -772,11 +872,33 @@ export default function RecordList() {
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={() => setIsReceptionDialogOpen(false)}>닫기</Button>
+          {receptionDetailError && selectedReceptionId ? (
+            <Button
+              onClick={() =>
+                void loadReceptionDetail(selectedReceptionId, { forceRefresh: true })
+              }
+              disabled={Boolean(inFlightReceptionId)}
+            >
+              다시 시도
+            </Button>
+          ) : null}
+          <Button
+            onClick={() => {
+              setIsReceptionDialogOpen(false);
+              setReceptionDetailError(null);
+              setReceptionDetailLoading(false);
+            }}
+          >
+            닫기
+          </Button>
           <Button
             variant="contained"
             onClick={handleCreateWithReception}
-            disabled={!selectedReceptionDetail}
+            disabled={
+              !selectedReceptionDetail ||
+              receptionDetailLoading ||
+              Boolean(receptionDetailError)
+            }
           >
             간호 기록 등록
           </Button>

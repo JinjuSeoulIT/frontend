@@ -1,13 +1,12 @@
 "use client";
 
-import MainLayout from "@/components/layout/MainLayout";
 import { MedicationRecordListSection } from "@/components/medical_support/medicationRecord/MedicationRecordList";
 import { TreatmentResultListSection } from "@/components/medical_support/treatmentResult/TreatmentResultList";
 import { Box, Typography } from "@mui/material";
 
 const MedicationTreatmentPage = () => {
   return (
-    <MainLayout showSidebar={false}>
+    <>
       <Typography variant="h5" fontWeight="bold" gutterBottom>
         처치 결과 및 투약 기록
       </Typography>
@@ -31,7 +30,7 @@ const MedicationTreatmentPage = () => {
           <MedicationRecordListSection />
         </Box>
       </Box>
-    </MainLayout>
+    </>
   );
 };
 

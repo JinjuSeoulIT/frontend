@@ -2,6 +2,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type {
   PathologyExam,
   PathologyExamCreatePayload,
+  PathologySearchParams,
   PathologyExamUpdatePayload,
 } from "@/features/medical_support/pathology/pathologyType";
 
@@ -27,10 +28,19 @@ const pathologySlice = createSlice({
   name: "pathologies",
   initialState,
   reducers: {
-    fetchPathologiesRequest: (state) => {
-      state.loading = true;
-      state.error = null;
-      state.createSuccess = false;
+    fetchPathologiesRequest: {
+      reducer: (
+        state,
+        action: PayloadAction<PathologySearchParams | undefined>
+      ) => {
+        void action;
+        state.loading = true;
+        state.error = null;
+        state.createSuccess = false;
+      },
+      prepare: (params?: PathologySearchParams) => ({
+        payload: params,
+      }),
     },
     fetchPathologiesSuccess: (state, action: PayloadAction<PathologyExam[]>) => {
       state.loading = false;

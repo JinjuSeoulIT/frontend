@@ -121,13 +121,13 @@ const getStatusSx = (status?: string | null) => {
 
 const TABLE_HEADERS = [
   "번호",
-  "환자명",
-  "진료과",
   "검사유형",
   "검사코드",
-  "진행상태",
-  "생성일시",
+  "환자명",
+  "진료과",
   "검사수행 ID",
+  "생성일시",
+  "진행상태",
 ];
 
 const INITIAL_SEARCH_CRITERIA: TestExecutionSearchCriteria = {
@@ -464,16 +464,22 @@ export default function TestExecutionList() {
                             {currentPage * rowsPerPage + index + 1}
                           </TableCell>
                           <TableCell align="center">
+                            {safeValue(item.executionType)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {safeValue(item.detailCode)}
+                          </TableCell>
+                          <TableCell align="center">
                             {safeValue(item.patientName)}
                           </TableCell>
                           <TableCell align="center">
                             {safeValue(item.departmentName)}
                           </TableCell>
                           <TableCell align="center">
-                            {safeValue(item.executionType)}
+                            {safeValue(item.testExecutionId)}
                           </TableCell>
                           <TableCell align="center">
-                            {safeValue(item.detailCode)}
+                            {formatDateTime(item.createdAt)}
                           </TableCell>
                           <TableCell align="center">
                             <Box
@@ -503,12 +509,6 @@ export default function TestExecutionList() {
                                 />
                               ) : null}
                             </Box>
-                          </TableCell>
-                          <TableCell align="center">
-                            {formatDateTime(item.createdAt)}
-                          </TableCell>
-                          <TableCell align="center">
-                            {safeValue(item.testExecutionId)}
                           </TableCell>
                         </TableRow>
                       );

@@ -1,17 +1,26 @@
 "use client";
 
 import * as React from "react";
-import { Box } from "@mui/material";
+import { Box, CircularProgress } from "@mui/material";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
-import { usePathname } from "next/navigation";
 import { getMeApi } from "@/lib/auth/authApi";
 import { clearSession, getAccessToken, getSessionUser, saveSessionUserOnly } from "@/lib/auth/session";
 
+type AuthStatus = "checking" | "ready" | "redirecting";
+
 const redirectToLogin = () => {
   if (typeof window === "undefined") return;
+  if (window.location.pathname.startsWith("/login")) return;
   const nextPath = `${window.location.pathname}${window.location.search}`;
   window.location.replace(`/login?next=${encodeURIComponent(nextPath)}`);
+};
+
+const getInitialAuthStatus = (): AuthStatus => {
+  if (typeof window === "undefined") return "checking";
+  const token = getAccessToken();
+  if (!token) return "checking";
+  return getSessionUser() ? "ready" : "checking";
 };
 
 export default function MainLayout({
@@ -21,27 +30,21 @@ export default function MainLayout({
   children: React.ReactNode;
   showSidebar?: boolean;
 }) {
-  const pathname = usePathname();
   const SIDEBAR_OPEN_W = 240;
   const SIDEBAR_COLLAPSED_W = 72;
   const NAV_H = { xs: 64, md: 76 };
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = React.useState(false);
-  const [authReady, setAuthReady] = React.useState(false);
+  const [authStatus, setAuthStatus] = React.useState<AuthStatus>(getInitialAuthStatus);
   const sidebarWidth = isSidebarCollapsed ? SIDEBAR_COLLAPSED_W : SIDEBAR_OPEN_W;
 
   React.useEffect(() => {
     let mounted = true;
 
     const bootstrap = async () => {
-      const currentPath = pathname || "/";
-      if (currentPath.startsWith("/login")) {
-        if (mounted) setAuthReady(true);
-        return;
-      }
-
       const token = getAccessToken();
       if (!token) {
+        if (mounted) setAuthStatus("redirecting");
         clearSession();
         redirectToLogin();
         return;
@@ -49,32 +52,30 @@ export default function MainLayout({
 
       const user = getSessionUser();
       if (user) {
-        if (mounted) setAuthReady(true);
+        if (mounted) setAuthStatus("ready");
         return;
       }
+
+      if (mounted) setAuthStatus("checking");
 
       try {
         const me = await getMeApi();
         if (!mounted) return;
         saveSessionUserOnly(me, { passwordChangeRequired: false });
-        setAuthReady(true);
+        setAuthStatus("ready");
       } catch {
+        if (mounted) setAuthStatus("redirecting");
         clearSession();
         redirectToLogin();
       }
     };
 
-    setAuthReady(false);
     void bootstrap();
 
     return () => {
       mounted = false;
     };
-  }, [pathname]);
-
-  if (!authReady) {
-    return null;
-  }
+  }, []);
 
   return (
     <Box
@@ -125,7 +126,21 @@ export default function MainLayout({
           transition: "margin-left 0.25s ease",
         }}
       >
-        <Box sx={{ width: "100%", maxWidth: "100%", mx: "auto" }}>{children}</Box>
+        <Box sx={{ width: "100%", maxWidth: "100%", mx: "auto" }}>
+          {authStatus === "ready" ? (
+            children
+          ) : (
+            <Box
+              sx={{
+                minHeight: "calc(100vh - 180px)",
+                display: "grid",
+                placeItems: "center",
+              }}
+            >
+              <CircularProgress size={28} />
+            </Box>
+          )}
+        </Box>
       </Box>
     </Box>
   );

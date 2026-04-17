@@ -78,6 +78,9 @@ const getRouteParam = (value: string | string[] | undefined) => {
 const normalizeStatus = (value?: string | null) =>
   value?.trim().toUpperCase() === "INACTIVE" ? "INACTIVE" : "ACTIVE";
 
+const normalizeProgressStatus = (value?: string | null) =>
+  value?.trim().toUpperCase() === "COMPLETED" ? "COMPLETED" : "IN_PROGRESS";
+
 const normalizeValue = (value?: string | null) =>
   value?.trim().toUpperCase() ?? "";
 
@@ -199,6 +202,14 @@ const formatStatus = (value?: string | null) => {
 const getStatusColor = (value?: string | null) =>
   normalizeValue(value) === "ACTIVE" ? "success" : "default";
 
+const formatProgressStatus = (value?: string | null) =>
+  normalizeProgressStatus(value) === "COMPLETED"
+    ? "결과작성완료"
+    : "결과작성중";
+
+const getProgressStatusColor = (value?: string | null) =>
+  normalizeProgressStatus(value) === "COMPLETED" ? "success" : "warning";
+
 const buildInitialValues = (
   detail: TestResult | null,
   detailFields: DetailFieldConfig[]
@@ -209,6 +220,7 @@ const buildInitialValues = (
 
   const values: Record<string, string> = {
     status: normalizeStatus(detail.status),
+    progressStatus: normalizeProgressStatus(detail.progressStatus),
     confirmedAt: toDateTimeInputValue(detail.resultAt),
     resultManagerId:
       detail.resultManagerId === null || detail.resultManagerId === undefined
@@ -356,6 +368,8 @@ export default function TestResultEdit() {
     [detail, detailFields]
   );
   const currentStatus = draftValues.status ?? initialValues.status ?? "ACTIVE";
+  const currentProgressStatus =
+    draftValues.progressStatus ?? initialValues.progressStatus ?? "IN_PROGRESS";
   const isImaging = resultType === "IMAGING";
   const isSpecimen = resultType === "SPECIMEN";
   const isPathology = resultType === "PATHOLOGY";
@@ -396,8 +410,8 @@ export default function TestResultEdit() {
     alert(message);
     pendingSuccessMessageRef.current = null;
     dispatch(TestResultActions.resetUpdateSuccess());
-    router.push(detailHref);
-  }, [detailHref, dispatch, router, updateSuccess]);
+    router.push(listHref);
+  }, [dispatch, listHref, router, updateSuccess]);
 
   useEffect(() => {
     if (!updateError) {
@@ -436,11 +450,7 @@ export default function TestResultEdit() {
     return changedDetail;
   };
 
-  const handleSubmit = () => {
-    if (!detail || updateLoading || !resultId || !resultType) {
-      return;
-    }
-
+  const buildUpdateForm = (forceComplete = false): TestResultUpdatePayload | null => {
     const changedDetail = buildChangedDetail();
     const form: TestResultUpdatePayload = {};
 
@@ -462,11 +472,28 @@ export default function TestResultEdit() {
       form.resultManagerName = getValue("resultManagerName");
     }
 
+    if (
+      forceComplete &&
+      normalizeProgressStatus(initialValues.progressStatus) !== "COMPLETED"
+    ) {
+      form.progressStatus = "COMPLETED";
+    }
+
     if (Object.keys(changedDetail).length > 0) {
       form.detail = changedDetail;
     }
 
-    if (Object.keys(form).length === 0) {
+    return Object.keys(form).length > 0 ? form : null;
+  };
+
+  const handleSubmit = () => {
+    if (!detail || updateLoading || !resultId || !resultType) {
+      return;
+    }
+
+    const form = buildUpdateForm();
+
+    if (!form) {
       alert("변경된 내용이 없습니다.");
       return;
     }
@@ -477,6 +504,25 @@ export default function TestResultEdit() {
         resultType,
         resultId,
         form,
+      })
+    );
+  };
+
+  const handleCompleteWriting = () => {
+    if (!detail || updateLoading || !resultId || !resultType) {
+      return;
+    }
+
+    if (normalizeProgressStatus(initialValues.progressStatus) === "COMPLETED") {
+      alert("이미 결과작성완료 상태입니다.");
+      return;
+    }
+
+    pendingSuccessMessageRef.current = "검사 결과가 작성완료 처리되었습니다.";
+    dispatch(
+      TestResultActions.updateTestResultProgressStatusRequest({
+        resultId,
+        progressStatus: "COMPLETED",
       })
     );
   };
@@ -742,6 +788,18 @@ export default function TestResultEdit() {
                       ))}
                     </Select>
                   </FormControl>
+                  <InfoField
+                    label="진행상태"
+                    value={
+                      <Chip
+                        label={formatProgressStatus(currentProgressStatus)}
+                        color={getProgressStatusColor(currentProgressStatus)}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
                 </FieldGrid>
               </SectionCard>
 
@@ -895,6 +953,18 @@ export default function TestResultEdit() {
                       ))}
                     </Select>
                   </FormControl>
+                  <InfoField
+                    label="진행상태"
+                    value={
+                      <Chip
+                        label={formatProgressStatus(currentProgressStatus)}
+                        color={getProgressStatusColor(currentProgressStatus)}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
                 </FieldGrid>
               </SectionCard>
 
@@ -1074,6 +1144,18 @@ export default function TestResultEdit() {
                       ))}
                     </Select>
                   </FormControl>
+                  <InfoField
+                    label="진행상태"
+                    value={
+                      <Chip
+                        label={formatProgressStatus(currentProgressStatus)}
+                        color={getProgressStatusColor(currentProgressStatus)}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
                 </FieldGrid>
               </SectionCard>
 
@@ -1245,6 +1327,18 @@ export default function TestResultEdit() {
                       ))}
                     </Select>
                   </FormControl>
+                  <InfoField
+                    label="진행상태"
+                    value={
+                      <Chip
+                        label={formatProgressStatus(currentProgressStatus)}
+                        color={getProgressStatusColor(currentProgressStatus)}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
                 </FieldGrid>
               </SectionCard>
 
@@ -1412,6 +1506,18 @@ export default function TestResultEdit() {
                       ))}
                     </Select>
                   </FormControl>
+                  <InfoField
+                    label="진행상태"
+                    value={
+                      <Chip
+                        label={formatProgressStatus(currentProgressStatus)}
+                        color={getProgressStatusColor(currentProgressStatus)}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
                 </FieldGrid>
               </SectionCard>
 
@@ -1541,6 +1647,18 @@ export default function TestResultEdit() {
                       ))}
                     </Select>
                   </FormControl>
+                  <InfoField
+                    label="진행상태"
+                    value={
+                      <Chip
+                        label={formatProgressStatus(currentProgressStatus)}
+                        color={getProgressStatusColor(currentProgressStatus)}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
                   <TextField
                     fullWidth
                     size="small"
@@ -1621,6 +1739,23 @@ export default function TestResultEdit() {
               </Box>
             </Stack>
           )}
+        </Box>
+        <Divider />
+        <Box sx={{ p: 2.5 }}>
+          <Stack direction="row" spacing={1} justifyContent="flex-end">
+            <Button
+              variant="contained"
+              color="success"
+              size="small"
+              onClick={handleCompleteWriting}
+              disabled={
+                updateLoading ||
+                normalizeProgressStatus(initialValues.progressStatus) === "COMPLETED"
+              }
+            >
+              작성완료
+            </Button>
+          </Stack>
         </Box>
       </Paper>
     </Box>

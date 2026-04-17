@@ -22,7 +22,6 @@ import type { AppDispatch } from "@/store/store";
 type ImagingEditForm = {
   imagingExamId: string;
   testExecutionId: string;
-  imagingType: string;
   detailCode: string;
   patientId: string;
   patientName: string;
@@ -50,7 +49,6 @@ const toImagingFormData = (
 ): ImagingEditForm => ({
   imagingExamId: item?.imagingExamId ?? "",
   testExecutionId: item?.testExecutionId ?? "",
-  imagingType: item?.imagingType ?? "",
   detailCode: item?.detailCode ?? "",
   patientId: item?.patientId ?? "",
   patientName: item?.patientName ?? "",
@@ -70,7 +68,10 @@ export default function ImagingEdit() {
 
   const imagingExamId = useMemo(() => {
     const value = params?.imagingExamId;
-    if (Array.isArray(value)) return value[0];
+    if (Array.isArray(value)) {
+      return value[0];
+    }
+
     return value ?? "";
   }, [params]);
 
@@ -82,13 +83,22 @@ export default function ImagingEdit() {
   );
 
   useEffect(() => {
-    if (!imagingExamId) return;
+    if (!imagingExamId) {
+      return;
+    }
+
     dispatch(ImagingActions.fetchImagingRequest(imagingExamId));
   }, [dispatch, imagingExamId]);
 
   const form = useMemo(() => {
-    if (draftForm) return draftForm;
-    if (!selected) return toImagingFormData();
+    if (draftForm) {
+      return draftForm;
+    }
+
+    if (!selected) {
+      return toImagingFormData();
+    }
+
     if (String(selected.imagingExamId) !== String(imagingExamId)) {
       return toImagingFormData();
     }
@@ -96,7 +106,6 @@ export default function ImagingEdit() {
     return toImagingFormData({
       imagingExamId: String(selected.imagingExamId ?? ""),
       testExecutionId: String(selected.testExecutionId ?? ""),
-      imagingType: selected.imagingType ?? "",
       detailCode: selected.detailCode ?? "",
       patientId:
         selected.patientId === null || selected.patientId === undefined
@@ -111,15 +120,18 @@ export default function ImagingEdit() {
       createdAt: selected.createdAt ?? "",
       updatedAt: selected.updatedAt ?? "",
     });
-  }, [draftForm, selected, imagingExamId]);
+  }, [draftForm, imagingExamId, selected]);
 
   useEffect(() => {
-    if (!updateSuccess) return;
+    if (!updateSuccess) {
+      return;
+    }
 
     const nextPath =
       lastRequestedProgressStatusRef.current === "COMPLETED"
         ? "/medical_support/testResult/list?resultType=IMAGING"
         : "/medical_support/imaging/list";
+
     lastRequestedProgressStatusRef.current = null;
 
     alert("영상 검사가 완료되었습니다.");
@@ -128,12 +140,17 @@ export default function ImagingEdit() {
   }, [dispatch, router, updateSuccess]);
 
   useEffect(() => {
-    if (!error) return;
+    if (!error) {
+      return;
+    }
+
     alert(error);
   }, [error]);
 
   const handleUpdate = (nextProgressStatus: string) => {
-    if (!imagingExamId) return;
+    if (!imagingExamId) {
+      return;
+    }
 
     lastRequestedProgressStatusRef.current = nextProgressStatus;
 
@@ -142,7 +159,6 @@ export default function ImagingEdit() {
         imagingExamId,
         form: {
           testExecutionId: form.testExecutionId,
-          imagingType: form.imagingType,
           detailCode: form.detailCode,
           patientId: form.patientId.trim() ? Number(form.patientId) : null,
           patientName: form.patientName,
@@ -212,8 +228,12 @@ export default function ImagingEdit() {
                 <Typography variant="subtitle1" fontWeight={700}>
                   검사 기본 정보
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-                  검사 식별 정보와 영상검사유형을 관리합니다.
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 0.25 }}
+                >
+                  검사 식별 정보와 기본 코드를 관리합니다.
                 </Typography>
               </Box>
 
@@ -239,10 +259,10 @@ export default function ImagingEdit() {
                   label="검사수행 ID"
                   size="small"
                   value={form.testExecutionId}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     setDraftForm({
                       ...form,
-                      testExecutionId: e.target.value,
+                      testExecutionId: event.target.value,
                     })
                   }
                   fullWidth
@@ -254,19 +274,6 @@ export default function ImagingEdit() {
                   value={form.detailCode}
                   fullWidth
                   InputProps={{ readOnly: true }}
-                />
-
-                <TextField
-                  label="영상검사유형"
-                  size="small"
-                  value={form.imagingType}
-                  onChange={(e) =>
-                    setDraftForm({
-                      ...form,
-                      imagingType: e.target.value,
-                    })
-                  }
-                  fullWidth
                 />
               </Box>
             </Stack>
@@ -296,7 +303,7 @@ export default function ImagingEdit() {
               수행 상태 정보
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              진행 상태는 대기중 또는 검사중만 직접 변경하고, 완료/취소는 아래 버튼으로 처리합니다.
+              진행 상태는 대기중 또는 검사중만 직접 변경하고 완료/취소는 아래 버튼으로 처리합니다.
             </Typography>
           </Box>
 
@@ -321,10 +328,10 @@ export default function ImagingEdit() {
                     ? ""
                     : form.progressStatus
                 }
-                onChange={(e) =>
+                onChange={(event) =>
                   setDraftForm({
                     ...form,
-                    progressStatus: e.target.value,
+                    progressStatus: event.target.value,
                   })
                 }
                 fullWidth
@@ -342,10 +349,10 @@ export default function ImagingEdit() {
                 label="활성 여부"
                 size="small"
                 value={form.status}
-                onChange={(e) =>
+                onChange={(event) =>
                   setDraftForm({
                     ...form,
-                    status: e.target.value,
+                    status: event.target.value,
                   })
                 }
                 fullWidth
@@ -361,10 +368,10 @@ export default function ImagingEdit() {
                 label="검사수행자 ID"
                 size="small"
                 value={form.performerId}
-                onChange={(e) =>
+                onChange={(event) =>
                   setDraftForm({
                     ...form,
-                    performerId: e.target.value,
+                    performerId: event.target.value,
                   })
                 }
                 fullWidth
@@ -374,10 +381,10 @@ export default function ImagingEdit() {
                 label="검사수행자명"
                 size="small"
                 value={form.performerName}
-                onChange={(e) =>
+                onChange={(event) =>
                   setDraftForm({
                     ...form,
-                    performerName: e.target.value,
+                    performerName: event.target.value,
                   })
                 }
                 fullWidth
@@ -408,7 +415,7 @@ export default function ImagingEdit() {
               환자 및 이력 정보
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              환자 식별 정보와 생성/수정 이력은 조회용입니다.
+              환자 연계 정보와 생성/수정 이력을 조회합니다.
             </Typography>
           </Box>
 
@@ -501,7 +508,7 @@ export default function ImagingEdit() {
                     검사 상태 처리
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    검사 완료 또는 취소는 아래 버튼으로 처리합니다.
+                    검사의 완료 또는 취소는 아래 버튼으로 처리합니다.
                   </Typography>
                 </Box>
 

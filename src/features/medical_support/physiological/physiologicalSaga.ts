@@ -6,6 +6,7 @@ import { PhysiologicalActions as actions } from "./physiologicalSlice";
 import type {
   PhysiologicalExam,
   PhysiologicalExamCreatePayload,
+  PhysiologicalSearchParams,
   PhysiologicalExamUpdatePayload,
 } from "@/features/medical_support/physiological/physiologicalType";
 
@@ -17,9 +18,14 @@ const getErrorMessage = (err: unknown, fallback: string) => {
   return fallback;
 };
 
-function* fetchPhysiologicalsSaga(): SagaIterator {
+function* fetchPhysiologicalsSaga(
+  action: PayloadAction<PhysiologicalSearchParams | undefined>
+): SagaIterator {
   try {
-    const items: PhysiologicalExam[] = yield call(api.fetchPhysiologicalExamsApi);
+    const items: PhysiologicalExam[] = yield call(
+      api.fetchPhysiologicalExamsApi,
+      action.payload
+    );
     yield put(actions.fetchPhysiologicalsSuccess(items));
   } catch (err: unknown) {
     yield put(

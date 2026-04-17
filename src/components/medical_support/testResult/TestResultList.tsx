@@ -25,13 +25,21 @@ import {
 } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
+import ListSearchBar, {
+  useListSearchCriteria,
+  type ListSearchFieldConfig,
+} from "@/components/medical_support/common/ListSearchBar";
 import { TestResultActions } from "@/features/medical_support/testResult/testResultSlice";
 import type {
   TestResult,
   TestResultSearchParams,
 } from "@/features/medical_support/testResult/testResultType";
 import { TEST_RESULT_TYPE_OPTIONS } from "@/features/medical_support/testResult/testResultType";
+import { toDateOnlySearchParam } from "@/lib/medical_support/searchParams";
 import type { AppDispatch, RootState } from "@/store/store";
+
+const getTrimmedValue = (value: unknown) =>
+  typeof value === "string" ? value.trim() : "";
 
 const LABELS = {
   title: "\uAC80\uC0AC \uACB0\uACFC \uBAA9\uB85D",
@@ -44,6 +52,7 @@ const LABELS = {
   departmentName: "\uC9C4\uB8CC\uACFC",
   performer: "\uAC80\uC0AC\uC218\uD589\uC790",
   status: "\uC0C1\uD0DC",
+  progressStatus: "\uC9C4\uD589\uC0C1\uD0DC",
   resultAt: "\uACB0\uACFC\uB4F1\uB85D\uC77C\uC2DC",
   includeInactive: "\uBE44\uD65C\uC131 \uD3EC\uD568",
   refresh: "\uC0C8\uB85C\uACE0\uCE68",
@@ -68,13 +77,14 @@ const getInitialResultType = (resultTypeValue?: string | null) => {
 
 const TABLE_HEADERS = [
   LABELS.rowNumber,
-  LABELS.resultType,
   LABELS.resultId,
+  LABELS.resultType,
   LABELS.detailCode,
   LABELS.patientName,
   LABELS.departmentName,
   LABELS.performer,
   LABELS.resultAt,
+  LABELS.progressStatus,
 ];
 
 const safeValue = (value?: string | number | null) => {
@@ -91,6 +101,17 @@ const normalizeValue = (value?: string | null) =>
 
 const isInactiveStatus = (value?: string | null) =>
   normalizeValue(value) === "INACTIVE";
+
+const formatProgressStatus = (value?: string | null) => {
+  const normalized = normalizeValue(value);
+  if (normalized === "COMPLETED") {
+    return "\uACB0\uACFC\uC791\uC131\uC644\uB8CC";
+  }
+  return "\uACB0\uACFC\uC791\uC131\uC911";
+};
+
+const getProgressStatusColor = (value?: string | null) =>
+  normalizeValue(value) === "COMPLETED" ? "success" : "warning";
 
 const formatDateTime = (value?: string | null) => {
   if (!value) {
@@ -158,10 +179,31 @@ export default function TestResultList() {
   const [includeInactive, setIncludeInactive] = React.useState(
     queryInitialIncludeInactive
   );
+  const initialSearchCriteria = React.useMemo(
+    () => ({
+      resultType: queryInitialResultType,
+      resultId: "",
+      patientName: "",
+      departmentName: "",
+      startDate: null,
+      endDate: null,
+    }),
+    [queryInitialResultType]
+  );
+  const [appliedSearchParams, setAppliedSearchParams] = React.useState<
+    TestResultSearchParams | undefined
+  >(undefined);
 
   const { list: rows, loading, error } = useSelector(
     (state: RootState) => state.testResults
   );
+  const {
+    criteria,
+    selectedFieldKey,
+    setCriterion,
+    selectField,
+    resetCriteria,
+  } = useListSearchCriteria("resultType", initialSearchCriteria);
 
   const baseSearchParams = React.useMemo<TestResultSearchParams | undefined>(() => {
     if (!queryInitialResultType) {
@@ -174,9 +216,12 @@ export default function TestResultList() {
   }, [queryInitialResultType]);
 
   const fetchRows = React.useCallback(
-    (nextIncludeInactive: boolean) => {
+    (
+      nextIncludeInactive: boolean,
+      nextSearchParams?: TestResultSearchParams
+    ) => {
       const requestParams = {
-        ...(baseSearchParams ?? {}),
+        ...(nextSearchParams ?? baseSearchParams ?? {}),
         ...(nextIncludeInactive ? { includeInactive: true } : {}),
       };
 
@@ -194,8 +239,10 @@ export default function TestResultList() {
   }, [queryInitialIncludeInactive]);
 
   React.useEffect(() => {
-    fetchRows(queryInitialIncludeInactive);
-  }, [fetchRows, queryInitialIncludeInactive]);
+    setAppliedSearchParams(baseSearchParams);
+    setPage(0);
+    fetchRows(queryInitialIncludeInactive, baseSearchParams);
+  }, [baseSearchParams, fetchRows, queryInitialIncludeInactive]);
 
   const activeCount = React.useMemo(
     () => rows.filter((row) => !isInactiveStatus(row.status)).length,
@@ -219,8 +266,107 @@ export default function TestResultList() {
     [currentPage, rows, rowsPerPage]
   );
 
+  const searchFields = React.useMemo<ListSearchFieldConfig[]>(
+    () => [
+      {
+        key: "resultType",
+        label: "검사유형",
+        type: "select",
+        options: TEST_RESULT_TYPE_OPTIONS.map((option) => ({
+          value: option.value,
+          label: option.label,
+        })),
+      },
+      {
+        key: "resultId",
+        label: "결과 ID",
+        type: "text",
+      },
+      {
+        key: "patientName",
+        label: "환자명",
+        type: "text",
+      },
+      {
+        key: "departmentName",
+        label: "진료과",
+        type: "select",
+        optionsSource: "departments",
+      },
+      {
+        key: "resultAtRange",
+        label: "결과등록일시",
+        type: "dateTimeRange",
+        startKey: "startDate",
+        endKey: "endDate",
+        startLabel: "시작일",
+        endLabel: "종료일",
+      },
+    ],
+    []
+  );
+
   const handleRefresh = () => {
-    fetchRows(includeInactiveChecked);
+    fetchRows(includeInactiveChecked, appliedSearchParams);
+  };
+
+  const buildSearchParams = React.useCallback((): TestResultSearchParams | undefined => {
+    const nextSearchParams: TestResultSearchParams = {};
+    const resultType = getTrimmedValue(criteria.resultType) || queryInitialResultType;
+
+    if (resultType) {
+      nextSearchParams.resultType = resultType;
+    }
+
+    switch (selectedFieldKey) {
+      case "resultType": {
+        if (resultType) {
+          nextSearchParams.resultType = resultType;
+        }
+        break;
+      }
+      case "resultId": {
+        const resultId = getTrimmedValue(criteria.resultId);
+        if (resultId) {
+          nextSearchParams.resultId = resultId;
+        }
+        break;
+      }
+      case "patientName": {
+        const patientName = getTrimmedValue(criteria.patientName);
+        if (patientName) {
+          nextSearchParams.patientName = patientName;
+        }
+        break;
+      }
+      case "departmentName": {
+        const departmentName = getTrimmedValue(criteria.departmentName);
+        if (departmentName) {
+          nextSearchParams.departmentName = departmentName;
+        }
+        break;
+      }
+      case "resultAtRange": {
+        const startDate = toDateOnlySearchParam(criteria.startDate);
+        const endDate = toDateOnlySearchParam(criteria.endDate);
+        if (startDate && endDate) {
+          nextSearchParams.startDate = startDate;
+          nextSearchParams.endDate = endDate;
+        }
+        break;
+      }
+      default:
+        break;
+    }
+
+    return Object.keys(nextSearchParams).length > 0 ? nextSearchParams : undefined;
+  }, [criteria, queryInitialResultType, selectedFieldKey]);
+
+  const handleSearch = () => {
+    const nextSearchParams = buildSearchParams();
+    setAppliedSearchParams(nextSearchParams);
+    setPage(0);
+    fetchRows(includeInactiveChecked, nextSearchParams);
   };
 
   const handleIncludeInactiveChange = (
@@ -229,7 +375,7 @@ export default function TestResultList() {
     const nextIncludeInactive = event.target.checked;
     setIncludeInactive(nextIncludeInactive);
     setPage(0);
-    fetchRows(nextIncludeInactive);
+    fetchRows(nextIncludeInactive, appliedSearchParams);
   };
 
   const handleChangePage = (_event: unknown, newPage: number) => {
@@ -241,6 +387,14 @@ export default function TestResultList() {
   ) => {
     setRowsPerPage(Number(event.target.value));
     setPage(0);
+  };
+
+  const handleResetSearch = () => {
+    resetCriteria();
+    setAppliedSearchParams(baseSearchParams);
+    setIncludeInactive(queryInitialIncludeInactive);
+    setPage(0);
+    fetchRows(queryInitialIncludeInactive, baseSearchParams);
   };
 
   const navigateToDetail = React.useCallback(
@@ -352,6 +506,17 @@ export default function TestResultList() {
         </Box>
 
         <CardContent sx={{ p: 2.5 }}>
+          <ListSearchBar
+            fields={searchFields}
+            selectedFieldKey={selectedFieldKey}
+            criteria={criteria}
+            onSelectedFieldKeyChange={selectField}
+            onCriteriaChange={setCriterion}
+            onSearch={handleSearch}
+            onReset={handleResetSearch}
+            loading={loading}
+          />
+
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
               <CircularProgress size={28} />
@@ -452,10 +617,10 @@ export default function TestResultList() {
                             {currentPage * rowsPerPage + index + 1}
                           </TableCell>
                           <TableCell align="center">
-                            {getResultTypeLabel(row)}
+                            {safeValue(row.resultId)}
                           </TableCell>
                           <TableCell align="center">
-                            {safeValue(row.resultId)}
+                            {getResultTypeLabel(row)}
                           </TableCell>
                           <TableCell align="center">
                             {safeValue(row.detailCode)}
@@ -471,6 +636,14 @@ export default function TestResultList() {
                           </TableCell>
                           <TableCell align="center">
                             {formatDateTime(row.resultAt)}
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              label={formatProgressStatus(row.progressStatus)}
+                              color={getProgressStatusColor(row.progressStatus)}
+                              size="small"
+                              variant="outlined"
+                            />
                           </TableCell>
                         </TableRow>
                       );

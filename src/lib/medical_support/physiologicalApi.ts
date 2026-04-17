@@ -3,8 +3,10 @@ import type { ApiResponse } from "@/features/patients/patientTypes";
 import type {
   PhysiologicalExam,
   PhysiologicalExamCreatePayload,
+  PhysiologicalSearchParams,
   PhysiologicalExamUpdatePayload,
 } from "@/features/medical_support/physiological/physiologicalType";
+import { cleanSearchParams } from "@/lib/medical_support/searchParams";
 
 const api = axios.create({
   baseURL:
@@ -26,9 +28,14 @@ const normalizePhysiologicalExam = (
     item.performerName ?? item.PERFORMER_NAME ?? item.performer_name ?? null,
 });
 
-export const fetchPhysiologicalExamsApi = async (): Promise<PhysiologicalExam[]> => {
+export const fetchPhysiologicalExamsApi = async (
+  params?: PhysiologicalSearchParams
+): Promise<PhysiologicalExam[]> => {
   const res = await api.get<ApiResponse<PhysiologicalExamApiRaw[]>>(
-    "/api/physiological"
+    "/api/physiological",
+    {
+      params: cleanSearchParams(params),
+    }
   );
 
   if (!res.data.success) {

@@ -3,8 +3,10 @@ import type { ApiResponse } from "@/features/patients/patientTypes";
 import type {
   PathologyExam,
   PathologyExamCreatePayload,
+  PathologySearchParams,
   PathologyExamUpdatePayload,
 } from "@/features/medical_support/pathology/pathologyType";
+import { cleanSearchParams } from "@/lib/medical_support/searchParams";
 
 const api = axios.create({
   baseURL:
@@ -47,8 +49,12 @@ const normalizePathologyExam = (item: PathologyExamApiRaw): PathologyExam => ({
   reexamYn: item.reexamYn ?? item.REEXAM_YN ?? item.reexam_yn ?? null,
 });
 
-export const fetchPathologyExamsApi = async (): Promise<PathologyExam[]> => {
-  const res = await api.get<ApiResponse<PathologyExamApiRaw[]>>("/api/pathology");
+export const fetchPathologyExamsApi = async (
+  params?: PathologySearchParams
+): Promise<PathologyExam[]> => {
+  const res = await api.get<ApiResponse<PathologyExamApiRaw[]>>("/api/pathology", {
+    params: cleanSearchParams(params),
+  });
 
   if (!res.data.success) {
     throw new Error(res.data.message || "병리 검사 목록 조회에 실패했습니다.");

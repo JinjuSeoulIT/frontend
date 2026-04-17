@@ -6,6 +6,7 @@ import { ImagingActions as actions } from "./imagingSlice";
 import type {
   ImagingExam,
   ImagingExamCreatePayload,
+  ImagingSearchParams,
   ImagingExamUpdatePayload,
 } from "@/features/medical_support/imaging/imagingType";
 
@@ -17,9 +18,11 @@ const getErrorMessage = (err: unknown, fallback: string) => {
   return fallback;
 };
 
-function* fetchImagingsSaga(): SagaIterator {
+function* fetchImagingsSaga(
+  action: PayloadAction<ImagingSearchParams | undefined>
+): SagaIterator {
   try {
-    const items: ImagingExam[] = yield call(api.fetchImagingExamsApi);
+    const items: ImagingExam[] = yield call(api.fetchImagingExamsApi, action.payload);
     yield put(actions.fetchImagingsSuccess(items));
   } catch (err: unknown) {
     yield put(

@@ -2,6 +2,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type {
   ImagingExam,
   ImagingExamCreatePayload,
+  ImagingSearchParams,
   ImagingExamUpdatePayload,
 } from "@/features/medical_support/imaging/imagingType";
 
@@ -27,10 +28,19 @@ const imagingSlice = createSlice({
   name: "imagings",
   initialState,
   reducers: {
-    fetchImagingsRequest: (state) => {
-      state.loading = true;
-      state.error = null;
-      state.createSuccess = false;
+    fetchImagingsRequest: {
+      reducer: (
+        state,
+        action: PayloadAction<ImagingSearchParams | undefined>
+      ) => {
+        void action;
+        state.loading = true;
+        state.error = null;
+        state.createSuccess = false;
+      },
+      prepare: (params?: ImagingSearchParams) => ({
+        payload: params,
+      }),
     },
     fetchImagingsSuccess: (state, action: PayloadAction<ImagingExam[]>) => {
       state.loading = false;

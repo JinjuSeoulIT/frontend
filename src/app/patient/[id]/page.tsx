@@ -355,9 +355,11 @@ export default function PatientDetailPage() {
                   <PatientDetailQuickActions
                     patient={p}
                     statusOptionsCount={statusOptions.length}
-                    onBack={() => router.back()}
                     onOpenReceptionDialog={openReceptionDialog}
                     onOpenReservationDialog={openReservationDialog}
+                    onOpenMemoDialog={() => setCardModalType("memo")}
+                    onOpenFlagDialog={() => setCardModalType("flag")}
+                    onOpenRestrictionDialog={() => setCardModalType("restriction")}
                     onOpenStatusDialog={openStatusDialog}
                     onOpenEditDialog={openEditDialog}
                     onDelete={onDelete}

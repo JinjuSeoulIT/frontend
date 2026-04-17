@@ -6,6 +6,7 @@ import { PathologyActions as actions } from "./pathologySlice";
 import type {
   PathologyExam,
   PathologyExamCreatePayload,
+  PathologySearchParams,
   PathologyExamUpdatePayload,
 } from "@/features/medical_support/pathology/pathologyType";
 
@@ -17,9 +18,14 @@ const getErrorMessage = (err: unknown, fallback: string) => {
   return fallback;
 };
 
-function* fetchPathologiesSaga(): SagaIterator {
+function* fetchPathologiesSaga(
+  action: PayloadAction<PathologySearchParams | undefined>
+): SagaIterator {
   try {
-    const items: PathologyExam[] = yield call(api.fetchPathologyExamsApi);
+    const items: PathologyExam[] = yield call(
+      api.fetchPathologyExamsApi,
+      action.payload
+    );
     yield put(actions.fetchPathologiesSuccess(items));
   } catch (err: unknown) {
     yield put(

@@ -495,7 +495,7 @@ export default function SpecimenEdit() {
               검체 채취 정보
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              채취 일시와 채취 부위, 재채취 여부를 수정할 수 있습니다.
+              채취일시와 채취부위, 재채취여부를 수정할 수 있습니다.
             </Typography>
           </Box>
 

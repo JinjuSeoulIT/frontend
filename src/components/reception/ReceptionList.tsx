@@ -514,6 +514,23 @@ export default function ReceptionList({
     };
   }, []);
 
+  const retryMasterDataLoad = React.useCallback(async () => {
+    try {
+      setMasterDataLoading(true);
+      setMasterDataError(null);
+      const [departmentList, doctorList] = await Promise.all([
+        fetchDepartmentsApi(),
+        fetchDoctorsApi(),
+      ]);
+      setDepartments(departmentList);
+      setDoctors(doctorList);
+    } catch (err: unknown) {
+      setMasterDataError(resolveErrorMessage(err, "진료과/의사 목록 조회 실패"));
+    } finally {
+      setMasterDataLoading(false);
+    }
+  }, []);
+
   React.useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -607,6 +624,13 @@ export default function ReceptionList({
     });
   }, [createModalOpen, departments, doctors]);
 
+  const openCreateModal = React.useCallback(() => {
+    setCreateModalOpen(true);
+    if (masterDataError || departments.length === 0 || doctors.length === 0) {
+      void retryMasterDataLoad();
+    }
+  }, [departments.length, doctors.length, masterDataError, retryMasterDataLoad]);
+
   const openCreateWithPatient = React.useCallback((patient: Patient, nextKeyword?: string) => {
     if (!patient.patientId) return;
     const name = (nextKeyword ?? patient.name ?? "").trim();
@@ -618,8 +642,8 @@ export default function ReceptionList({
       patientId: patient.patientId,
       patientName: name,
     });
-    setCreateModalOpen(true);
-  }, []);
+    openCreateModal();
+  }, [openCreateModal]);
 
   const onOpenPatientListModal = () => {
     setPatientListKeyword("");
@@ -652,7 +676,7 @@ export default function ReceptionList({
         patientId: null,
         patientName: kw,
       });
-      setCreateModalOpen(true);
+      openCreateModal();
       return;
     }
 

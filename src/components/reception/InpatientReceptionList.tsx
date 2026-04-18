@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import Link from "next/link";
@@ -97,7 +97,7 @@ export default function InpatientReceptionList() {
   });
   const [createModalForm, setCreateModalForm] = React.useState<{
     departmentId: string;
-    doctorId: number | null;
+    doctorId: string | null;
     admissionPlanAt: string;
     wardId: string;
     roomId: string;
@@ -302,7 +302,7 @@ export default function InpatientReceptionList() {
     }
 
     const doctor =
-      doctors.find((item) => item.doctorId === createModalForm.doctorId) ??
+      doctors.find((item) => String(item.doctorId) === String(createModalForm.doctorId)) ??
       doctors.find((item) => (item.departmentId ?? "") === department.departmentId) ??
       null;
 
@@ -740,8 +740,8 @@ export default function InpatientReceptionList() {
               label={"담당의"}
               value={createModalForm.doctorId ?? ""}
               onChange={(e) => {
-                const doctorId = Number(e.target.value);
-                const doctor = doctors.find((item) => item.doctorId === doctorId);
+                const doctorId = e.target.value || null;
+                const doctor = doctors.find((item) => String(item.doctorId) === String(doctorId));
                 setCreateModalForm((prev) => ({
                   ...prev,
                   doctorId,

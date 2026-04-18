@@ -1,4 +1,4 @@
-export type ReceptionStatus =
+﻿export type ReceptionStatus =
   | "WAITING"
   | "CALLED"
   | "IN_PROGRESS"
@@ -7,7 +7,7 @@ export type ReceptionStatus =
   | "ON_HOLD"
   | "CANCELED"
   | "INACTIVE";
- // Reception은 조회 결과, 완성된 데이터
+ // Reception? 議고쉶 寃곌낵, ?꾩꽦???곗씠??
 export interface Reception {
   receptionId: number;
   receptionNo: string;
@@ -16,7 +16,7 @@ export interface Reception {
   visitType: string;
   departmentId: string;
   departmentName?: string | null;
-  doctorId?: number | null;
+  doctorId?: string | number | null;
   doctorName?: string | null;
   reservationId?: number | null;
   scheduledAt?: string | null;
@@ -36,7 +36,7 @@ export interface Reception {
   createdAt?: string | null;
   updatedAt?: string | null;
 }
-// ReceptionForm은 입력/전송용 데이터
+// ReceptionForm? ?낅젰/?꾩넚???곗씠??
 export interface ReceptionForm {
   receptionNo: string;
   patientId?: number | null;
@@ -44,7 +44,7 @@ export interface ReceptionForm {
   visitType: string;
   departmentId?: string | null;
   departmentName?: string | null;
-  doctorId?: number | null;
+  doctorId?: string | null;
   doctorName?: string | null;
   reservationId?: number | null;
   scheduledAt?: string | null;
@@ -70,3 +70,4 @@ export interface ReceptionState {
   loading: boolean;
   error: string | null;
 }
+

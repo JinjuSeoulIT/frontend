@@ -7,6 +7,7 @@ export type TestResultTypeCode =
   | string;
 
 export type TestResultStatus = "ACTIVE" | "INACTIVE" | string;
+export type TestResultProgressStatus = "IN_PROGRESS" | "COMPLETED" | string;
 
 export type TestResultDetailValue =
   | string
@@ -35,6 +36,12 @@ export interface PathologyTestResultDetailData extends BaseTestResultDetailData 
   judgedAt?: string | null;
   readerId?: string | null;
   diagnosisName?: string | null;
+  tissueStatus?: string | null;
+  collectionMethod?: string | null;
+  tissueSite?: string | null;
+  tissueType?: string | null;
+  collectedAt?: string | null;
+  reexamYn?: string | null;
 }
 
 export interface EndoscopyTestResultDetailData extends BaseTestResultDetailData {
@@ -46,6 +53,9 @@ export interface PhysiologicalTestResultDetailData
   extends BaseTestResultDetailData {
   report?: string | null;
   measuredItemCode?: string | null;
+  examEquipmentId?: string | null;
+  rawData?: string | null;
+  reportDocId?: string | null;
 }
 
 export type TestResultDetailData =
@@ -63,6 +73,7 @@ export interface TestResultDetailRequestPayload {
 
 export interface TestResultUpdatePayload {
   status?: string;
+  progressStatus?: TestResultProgressStatus;
   confirmedAt?: string;
   resultManagerId?: string | number | null;
   resultManagerName?: string | null;
@@ -72,6 +83,11 @@ export interface TestResultUpdatePayload {
 export interface TestResultUpdateRequestPayload
   extends TestResultDetailRequestPayload {
   form: TestResultUpdatePayload;
+}
+
+export interface TestResultProgressStatusUpdateRequestPayload {
+  resultId: string | number;
+  progressStatus: TestResultProgressStatus;
 }
 
 export interface TestResult {
@@ -91,12 +107,14 @@ export interface TestResult {
   summary?: string | null;
   resultAt?: string | null;
   status?: TestResultStatus | null;
+  progressStatus?: TestResultProgressStatus | null;
   createdAt?: string | null;
   detail?: TestResultDetailData | null;
 }
 
 export interface TestResultSearchParams {
   resultType?: string;
+  resultId?: string;
   patientName?: string;
   detailCode?: string;
   departmentName?: string;

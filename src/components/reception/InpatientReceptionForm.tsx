@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import {
@@ -67,11 +67,11 @@ const departmentOptions: DepartmentOption[] = [
 ];
 
 const doctorOptions: DoctorOption[] = [
-  { doctorId: 1, doctorName: "송태민", departmentId: "1" },
-  { doctorId: 2, doctorName: "이현석", departmentId: "2" },
-  { doctorId: 3, doctorName: "성숙희", departmentId: "3" },
-  { doctorId: 4, doctorName: "최효정", departmentId: "4" },
-  { doctorId: 5, doctorName: "홍예진", departmentId: "5" },
+  { doctorId: "DOC-0001", doctorName: "송태민", departmentId: "1" },
+  { doctorId: "DOC-0002", doctorName: "이현석", departmentId: "2" },
+  { doctorId: "DOC-0003", doctorName: "성숙희", departmentId: "3" },
+  { doctorId: "DOC-0004", doctorName: "최효정", departmentId: "4" },
+  { doctorId: "DOC-0005", doctorName: "홍예진", departmentId: "5" },
 ];
 
 function toOptionalNumber(value: string) {
@@ -180,7 +180,7 @@ export default function InpatientReceptionForm({
       receptionNo: isEditMode ? form.receptionNo.trim() : "",
       patientId,
       departmentId,
-      doctorId: toOptionalNumber(form.doctorId) ?? null,
+      doctorId: toOptionalString(form.doctorId) ?? null,
       scheduledAt: toOptionalString(form.scheduledAt),
       arrivedAt: toOptionalString(form.arrivedAt),
       status: (form.status || "WAITING") as InpatientReceptionFormPayload["status"],

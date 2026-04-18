@@ -36,6 +36,7 @@ export interface SpecimenExamCreatePayload {
 
 export interface SpecimenExamUpdatePayload {
   testExecutionId?: string | number | null;
+  detailCode?: string | null;
   patientId?: string | number | null;
   patientName?: string | null;
   departmentName?: string | null;
@@ -48,4 +49,13 @@ export interface SpecimenExamUpdatePayload {
   recollectionYn?: string | null;
   progressStatus?: string | null;
   status?: string | null;
+}
+
+export interface SpecimenSearchParams {
+  patientName?: string;
+  specimenType?: string;
+  specimenStatus?: string;
+  progressStatus?: string;
+  startDate?: string;
+  endDate?: string;
 }

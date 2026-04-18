@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import Link from "next/link";
@@ -37,13 +37,7 @@ import type { DepartmentOption, DoctorOption } from "@/features/Reservations/Res
 import { formatDepartmentName } from "@/lib/common/departmentLabel";
 import type { Patient } from "@/features/patients/patientTypes";
 import { fetchDepartmentsApi, fetchDoctorsApi } from "@/lib/masterDataApi";
-import { fetchReservationsApi, updateReservationApi } from "@/lib/reception/reservationAdminApi";
 import { fetchPatientsApi } from "@/lib/reception/patientApi";
-import {
-  cancelReceptionApi,
-  createReceptionApi,
-  fetchReceptionsApi,
-} from "@/lib/reception/receptionApi";
 
 const visitTypeLabel = (value?: string | null) => {
   switch (value) {
@@ -275,28 +269,6 @@ const toLocalTimeValue = (date: Date) => {
   return `${hours}:${minutes}`;
 };
 
-const normalizeReservationStatus = (value?: string | null) => {
-  if (!value) return value;
-  const trimmed = value.trim();
-  switch (trimmed) {
-    case "예약":
-      return "RESERVED";
-    case "완료":
-      return "COMPLETED";
-    case "취소":
-      return "CANCELED";
-    case "비활성":
-      return "INACTIVE";
-    default:
-      return trimmed;
-  }
-};
-
-const isClosedReceptionStatus = (value?: string | null) => {
-  const normalized = normalizeStatus(value);
-  return normalized === "CANCELED" || normalized === "INACTIVE";
-};
-
 const extractDateKeyFromReceptionNo = (value?: string | null) => {
   if (!value) return null;
   const match = value.trim().match(/^(\d{4})(\d{2})(\d{2})-/);
@@ -410,7 +382,7 @@ export default function ReceptionList({
   });
   const [createModalForm, setCreateModalForm] = React.useState<{
     departmentId: string;
-    doctorId: number | null;
+    doctorId: string | null;
     arrivedTime: string;
     note: string;
   }>({
@@ -424,113 +396,12 @@ export default function ReceptionList({
   const [statusFilter, setStatusFilter] = React.useState<StatusFilterKey>("ALL");
   const [page, setPage] = React.useState(1);
   const [notificationQueue, setNotificationQueue] = React.useState<string[]>([]);
-  const syncingReservationRef = React.useRef(false);
   const processedEventKeysRef = React.useRef<string[]>([]);
 
   const activeNotification = notificationQueue[0] ?? null;
 
   const closeNotification = React.useCallback(() => {
     setNotificationQueue((prev) => prev.slice(1));
-  }, []);
-
-  const syncTodayReservationsToWaitingReceptions = React.useCallback(async () => {
-    if (syncingReservationRef.current) return;
-    syncingReservationRef.current = true;
-    // 예약을 오늘 접수로 자동 전환하는 함수
-
-    try {
-    const [reservations, receptions] = await Promise.all([
-      fetchReservationsApi(),
-      fetchReceptionsApi(),
-    ]);
-    const today = toLocalDateKey(new Date());
-    const receptionsToday = receptions.filter((item) => isTodayReception(item, today));
-    const linkedReservationIds = new Set(
-      receptionsToday
-        .map((item) => item.reservationId)
-        .filter((value): value is number => typeof value === "number")
-    );
-    const completeReservation = async (reservation: (typeof reservations)[number]) => {
-      await updateReservationApi(String(reservation.reservationId), {
-        reservationNo: reservation.reservationNo,
-        patientId: reservation.patientId,
-        patientName: reservation.patientName ?? null,
-        departmentId: reservation.departmentId,
-        departmentName: reservation.departmentName ?? null,
-        doctorId: reservation.doctorId ?? null,
-        doctorName: reservation.doctorName ?? null,
-        reservedAt: reservation.reservedAt,
-        status: "COMPLETED",
-        note: reservation.note ?? "예약 당일 자동 접수 연계 완료",
-      });
-    };
-    const activeReceptionsByReservation = new Map<number, Reception[]>();
-    for (const item of receptionsToday) {
-      if (typeof item.reservationId !== "number") continue;
-      if (isClosedReceptionStatus(item.status)) continue;
-      const current = activeReceptionsByReservation.get(item.reservationId) ?? [];
-      current.push(item);
-      activeReceptionsByReservation.set(item.reservationId, current);
-    }
-
-    for (const group of activeReceptionsByReservation.values()) {
-      if (group.length <= 1) continue;
-      const keeper = [...group].sort((a, b) => a.receptionId - b.receptionId)[0];
-
-      for (const item of group) {
-        if (item.receptionId === keeper.receptionId) continue;
-        await cancelReceptionApi(
-          String(item.receptionId),
-          "예약 자동연계 중복 데이터 자동 정리"
-        );
-      }
-    }
-
-    const alreadyLinkedTargets = reservations
-      .filter((item) => normalizeReservationStatus(item.status) === "RESERVED")
-      .filter((item) => extractDateKeyFromDateTime(item.reservedAt) === today)
-      .filter((item) => linkedReservationIds.has(item.reservationId));
-
-    for (const reservation of alreadyLinkedTargets) {
-      await completeReservation(reservation);
-    }
-
-    const targets = reservations
-      .filter((item) => normalizeReservationStatus(item.status) === "RESERVED")
-      .filter((item) => extractDateKeyFromDateTime(item.reservedAt) === today)
-      .filter((item) => !linkedReservationIds.has(item.reservationId))
-      .sort((a, b) => a.reservationId - b.reservationId);
-
-    if (targets.length === 0) return;
-
-    for (const reservation of targets) {
-      if (linkedReservationIds.has(reservation.reservationId)) {
-        await completeReservation(reservation);
-        continue;
-      }
-
-      await createReceptionApi({
-        receptionNo: "",
-        patientId: reservation.patientId,
-        patientName: reservation.patientName ?? null,
-        visitType: "OUTPATIENT",
-        departmentId: reservation.departmentId,
-        departmentName: reservation.departmentName ?? null,
-        doctorId: reservation.doctorId ?? null,
-        doctorName: reservation.doctorName ?? null,
-        reservationId: reservation.reservationId,
-        scheduledAt: reservation.reservedAt,
-        arrivedAt: null,
-        status: "WAITING",
-        note: reservation.note ?? "예약 당일 자동 접수 생성",
-      });
-      linkedReservationIds.add(reservation.reservationId);
-
-      await completeReservation(reservation);
-    }
-    } finally {
-      syncingReservationRef.current = false;
-    }
   }, []);
   const isCanceledView = initialSearchType === "status" && initialKeyword === "CANCELED";
   const todayList = React.useMemo(() => {
@@ -581,32 +452,8 @@ export default function ReceptionList({
   }, [dispatch, autoSearch, initialKeyword, initialSearchType]);
 
   React.useEffect(() => {
-    const initialize = async () => {
-      if (autoSearch && initialKeyword.trim()) {
-        refreshReceptionsByCurrentMode();
-        return;
-      }
-      try {
-        await syncTodayReservationsToWaitingReceptions();
-      } catch (err: unknown) {
-        dispatch(
-          receptionActions.fetchReceptionsFailure(
-            resolveErrorMessage(err, "예약 당일 자동 접수 생성 실패")
-          )
-        );
-      }
-      refreshReceptionsByCurrentMode();
-    };
-
-    void initialize();
-  }, [
-    dispatch,
-    autoSearch,
-    initialKeyword,
-    initialSearchType,
-    refreshReceptionsByCurrentMode,
-    syncTodayReservationsToWaitingReceptions,
-  ]);
+    refreshReceptionsByCurrentMode();
+  }, [refreshReceptionsByCurrentMode]);
 
   React.useEffect(() => {
     const now = new Date();
@@ -621,29 +468,12 @@ export default function ReceptionList({
     const delay = Math.max(1000, nextMidnight.getTime() - now.getTime());
 
     const timer = window.setTimeout(() => {
-      const runAtMidnight = async () => {
-        setTodayKey(toLocalDateKey(new Date()));
-        try {
-          await syncTodayReservationsToWaitingReceptions();
-        } catch (err: unknown) {
-          dispatch(
-            receptionActions.fetchReceptionsFailure(
-              resolveErrorMessage(err, "예약 당일 자동 접수 생성 실패")
-            )
-          );
-        }
-        refreshReceptionsByCurrentMode();
-      };
-      void runAtMidnight();
+      setTodayKey(toLocalDateKey(new Date()));
+      refreshReceptionsByCurrentMode();
     }, delay);
 
     return () => window.clearTimeout(timer);
-  }, [
-    todayKey,
-    dispatch,
-    refreshReceptionsByCurrentMode,
-    syncTodayReservationsToWaitingReceptions,
-  ]);
+  }, [todayKey, refreshReceptionsByCurrentMode]);
 
   React.useEffect(() => {
     const timer = window.setInterval(() => {
@@ -682,6 +512,23 @@ export default function ReceptionList({
     return () => {
       active = false;
     };
+  }, []);
+
+  const retryMasterDataLoad = React.useCallback(async () => {
+    try {
+      setMasterDataLoading(true);
+      setMasterDataError(null);
+      const [departmentList, doctorList] = await Promise.all([
+        fetchDepartmentsApi(),
+        fetchDoctorsApi(),
+      ]);
+      setDepartments(departmentList);
+      setDoctors(doctorList);
+    } catch (err: unknown) {
+      setMasterDataError(resolveErrorMessage(err, "진료과/의사 목록 조회 실패"));
+    } finally {
+      setMasterDataLoading(false);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -777,6 +624,13 @@ export default function ReceptionList({
     });
   }, [createModalOpen, departments, doctors]);
 
+  const openCreateModal = React.useCallback(() => {
+    setCreateModalOpen(true);
+    if (masterDataError || departments.length === 0 || doctors.length === 0) {
+      void retryMasterDataLoad();
+    }
+  }, [departments.length, doctors.length, masterDataError, retryMasterDataLoad]);
+
   const openCreateWithPatient = React.useCallback((patient: Patient, nextKeyword?: string) => {
     if (!patient.patientId) return;
     const name = (nextKeyword ?? patient.name ?? "").trim();
@@ -788,8 +642,8 @@ export default function ReceptionList({
       patientId: patient.patientId,
       patientName: name,
     });
-    setCreateModalOpen(true);
-  }, []);
+    openCreateModal();
+  }, [openCreateModal]);
 
   const onOpenPatientListModal = () => {
     setPatientListKeyword("");
@@ -822,7 +676,7 @@ export default function ReceptionList({
         patientId: null,
         patientName: kw,
       });
-      setCreateModalOpen(true);
+      openCreateModal();
       return;
     }
 
@@ -966,7 +820,7 @@ export default function ReceptionList({
     if (!department) return;
 
     const doctor =
-      doctors.find((item) => item.doctorId === createModalForm.doctorId) ??
+      doctors.find((item) => String(item.doctorId) === String(createModalForm.doctorId)) ??
       doctors.find((item) => String(item.departmentId ?? "") === String(department.departmentId)) ??
       null;
     const arrivedTime = createModalForm.arrivedTime || "00:00";
@@ -979,9 +833,9 @@ export default function ReceptionList({
         patientName,
         visitType: "OUTPATIENT",
         departmentId: department.departmentId,
-        departmentName: null,
+        departmentName: department.departmentName,
         doctorId: doctor?.doctorId ?? null,
-        doctorName: null,
+        doctorName: doctor?.doctorName ?? null,
         scheduledAt: null,
         arrivedAt,
         status: "WAITING",
@@ -1688,8 +1542,8 @@ export default function ReceptionList({
               label={"담당의"}
               value={createModalForm.doctorId ?? ""}
               onChange={(e) => {
-                const doctorId = Number(e.target.value);
-                const doctor = doctors.find((item) => item.doctorId === doctorId);
+                const doctorId = e.target.value || null;
+                const doctor = doctors.find((item) => String(item.doctorId) === String(doctorId));
                 setCreateModalForm((prev) => ({
                   ...prev,
                   doctorId,

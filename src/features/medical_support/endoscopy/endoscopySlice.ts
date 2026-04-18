@@ -2,6 +2,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type {
   EndoscopyExam,
   EndoscopyExamCreatePayload,
+  EndoscopySearchParams,
   EndoscopyExamUpdatePayload,
 } from "@/features/medical_support/endoscopy/endoscopyType";
 
@@ -27,10 +28,19 @@ const endoscopySlice = createSlice({
   name: "endoscopies",
   initialState,
   reducers: {
-    fetchEndoscopiesRequest: (state) => {
-      state.loading = true;
-      state.error = null;
-      state.createSuccess = false;
+    fetchEndoscopiesRequest: {
+      reducer: (
+        state,
+        action: PayloadAction<EndoscopySearchParams | undefined>
+      ) => {
+        void action;
+        state.loading = true;
+        state.error = null;
+        state.createSuccess = false;
+      },
+      prepare: (params?: EndoscopySearchParams) => ({
+        payload: params,
+      }),
     },
     fetchEndoscopiesSuccess: (state, action: PayloadAction<EndoscopyExam[]>) => {
       state.loading = false;

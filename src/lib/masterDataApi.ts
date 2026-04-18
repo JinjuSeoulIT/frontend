@@ -7,7 +7,7 @@ import type {
 } from "@/features/Reservations/ReservationTypes";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_PATIENTS_API_BASE_URL ?? "http://192.168.1.60:8181",
+  baseURL: process.env.NEXT_PUBLIC_PATIENTS_API_BASE_URL ?? "http://192.168.1.55:8181",
 });
 
 const receptionApi = axios.create({
@@ -68,9 +68,10 @@ export const fetchDoctorsApi = async (
 
   return list
     .map((item) => ({
-      doctorId: Number(item.doctorId),
+      doctorId: String(item.doctorId ?? "").trim(),
       doctorName: (item.doctorName ?? "").trim(),
       departmentId: item.departmentId == null ? null : String(item.departmentId).trim(),
     }))
-    .filter((item) => Number.isFinite(item.doctorId));
+    .filter((item) => item.doctorId.length > 0);
 };
+

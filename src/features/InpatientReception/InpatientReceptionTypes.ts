@@ -1,4 +1,4 @@
-export type ReceptionStatus =
+﻿export type ReceptionStatus =
   | "WAITING"
   | "CALLED"
   | "IN_PROGRESS"
@@ -14,7 +14,9 @@ export interface InpatientReception {
   patientId: number;
   visitType: string;
   departmentId: string;
-  doctorId?: number | null;
+  departmentName?: string | null;
+  doctorId?: string | null;
+  doctorName?: string | null;
   reservationId?: number | null;
   scheduledAt?: string | null;
   arrivedAt?: string | null;
@@ -32,7 +34,9 @@ export type InpatientReceptionForm = {
   receptionNo: string;
   patientId: number;
   departmentId: string;
-  doctorId?: number | null;
+  departmentName?: string | null;
+  doctorId?: string | null;
+  doctorName?: string | null;
   scheduledAt?: string | null;
   arrivedAt?: string | null;
   status?: ReceptionStatus;
@@ -59,3 +63,4 @@ export interface InpatientReceptionState {
   loading: boolean;
   error: string | null;
 }
+

@@ -24,7 +24,7 @@ import {
   clinicalConnectionMessage,
   type ReceptionQueueItem,
 } from "@/lib/clinical/visitApi";
-import { resolveClinicalStatus } from "./clinicalDocumentation";
+import { isTerminalVisitClinicalStatus, resolveClinicalStatus } from "./clinicalDocumentation";
 import { ClinicalToolbar } from "./ClinicalEncounter";
 import { ClinicalPatientList } from "./ClinicalList";
 import { ClinicalRightPanel } from "./ClinicalOrder";
@@ -83,6 +83,7 @@ export default function ClinicalPage() {
   const [vitalsLoading, setVitalsLoading] = React.useState(false);
   const [assessmentLoading, setAssessmentLoading] = React.useState(false);
   const [vitalAssessmentDialogOpen, setVitalAssessmentDialogOpen] = React.useState(false);
+  const [reopenVitalsSoapTick, setReopenVitalsSoapTick] = React.useState(0);
   const [vitalsForm, setVitalsForm] = React.useState<VitalsFormState>({
     temperature: "",
     pulse: "",
@@ -90,6 +91,11 @@ export default function ClinicalPage() {
     bpDiastolic: "",
     respiratoryRate: "",
     measuredAt: "",
+    spo2: "",
+    painScore: "",
+    consciousnessLevel: "",
+    heightCm: "",
+    weightKg: "",
   });
   const [assessmentForm, setAssessmentForm] = React.useState<AssessmentFormState>({
     chiefComplaint: "",
@@ -279,7 +285,7 @@ export default function ClinicalPage() {
         (c) =>
           c.receptionId != null &&
           Number(c.receptionId) === Number(receptionId) &&
-          resolveClinicalStatus(c) === "COMPLETED"
+          isTerminalVisitClinicalStatus(resolveClinicalStatus(c))
       );
     return filtered.filter(
       (r) =>
@@ -325,9 +331,7 @@ export default function ClinicalPage() {
     return listForLeft.some((r) => {
       if (r.receptionId === selectedReception.receptionId) return false;
       if (!inProg(r.status)) return false;
-      if (sid != null) {
-        return r.doctorId != null && Number(r.doctorId) === Number(sid);
-      }
+      if (sid != null && r.doctorId != null) return Number(r.doctorId) === Number(sid);
       return true;
     });
   }, [listForLeft, selectedReception]);
@@ -627,54 +631,63 @@ export default function ClinicalPage() {
     dispatch(clinicalActions.startVisitRequest({ receptionId: selectedReception.receptionId }));  // 진료시작을 하려면 해당 접수환자가 누군지 알아야 하니까 접수ID를 파라미터로 보낸다.
   }, [selectedReception, dispatch, blockStartVisitOtherInProgress]); 
 
-  const openVitalDialog = React.useCallback(
-    (mode: "new" | "edit") => {
-      if (mode === "edit" && vitals) {
-        setVitalsForm({
-          temperature: String(vitals.temperature ?? ""),
-          pulse: String(vitals.pulse ?? ""),
-          bpSystolic: String(vitals.bpSystolic ?? ""),
-          bpDiastolic: String(vitals.bpDiastolic ?? ""),
-          respiratoryRate: String(vitals.respiratoryRate ?? ""),
-          measuredAt: vitals.measuredAt
-            ? new Date(vitals.measuredAt).toISOString().slice(0, 16)
-            : new Date().toISOString().slice(0, 16),
-        });
-      } else {
-        setVitalsForm({
-          temperature: "",
-          pulse: "",
-          bpSystolic: "",
-          bpDiastolic: "",
-          respiratoryRate: "",
-          measuredAt: new Date().toISOString().slice(0, 16),
-        });
-      }
-      if (assessment) {
-        setAssessmentForm({
-          chiefComplaint: assessment.chiefComplaint ?? "",
-          visitReason: assessment.visitReason ?? "",
-          historyPresentIllness: assessment.historyPresentIllness ?? "",
-          pastHistory: assessment.pastHistory ?? "",
-          familyHistory: assessment.familyHistory ?? "",
-          allergy: assessment.allergy ?? "",
-          currentMedication: assessment.currentMedication ?? "",
-        });
-      } else {
-        setAssessmentForm({
-          chiefComplaint: "",
-          visitReason: "",
-          historyPresentIllness: "",
-          pastHistory: "",
-          familyHistory: "",
-          allergy: "",
-          currentMedication: "",
-        });
-      }
-      setVitalAssessmentDialogOpen(true);
-    },
-    [vitals, assessment]
-  );
+  const openVitalDialog = React.useCallback((_mode: "new" | "edit") => {
+    if (vitals) {
+      setVitalsForm({
+        temperature: String(vitals.temperature ?? ""),
+        pulse: String(vitals.pulse ?? ""),
+        bpSystolic: String(vitals.bpSystolic ?? ""),
+        bpDiastolic: String(vitals.bpDiastolic ?? ""),
+        respiratoryRate: String(vitals.respiratoryRate ?? ""),
+        measuredAt: vitals.measuredAt
+          ? new Date(vitals.measuredAt).toISOString().slice(0, 16)
+          : new Date().toISOString().slice(0, 16),
+        spo2: vitals.spo2 != null && vitals.spo2 !== "" ? String(vitals.spo2) : "",
+        painScore: vitals.painScore != null && vitals.painScore !== "" ? String(vitals.painScore) : "",
+        consciousnessLevel: vitals.consciousnessLevel ?? "",
+        heightCm:
+          vitals.heightCm != null && vitals.heightCm !== "" ? String(vitals.heightCm) : "",
+        weightKg:
+          vitals.weightKg != null && vitals.weightKg !== "" ? String(vitals.weightKg) : "",
+      });
+    } else {
+      setVitalsForm({
+        temperature: "",
+        pulse: "",
+        bpSystolic: "",
+        bpDiastolic: "",
+        respiratoryRate: "",
+        measuredAt: new Date().toISOString().slice(0, 16),
+        spo2: "",
+        painScore: "",
+        consciousnessLevel: "",
+        heightCm: "",
+        weightKg: "",
+      });
+    }
+    if (assessment) {
+      setAssessmentForm({
+        chiefComplaint: assessment.chiefComplaint ?? "",
+        visitReason: assessment.visitReason ?? "",
+        historyPresentIllness: assessment.historyPresentIllness ?? "",
+        pastHistory: assessment.pastHistory ?? "",
+        familyHistory: assessment.familyHistory ?? "",
+        allergy: assessment.allergy ?? "",
+        currentMedication: assessment.currentMedication ?? "",
+      });
+    } else {
+      setAssessmentForm({
+        chiefComplaint: "",
+        visitReason: "",
+        historyPresentIllness: "",
+        pastHistory: "",
+        familyHistory: "",
+        allergy: "",
+        currentMedication: "",
+      });
+    }
+    setVitalAssessmentDialogOpen(true);
+  }, [vitals, assessment]);
 
   const handleRepeatPrescription = React.useCallback(
     async (fromVisitId: number) => {
@@ -835,6 +848,7 @@ export default function ClinicalPage() {
               currentClinicalId != null ? loadPrescriptions(currentClinicalId) : Promise.resolve()
             }
             onVisitCompleted={handleVisitCompleted}
+            reopenVitalsSoapTick={reopenVitalsSoapTick}
           />
 
           <ClinicalRightPanel
@@ -904,6 +918,10 @@ export default function ClinicalPage() {
           if (currentClinicalId != null) {
             await loadVitalsAndAssessment(currentClinicalId, receptionIdForSupport);
           }
+        }}
+        onBackToVitalsOverview={() => {
+          setVitalAssessmentDialogOpen(false);
+          setReopenVitalsSoapTick((t) => t + 1);
         }}
       />
 

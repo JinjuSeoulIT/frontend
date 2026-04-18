@@ -34,10 +34,10 @@ export function ClinicalToolbar({
       <Button
         variant="contained"
         sx={{ bgcolor: "var(--brand)" }}
-        disabled={creatingClinical || !selectedPatient || blockStartVisitOtherInProgress}
+        disabled={creatingClinical || !selectedPatient}
         title={
           blockStartVisitOtherInProgress
-            ? "다른 환자가 진료 중입니다. 진료 완료 후 시작할 수 있습니다."
+            ? "동일 의사로 다른 접수가 진행 중이면, 시작 시 안내가 표시됩니다."
             : undefined
         }
         onClick={() => void onStartNewClinical()}

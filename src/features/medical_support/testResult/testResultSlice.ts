@@ -2,6 +2,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type {
   TestResult,
   TestResultDetailRequestPayload,
+  TestResultProgressStatusUpdateRequestPayload,
   TestResultSearchParams,
   TestResultUpdateRequestPayload,
 } from "@/features/medical_support/testResult/testResultType";
@@ -39,13 +40,18 @@ const testResultSlice = createSlice({
   name: "testResults",
   initialState,
   reducers: {
-    fetchTestResultsRequest: (
-      state,
-      action: PayloadAction<TestResultSearchParams | undefined>
-    ) => {
-      void action;
-      state.loading = true;
-      state.error = null;
+    fetchTestResultsRequest: {
+      reducer: (
+        state,
+        action: PayloadAction<TestResultSearchParams | undefined>
+      ) => {
+        void action;
+        state.loading = true;
+        state.error = null;
+      },
+      prepare: (params?: TestResultSearchParams) => ({
+        payload: params,
+      }),
     },
     fetchTestResultsSuccess: (state, action: PayloadAction<TestResult[]>) => {
       state.loading = false;
@@ -83,6 +89,15 @@ const testResultSlice = createSlice({
     updateTestResultRequest: (
       state,
       action: PayloadAction<TestResultUpdateRequestPayload>
+    ) => {
+      void action;
+      state.updateLoading = true;
+      state.updateError = null;
+      state.updateSuccess = false;
+    },
+    updateTestResultProgressStatusRequest: (
+      state,
+      action: PayloadAction<TestResultProgressStatusUpdateRequestPayload>
     ) => {
       void action;
       state.updateLoading = true;

@@ -1,4 +1,4 @@
-export type ReservationStatus = "RESERVED" | "CANCELED" | "COMPLETED" | "INACTIVE";
+﻿export type ReservationStatus = "RESERVED" | "CANCELED" | "COMPLETED" | "INACTIVE";
 
 export interface Reservation {
   reservationId: number;
@@ -7,7 +7,7 @@ export interface Reservation {
   patientName?: string | null;
   departmentId: string;
   departmentName?: string | null;
-  doctorId?: number | null;
+  doctorId?: string | null;
   doctorName?: string | null;
   reservedAt: string;
   status: ReservationStatus;
@@ -31,7 +31,7 @@ export type ReservationForm = {
   patientName?: string | null;
   departmentId: string;
   departmentName?: string | null;
-  doctorId?: number | null;
+  doctorId?: string | null;
   doctorName?: string | null;
   reservedAt: string;
   status?: ReservationStatus;
@@ -49,7 +49,7 @@ export type DepartmentOption = {
 };
 
 export type DoctorOption = {
-  doctorId: number;
+  doctorId: string;
   doctorName: string;
   departmentId?: string | null;
 };
@@ -77,3 +77,4 @@ export interface ReservationState {
   loading: boolean;
   error: string | null;
 }
+

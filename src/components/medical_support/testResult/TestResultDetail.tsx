@@ -1,9 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   Alert,
   Box,
@@ -44,12 +44,10 @@ const TYPE_DETAIL_FIELDS: Record<string, DetailFieldConfig[]> = {
   ],
   PATHOLOGY: [
     { key: "judgedAt", label: "병리 판정 시각", formatter: formatDetailDateTime },
-    { key: "readerId", label: "판독자 ID" },
     { key: "diagnosisName", label: "병리 진단명" },
   ],
   ENDOSCOPY: [
     { key: "biopsyYn", label: "조직검사 여부", formatter: formatDetailYn },
-    { key: "readerId", label: "판독자 ID" },
   ],
   PHYSIOLOGICAL: [
     { key: "report", label: "검사 리포트 본문", fullWidth: true },
@@ -143,6 +141,16 @@ function formatStatus(value?: string | null) {
 
 function getStatusColor(value?: string | null) {
   return normalizeValue(value) === "ACTIVE" ? "success" : "default";
+}
+
+function formatProgressStatus(value?: string | null) {
+  return normalizeValue(value) === "COMPLETED"
+    ? "결과작성완료"
+    : "결과작성중";
+}
+
+function getProgressStatusColor(value?: string | null) {
+  return normalizeValue(value) === "COMPLETED" ? "success" : "warning";
 }
 
 function getRouteParam(value: string | string[] | undefined) {
@@ -324,20 +332,20 @@ function DetailGrid({ children }: { children: ReactNode }) {
 
 export default function TestResultDetail() {
   const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const resultId = getRouteParam(params?.resultId).trim();
   const resultType = (searchParams.get("resultType") ?? "").trim().toUpperCase();
-  const listHref = resultType
-    ? `/medical_support/testResult/list?resultType=${encodeURIComponent(
-        resultType
-      )}`
-    : "/medical_support/testResult/list";
+  const listHref = "/medical_support/testResult/list";
   const editHref = `/medical_support/testResult/edit/${encodeURIComponent(
     resultId
   )}?resultType=${encodeURIComponent(resultType)}`;
 
-  const { detail, detailLoading, detailError } = useSelector(
+  const pendingSuccessMessageRef = useRef<string | null>(null);
+
+  const { detail, detailLoading, detailError, updateLoading, updateError, updateSuccess } =
+    useSelector(
     (state: RootState) => state.testResults
   );
 
@@ -356,8 +364,32 @@ export default function TestResultDetail() {
 
     return () => {
       dispatch(TestResultActions.clearTestResultDetail());
+      dispatch(TestResultActions.resetUpdateSuccess());
     };
   }, [dispatch, resultId, resultType]);
+
+  useEffect(() => {
+    if (!updateSuccess) {
+      return;
+    }
+
+    const message =
+      pendingSuccessMessageRef.current ?? "검사 결과가 작성완료 처리되었습니다.";
+
+    alert(message);
+    pendingSuccessMessageRef.current = null;
+    dispatch(TestResultActions.resetUpdateSuccess());
+    router.push(listHref);
+  }, [dispatch, listHref, router, updateSuccess]);
+
+  useEffect(() => {
+    if (!updateError) {
+      return;
+    }
+
+    pendingSuccessMessageRef.current = null;
+    alert(updateError);
+  }, [updateError]);
 
   if (!resultId || !resultType) {
     return (
@@ -422,11 +454,26 @@ export default function TestResultDetail() {
 
   const detailFields = buildDetailFieldConfigs(resultType, detail.detail);
   const detailSectionTitle = getDetailSectionTitle(resultType);
+  const isCompleted = normalizeValue(detail.progressStatus) === "COMPLETED";
   const isImaging = resultType === "IMAGING";
   const isSpecimen = resultType === "SPECIMEN";
   const isPathology = resultType === "PATHOLOGY";
   const isEndoscopy = resultType === "ENDOSCOPY";
   const isPhysiological = resultType === "PHYSIOLOGICAL";
+
+  const handleCompleteWriting = () => {
+    if (!resultId || updateLoading || isCompleted) {
+      return;
+    }
+
+    pendingSuccessMessageRef.current = "검사 결과가 작성완료 처리되었습니다.";
+    dispatch(
+      TestResultActions.updateTestResultProgressStatusRequest({
+        resultId,
+        progressStatus: "COMPLETED",
+      })
+    );
+  };
 
   return (
     <Box sx={{ px: 3, py: 3, maxWidth: 1100, mx: "auto" }}>
@@ -520,6 +567,18 @@ export default function TestResultDetail() {
                       />
                     }
                   />
+                  <DetailField
+                    label="진행상태"
+                    value={
+                      <Chip
+                        label={formatProgressStatus(detail.progressStatus)}
+                        color={getProgressStatusColor(detail.progressStatus)}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
                 </DetailGrid>
               </SectionCard>
 
@@ -601,6 +660,18 @@ export default function TestResultDetail() {
                         label={formatStatus(detail.status)}
                         color={getStatusColor(detail.status)}
                         size="small"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
+                  <DetailField
+                    label="진행상태"
+                    value={
+                      <Chip
+                        label={formatProgressStatus(detail.progressStatus)}
+                        color={getProgressStatusColor(detail.progressStatus)}
+                        size="small"
+                        variant="outlined"
                         sx={{ fontWeight: 600 }}
                       />
                     }
@@ -701,6 +772,18 @@ export default function TestResultDetail() {
                       />
                     }
                   />
+                  <DetailField
+                    label="진행상태"
+                    value={
+                      <Chip
+                        label={formatProgressStatus(detail.progressStatus)}
+                        color={getProgressStatusColor(detail.progressStatus)}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
                 </DetailGrid>
               </SectionCard>
 
@@ -717,10 +800,6 @@ export default function TestResultDetail() {
                   <DetailField
                     label="병리판정일시"
                     value={formatDetailDateTime(detail.detail?.judgedAt)}
-                  />
-                  <DetailField
-                    label="판독자 ID"
-                    value={formatDetailValue(detail.detail?.readerId)}
                   />
                   <DetailField
                     label="병리진단명"
@@ -793,6 +872,18 @@ export default function TestResultDetail() {
                       />
                     }
                   />
+                  <DetailField
+                    label="진행상태"
+                    value={
+                      <Chip
+                        label={formatProgressStatus(detail.progressStatus)}
+                        color={getProgressStatusColor(detail.progressStatus)}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
                 </DetailGrid>
               </SectionCard>
 
@@ -809,10 +900,6 @@ export default function TestResultDetail() {
                   <DetailField
                     label="조직검사 여부"
                     value={formatDetailYn(detail.detail?.biopsyYn)}
-                  />
-                  <DetailField
-                    label="판독자 ID"
-                    value={formatDetailValue(detail.detail?.readerId)}
                   />
                 </DetailGrid>
               </SectionCard>
@@ -877,6 +964,18 @@ export default function TestResultDetail() {
                         label={formatStatus(detail.status)}
                         color={getStatusColor(detail.status)}
                         size="small"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
+                  <DetailField
+                    label="진행상태"
+                    value={
+                      <Chip
+                        label={formatProgressStatus(detail.progressStatus)}
+                        color={getProgressStatusColor(detail.progressStatus)}
+                        size="small"
+                        variant="outlined"
                         sx={{ fontWeight: 600 }}
                       />
                     }
@@ -999,6 +1098,18 @@ export default function TestResultDetail() {
                       />
                     }
                   />
+                  <DetailField
+                    label="진행상태"
+                    value={
+                      <Chip
+                        label={formatProgressStatus(detail.progressStatus)}
+                        color={getProgressStatusColor(detail.progressStatus)}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    }
+                  />
                   <DetailField label="생성 시각" value={formatDateTime(detail.createdAt)} />
                 </DetailGrid>
               </Section>
@@ -1018,6 +1129,20 @@ export default function TestResultDetail() {
               </Section>
             </Stack>
           )}
+        </Box>
+        <Divider />
+        <Box sx={{ p: 2.5 }}>
+          <Stack direction="row" spacing={1} justifyContent="flex-end">
+            <Button
+              variant="contained"
+              color="success"
+              size="small"
+              onClick={handleCompleteWriting}
+              disabled={updateLoading || isCompleted}
+            >
+              작성완료
+            </Button>
+          </Stack>
         </Box>
       </Paper>
     </Box>

@@ -2,6 +2,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type {
   PhysiologicalExam,
   PhysiologicalExamCreatePayload,
+  PhysiologicalSearchParams,
   PhysiologicalExamUpdatePayload,
 } from "@/features/medical_support/physiological/physiologicalType";
 
@@ -27,10 +28,19 @@ const physiologicalSlice = createSlice({
   name: "physiologicals",
   initialState,
   reducers: {
-    fetchPhysiologicalsRequest: (state) => {
-      state.loading = true;
-      state.error = null;
-      state.createSuccess = false;
+    fetchPhysiologicalsRequest: {
+      reducer: (
+        state,
+        action: PayloadAction<PhysiologicalSearchParams | undefined>
+      ) => {
+        void action;
+        state.loading = true;
+        state.error = null;
+        state.createSuccess = false;
+      },
+      prepare: (params?: PhysiologicalSearchParams) => ({
+        payload: params,
+      }),
     },
     fetchPhysiologicalsSuccess: (
       state,

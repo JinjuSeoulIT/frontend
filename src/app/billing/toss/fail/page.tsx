@@ -1,7 +1,16 @@
 "use client";
 
-import { Suspense, useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+
+interface TossPaymentContext {
+  billId: number;
+  patientId: number;
+  requestedAmount: number;
+  orderId: string;
+  returnTo?: string;
+  returnLabel?: string;
+}
 
 function TossFailPageContent() {
   const router = useRouter();
@@ -10,12 +19,14 @@ function TossFailPageContent() {
   const code = searchParams.get("code");
   const message = searchParams.get("message");
   const orderId = searchParams.get("orderId");
+  const [paymentContext, setPaymentContext] = useState<TossPaymentContext | null>(
+    null
+  );
 
   const hasErrorInfo = useMemo(() => {
     return Boolean(code || message || orderId);
   }, [code, message, orderId]);
 
-  /* orderId에서 billId 추출 */
   const parsedBillIdFromOrderId = useMemo(() => {
     if (!orderId) return null;
 
@@ -28,19 +39,47 @@ function TossFailPageContent() {
     return maybeBillId;
   }, [orderId]);
 
-  /* 실패 페이지 진입 시 이전 toss context 정리 */
+  const resolvedBillId = paymentContext?.billId ?? parsedBillIdFromOrderId;
+  const returnTo = paymentContext?.returnTo;
+  const returnLabel = paymentContext?.returnLabel ?? "이전 화면";
+
   useEffect(() => {
     if (typeof window === "undefined") return;
-    sessionStorage.removeItem("tossPaymentContext");
+
+    const saved = sessionStorage.getItem("tossPaymentContext");
+    if (!saved) return;
+
+    try {
+      const parsed = JSON.parse(saved) as TossPaymentContext;
+      setPaymentContext(parsed);
+    } catch (error) {
+      console.error("[toss] sessionStorage parse error", error);
+    } finally {
+      sessionStorage.removeItem("tossPaymentContext");
+    }
   }, []);
 
-  const moveToBillingDetail = () => {
-    if (parsedBillIdFromOrderId == null) {
+  const moveToPreferredPage = () => {
+    if (returnTo) {
+      router.push(returnTo);
+      return;
+    }
+
+    if (resolvedBillId == null) {
       router.push("/billing");
       return;
     }
 
-    router.push(`/billing/${parsedBillIdFromOrderId}`);
+    router.push(`/billing/${resolvedBillId}`);
+  };
+
+  const moveToBillingDetail = () => {
+    if (resolvedBillId == null) {
+      router.push("/billing");
+      return;
+    }
+
+    router.push(`/billing/${resolvedBillId}`);
   };
 
   return (
@@ -83,8 +122,7 @@ function TossFailPageContent() {
           현재 단계는 <strong>토스 결제가 승인되지 않아 실패 페이지로 이동한 상태</strong>
           입니다.
           <br />
-          실패한 결제는 billing 수납 DB에 반영되지 않으며, 수납 상세 화면으로 돌아가
-          결제를 다시 시도할 수 있습니다.
+          실패한 결제는 billing 수납 DB에 반영되지 않으며, 이전 화면으로 돌아가 다시 시도할 수 있습니다.
         </p>
 
         <div
@@ -97,23 +135,19 @@ function TossFailPageContent() {
           }}
         >
           <div style={{ marginBottom: "12px" }}>
-            <strong>code:</strong>{" "}
-            <span>{code ?? "값 없음"}</span>
+            <strong>code:</strong> <span>{code ?? "값 없음"}</span>
           </div>
 
           <div style={{ marginBottom: "12px" }}>
-            <strong>message:</strong>{" "}
-            <span>{message ?? "값 없음"}</span>
+            <strong>message:</strong> <span>{message ?? "값 없음"}</span>
           </div>
 
           <div style={{ marginBottom: "12px" }}>
-            <strong>orderId:</strong>{" "}
-            <span>{orderId ?? "값 없음"}</span>
+            <strong>orderId:</strong> <span>{orderId ?? "값 없음"}</span>
           </div>
 
           <div>
-            <strong>billId(orderId 기준):</strong>{" "}
-            <span>{parsedBillIdFromOrderId ?? "값 없음"}</span>
+            <strong>billId:</strong> <span>{resolvedBillId ?? "값 없음"}</span>
           </div>
         </div>
 
@@ -137,7 +171,7 @@ function TossFailPageContent() {
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
           <button
             type="button"
-            onClick={moveToBillingDetail}
+            onClick={moveToPreferredPage}
             style={{
               padding: "12px 18px",
               border: "none",
@@ -149,41 +183,24 @@ function TossFailPageContent() {
               fontWeight: 600,
             }}
           >
+            {returnLabel}로 이동
+          </button>
+
+          <button
+            type="button"
+            onClick={moveToBillingDetail}
+            style={{
+              padding: "12px 18px",
+              border: "1px solid #d1d5db",
+              borderRadius: "10px",
+              backgroundColor: "#ffffff",
+              color: "#111827",
+              cursor: "pointer",
+              fontSize: "15px",
+              fontWeight: 600,
+            }}
+          >
             수납 상세로 이동
-          </button>
-
-          <button
-            type="button"
-            onClick={() => router.push("/billing")}
-            style={{
-              padding: "12px 18px",
-              border: "1px solid #d1d5db",
-              borderRadius: "10px",
-              backgroundColor: "#ffffff",
-              color: "#111827",
-              cursor: "pointer",
-              fontSize: "15px",
-              fontWeight: 600,
-            }}
-          >
-            billing 목록으로 이동
-          </button>
-
-          <button
-            type="button"
-            onClick={() => router.back()}
-            style={{
-              padding: "12px 18px",
-              border: "1px solid #d1d5db",
-              borderRadius: "10px",
-              backgroundColor: "#ffffff",
-              color: "#111827",
-              cursor: "pointer",
-              fontSize: "15px",
-              fontWeight: 600,
-            }}
-          >
-            이전 페이지로
           </button>
         </div>
       </div>

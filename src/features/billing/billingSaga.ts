@@ -145,9 +145,6 @@ function* fetchPaymentsByBillSaga(
   }
 }
 
-/**
- * [수정] billingDate까지 전달
- */
 function* fetchBillsSaga(
   action: PayloadAction<{
     status?: string | null;
@@ -186,12 +183,13 @@ function* createPaymentSaga(
     amount: number;
     patientId: number;
     method: "CASH" | "CARD" | "TRANSFER";
+    staffId: string;
   }>
 ): Generator<any, void, any> {
   try {
-    const { billId, amount, patientId, method } = action.payload;
+    const { billId, amount, patientId, method, staffId } = action.payload;
 
-    yield call(createPaymentApi, billId, amount, method);
+    yield call(createPaymentApi, billId, amount, method, staffId);
 
     toast.success("수납이 완료되었습니다.");
 
@@ -214,12 +212,13 @@ function* cancelPaymentSaga(
     paymentId: number;
     billId: number;
     patientId: number;
+    staffId: string;
   }>
 ): Generator<any, void, any> {
   try {
-    const { paymentId, billId, patientId } = action.payload;
+    const { paymentId, billId, patientId, staffId } = action.payload;
 
-    yield call(cancelPaymentApi, paymentId);
+    yield call(cancelPaymentApi, paymentId, staffId);
 
     toast.success("수납 취소가 완료되었습니다.");
 
@@ -243,12 +242,13 @@ function* refundPaymentSaga(
     amount: number;
     billId: number;
     patientId: number;
+    staffId: string;
   }>
 ): Generator<any, void, any> {
   try {
-    const { paymentId, amount, billId, patientId } = action.payload;
+    const { paymentId, amount, billId, patientId, staffId } = action.payload;
 
-    yield call(refundPaymentApi, paymentId, amount);
+    yield call(refundPaymentApi, paymentId, amount, staffId);
 
     toast.success("환불이 완료되었습니다.");
 
@@ -279,12 +279,12 @@ function* fetchBillingStatsSaga(): Generator<any, void, any> {
 }
 
 function* confirmBillSaga(
-  action: PayloadAction<number>
+  action: PayloadAction<{ billId: number; staffId: string }>
 ): Generator<any, void, any> {
   try {
-    const billId = action.payload;
+    const { billId, staffId } = action.payload;
 
-    yield call(confirmBillApi, billId);
+    yield call(confirmBillApi, billId, staffId);
 
     toast.success("청구가 확정되었습니다.");
 
@@ -301,12 +301,12 @@ function* confirmBillSaga(
 }
 
 function* unconfirmBillSaga(
-  action: PayloadAction<number>
+  action: PayloadAction<{ billId: number; staffId: string }>
 ): Generator<any, void, any> {
   try {
-    const billId = action.payload;
+    const { billId, staffId } = action.payload;
 
-    yield call(unconfirmBillApi, billId);
+    yield call(unconfirmBillApi, billId, staffId);
 
     toast.success("청구 확정이 해제되었습니다.");
 
@@ -323,12 +323,12 @@ function* unconfirmBillSaga(
 }
 
 function* cancelBillSaga(
-  action: PayloadAction<number>
+  action: PayloadAction<{ billId: number; staffId: string }>
 ): Generator<any, void, any> {
   try {
-    const billId = action.payload;
+    const { billId, staffId } = action.payload;
 
-    yield call(cancelBillApi, billId);
+    yield call(cancelBillApi, billId, staffId);
 
     toast.success("청구가 취소되었습니다.");
 
@@ -346,12 +346,12 @@ function* cancelBillSaga(
 }
 
 function* restoreBillSaga(
-  action: PayloadAction<number>
+  action: PayloadAction<{ billId: number; staffId: string }>
 ): Generator<any, void, any> {
   try {
-    const billId = action.payload;
+    const { billId, staffId } = action.payload;
 
-    yield call(restoreBillApi, billId);
+    yield call(restoreBillApi, billId, staffId);
 
     toast.success("청구가 복원되었습니다.");
 

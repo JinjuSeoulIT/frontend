@@ -131,6 +131,7 @@ export interface BillHistory {
   title: string;
   description: string;
   amount: number;
+  changedBy: string | null;
 }
 
 export interface CalculatedBill {
@@ -235,18 +236,21 @@ export interface Payment {
   status: string;
   method: string;
   paidAt: string;
+  createdBy: string | null;
+  canceledBy: string | null;
 }
 
 export const createPaymentApi = async (
   billId: number,
   amount: number,
-  method: PaymentMethod
+  method: PaymentMethod,
+  staffId: string
 ): Promise<Payment> => {
   const res = await api.post<ApiResponse<Payment>>(
     `/api/billing/payments`,
     null,
     {
-      params: { billId, amount, method },
+      params: { billId, amount, method, staffId },
     }
   );
 
@@ -258,10 +262,15 @@ export const createPaymentApi = async (
 };
 
 export const cancelPaymentApi = async (
-  paymentId: number
+  paymentId: number,
+  staffId: string
 ): Promise<void> => {
   const res = await api.patch<ApiResponse<null>>(
-    `/api/billing/payments/${paymentId}/cancel`
+    `/api/billing/payments/${paymentId}/cancel`,
+    null,
+    {
+      params: { staffId },
+    }
   );
 
   if (!res.data.success) {
@@ -310,13 +319,14 @@ export const fetchBillingStatsApi = async (): Promise<BillingStats> => {
 
 export const refundPaymentApi = async (
   paymentId: number,
-  amount: number
+  amount: number,
+  staffId: string
 ): Promise<Payment> => {
   const res = await api.patch<ApiResponse<Payment>>(
     `/api/billing/payments/${paymentId}/refund`,
     null,
     {
-      params: { amount },
+      params: { amount, staffId },
     }
   );
 
@@ -355,10 +365,15 @@ export const fetchBillsApi = async (
 };
 
 export const confirmBillApi = async (
-  billId: number
+  billId: number,
+  staffId: string
 ): Promise<void> => {
   const res = await api.post<ApiResponse<null>>(
-    `/api/billing/bills/${billId}/confirm`
+    `/api/billing/bills/${billId}/confirm`,
+    null,
+    {
+      params: { staffId },
+    }
   );
 
   if (!res.data.success) {
@@ -367,10 +382,15 @@ export const confirmBillApi = async (
 };
 
 export const cancelBillApi = async (
-  billId: number
+  billId: number,
+  staffId: string
 ): Promise<void> => {
   const res = await api.post<ApiResponse<null>>(
-    `/api/billing/bills/${billId}/cancel`
+    `/api/billing/bills/${billId}/cancel`,
+    null,
+    {
+      params: { staffId },
+    }
   );
 
   if (!res.data.success) {
@@ -379,10 +399,15 @@ export const cancelBillApi = async (
 };
 
 export const unconfirmBillApi = async (
-  billId: number
+  billId: number,
+  staffId: string
 ): Promise<void> => {
   const res = await api.post<ApiResponse<null>>(
-    `/api/billing/bills/${billId}/unconfirm`
+    `/api/billing/bills/${billId}/unconfirm`,
+    null,
+    {
+      params: { staffId },
+    }
   );
 
   if (!res.data.success) {
@@ -391,10 +416,15 @@ export const unconfirmBillApi = async (
 };
 
 export const restoreBillApi = async (
-  billId: number
+  billId: number,
+  staffId: string
 ): Promise<void> => {
   const res = await api.post<ApiResponse<null>>(
-    `/api/billing/bills/${billId}/restore`
+    `/api/billing/bills/${billId}/restore`,
+    null,
+    {
+      params: { staffId },
+    }
   );
 
   if (!res.data.success) {

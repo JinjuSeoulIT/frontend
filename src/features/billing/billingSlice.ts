@@ -88,6 +88,7 @@ const billingSlice = createSlice({
       state.error = null;
     },
 
+    // [수정] staffId 추가
     createPaymentRequest(
       state,
       action: PayloadAction<{
@@ -95,44 +96,60 @@ const billingSlice = createSlice({
         amount: number;
         patientId: number;
         method: PaymentMethod;
+        staffId: string;
       }>
     ) {
       state.loading = true;
       state.error = null;
     },
 
-    confirmBillRequest(state, action: PayloadAction<number>) {
+    confirmBillRequest(
+      state,
+      action: PayloadAction<{ billId: number; staffId: string }>
+    ) {
       state.loading = true;
       state.error = null;
     },
 
-    unconfirmBillRequest(state, action: PayloadAction<number>) {
+    unconfirmBillRequest(
+      state,
+      action: PayloadAction<{ billId: number; staffId: string }>
+    ) {
       state.loading = true;
       state.error = null;
     },
 
-    cancelBillRequest(state, action: PayloadAction<number>) {
+    cancelBillRequest(
+      state,
+      action: PayloadAction<{ billId: number; staffId: string }>
+    ) {
       state.loading = true;
       state.error = null;
     },
 
-    restoreBillRequest(state, action: PayloadAction<number>) {
+    restoreBillRequest(
+      state,
+      action: PayloadAction<{ billId: number; staffId: string }>
+    ) {
       state.loading = true;
       state.error = null;
     },
 
+    // [수정] staffId 추가
     cancelPaymentRequest(
       state,
       action: PayloadAction<{
         paymentId: number;
         billId: number;
         patientId: number;
+        staffId: string;
       }>
     ) {
       state.loading = true;
       state.error = null;
     },
 
+    // [수정] staffId 추가
     refundPaymentRequest(
       state,
       action: PayloadAction<{
@@ -140,6 +157,7 @@ const billingSlice = createSlice({
         amount: number;
         billId: number;
         patientId: number;
+        staffId: string;
       }>
     ) {
       state.loading = true;
@@ -156,7 +174,6 @@ const billingSlice = createSlice({
       state.error = null;
     },
 
-    // [수정] billingDate 추가
     fetchBillsRequest(
       state,
       action: PayloadAction<{

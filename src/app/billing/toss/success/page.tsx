@@ -22,6 +22,9 @@ interface TossPaymentContext {
   patientId: number;
   requestedAmount: number;
   orderId: string;
+  staffId: string;
+  returnTo?: string;
+  returnLabel?: string;
 }
 
 function TossSuccessPageContent() {
@@ -47,7 +50,6 @@ function TossSuccessPageContent() {
     return Boolean(paymentKey && orderId && amount);
   }, [paymentKey, orderId, amount]);
 
-  /* orderId에서 billId 추출 */
   const parsedBillIdFromOrderId = useMemo(() => {
     if (!orderId) return null;
 
@@ -60,7 +62,6 @@ function TossSuccessPageContent() {
     return maybeBillId;
   }, [orderId]);
 
-  /* sessionStorage 우선, 없으면 orderId 파싱값 사용 */
   const resolvedBillId = useMemo(() => {
     if (paymentContext?.billId != null) {
       return paymentContext.billId;
@@ -68,6 +69,9 @@ function TossSuccessPageContent() {
 
     return parsedBillIdFromOrderId;
   }, [paymentContext?.billId, parsedBillIdFromOrderId]);
+
+  const returnTo = paymentContext?.returnTo;
+  const returnLabel = paymentContext?.returnLabel ?? "이전 화면";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -90,7 +94,7 @@ function TossSuccessPageContent() {
     }
 
     if (resolvedBillId == null) {
-      setMessage("billId를 확인할 수 없습니다. 수납 상세로 돌아가 다시 시도해주세요.");
+      setMessage("billId를 확인할 수 없습니다. 이전 화면으로 돌아가 다시 시도해주세요.");
       return;
     }
 
@@ -128,6 +132,7 @@ function TossSuccessPageContent() {
             orderId,
             amount: amountNumber,
             billId: resolvedBillId,
+            staffId: paymentContext?.staffId ?? "",
           }),
         });
 
@@ -160,6 +165,20 @@ function TossSuccessPageContent() {
 
     approvePayment();
   }, [isValid, paymentKey, orderId, amount, resolvedBillId]);
+
+  const moveToPreferredPage = () => {
+    if (returnTo) {
+      router.push(returnTo);
+      return;
+    }
+
+    if (resolvedBillId == null) {
+      router.push("/billing");
+      return;
+    }
+
+    router.push(`/billing/${resolvedBillId}`);
+  };
 
   const moveToBillingDetail = () => {
     if (resolvedBillId == null) {
@@ -210,8 +229,7 @@ function TossSuccessPageContent() {
           현재 단계는 <strong>토스 결제 승인 완료 후 billing 수납 DB까지 반영</strong>
           하는 단계입니다.
           <br />
-          승인 결과가 정상 처리되면 수납 상세 화면에서 결제 내역, 환불 내역,
-          남은 금액, 상태 변경 결과까지 확인할 수 있습니다.
+          승인 결과가 정상 처리되면 이전 화면 또는 수납 상세 화면에서 결제 내역과 남은 금액을 확인할 수 있습니다.
         </p>
 
         <div
@@ -224,23 +242,19 @@ function TossSuccessPageContent() {
           }}
         >
           <div style={{ marginBottom: "12px" }}>
-            <strong>paymentKey:</strong>{" "}
-            <span>{paymentKey ?? "값 없음"}</span>
+            <strong>paymentKey:</strong> <span>{paymentKey ?? "값 없음"}</span>
           </div>
 
           <div style={{ marginBottom: "12px" }}>
-            <strong>orderId:</strong>{" "}
-            <span>{orderId ?? "값 없음"}</span>
+            <strong>orderId:</strong> <span>{orderId ?? "값 없음"}</span>
           </div>
 
           <div style={{ marginBottom: "12px" }}>
-            <strong>amount:</strong>{" "}
-            <span>{amount ?? "값 없음"}</span>
+            <strong>amount:</strong> <span>{amount ?? "값 없음"}</span>
           </div>
 
           <div>
-            <strong>billId(sessionStorage / orderId 기준):</strong>{" "}
-            <span>{resolvedBillId ?? "값 없음"}</span>
+            <strong>billId:</strong> <span>{resolvedBillId ?? "값 없음"}</span>
           </div>
         </div>
 
@@ -249,24 +263,14 @@ function TossSuccessPageContent() {
             marginBottom: "24px",
             padding: "16px",
             borderRadius: "12px",
-            backgroundColor: loading
-              ? "#eff6ff"
-              : approveSuccess
-              ? "#ecfdf5"
-              : "#fef2f2",
-            color: loading
-              ? "#1d4ed8"
-              : approveSuccess
-              ? "#065f46"
-              : "#991b1b",
-            border: loading
-              ? "1px solid #bfdbfe"
-              : approveSuccess
+            backgroundColor: approveSuccess ? "#ecfdf5" : "#fef2f2",
+            color: approveSuccess ? "#065f46" : "#991b1b",
+            border: approveSuccess
               ? "1px solid #a7f3d0"
               : "1px solid #fecaca",
           }}
         >
-          {loading ? "백엔드 승인 API를 호출 중입니다..." : message}
+          {loading ? "결제 승인 API를 호출 중입니다..." : message}
         </div>
 
         {approveResult && (
@@ -275,33 +279,21 @@ function TossSuccessPageContent() {
               border: "1px solid #e5e7eb",
               borderRadius: "12px",
               padding: "20px",
-              backgroundColor: "#f9fafb",
+              backgroundColor: "#ffffff",
               marginBottom: "24px",
             }}
           >
             <div style={{ marginBottom: "12px" }}>
-              <strong>승인 결과 paymentKey:</strong>{" "}
-              <span>{approveResult.paymentKey}</span>
+              <strong>승인 상태:</strong> <span>{approveResult.status}</span>
             </div>
-
             <div style={{ marginBottom: "12px" }}>
-              <strong>승인 결과 orderId:</strong>{" "}
-              <span>{approveResult.orderId}</span>
+              <strong>결제 수단:</strong> <span>{approveResult.method}</span>
             </div>
-
             <div style={{ marginBottom: "12px" }}>
-              <strong>승인 결과 amount:</strong>{" "}
-              <span>{approveResult.amount}</span>
+              <strong>승인 금액:</strong> <span>{approveResult.amount.toLocaleString()}원</span>
             </div>
-
-            <div style={{ marginBottom: "12px" }}>
-              <strong>승인 결과 status:</strong>{" "}
-              <span>{approveResult.status}</span>
-            </div>
-
             <div>
-              <strong>승인 결과 method:</strong>{" "}
-              <span>{approveResult.method}</span>
+              <strong>승인 orderId:</strong> <span>{approveResult.orderId}</span>
             </div>
           </div>
         )}
@@ -309,7 +301,7 @@ function TossSuccessPageContent() {
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
           <button
             type="button"
-            onClick={moveToBillingDetail}
+            onClick={moveToPreferredPage}
             style={{
               padding: "12px 18px",
               border: "none",
@@ -321,12 +313,12 @@ function TossSuccessPageContent() {
               fontWeight: 600,
             }}
           >
-            수납 상세로 이동
+            {returnLabel}로 이동
           </button>
 
           <button
             type="button"
-            onClick={() => router.push("/billing")}
+            onClick={moveToBillingDetail}
             style={{
               padding: "12px 18px",
               border: "1px solid #d1d5db",
@@ -338,7 +330,7 @@ function TossSuccessPageContent() {
               fontWeight: 600,
             }}
           >
-            billing 목록으로 이동
+            수납 상세로 이동
           </button>
         </div>
       </div>

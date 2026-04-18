@@ -12,19 +12,34 @@ import type { BillingClaimItemRequest } from "@/lib/billing/billingApi";
 
 import MainLayout from "@/components/layout/MainLayout";
 import {
+  Alert,
   Box,
   Button,
   Card,
   CardContent,
+  Chip,
   Divider,
+  IconButton,
+  MenuItem,
   Stack,
   TextField,
   Typography,
-  Alert,
-  Chip,
 } from "@mui/material";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import EventNoteIcon from "@mui/icons-material/EventNote";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+
+const SOURCE_TYPE = "CLINICAL_ORDER_ITEM";
+const ORDER_TYPE_OPTIONS = ["PRESCRIPTION", "BLOOD", "OTHER"] as const;
+
+type ClaimItemForm = {
+  itemName: string;
+  itemCode: string;
+  orderType: string;
+  sourceId: string;
+  sourceType: string;
+};
 
 export default function BillingClaimsPage() {
   const router = useRouter();
@@ -34,27 +49,13 @@ export default function BillingClaimsPage() {
     (state: RootState) => state.billing
   );
 
-  /* ================================
-     수정: 사용자 직접 입력은 visitId, patientId만 유지
-  ================================ */
   const [visitId, setVisitId] = useState("");
   const [patientId, setPatientId] = useState("");
-
-  /* ================================
-     추가: 자동 생성/고정 표시용 상태
-  ================================ */
   const [eventId, setEventId] = useState("");
-  const [status] = useState("COMPLETED");
   const [occurredAt, setOccurredAt] = useState(getDefaultOccurredAt());
-
-  /* ================================
-     추가: submit 이후 성공 이동 제어용 상태
-  ================================ */
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [items, setItems] = useState<ClaimItemForm[]>([createEmptyClaimItem()]);
 
-  /* ================================
-     추가: 페이지 진입 시 이전 claims 결과 초기화
-  ================================ */
   useEffect(() => {
     dispatch(setBillingClaimResult(null));
 
@@ -63,16 +64,10 @@ export default function BillingClaimsPage() {
     };
   }, [dispatch]);
 
-  /* ================================
-     추가: 페이지 진입 시 eventId 자동 생성
-  ================================ */
   useEffect(() => {
     setEventId(createAutoEventId());
   }, []);
 
-  /* ================================
-     추가: claims 성공 시 bill 상세 페이지로 이동
-  ================================ */
   useEffect(() => {
     if (!submitAttempted) return;
     if (!billingClaimResult?.billId) return;
@@ -80,10 +75,6 @@ export default function BillingClaimsPage() {
     router.push(`/billing/${billingClaimResult.billId}`);
   }, [billingClaimResult, submitAttempted, router]);
 
-  /* ================================
-     수정: eventId/status/occurredAt 직접 검증 제거
-     사용자 입력값인 visitId, patientId만 검증
-  ================================ */
   const validationMessage = useMemo(() => {
     if (!visitId.trim()) return "진료 ID를 입력해주세요.";
     if (!patientId.trim()) return "환자 ID를 입력해주세요.";
@@ -98,8 +89,65 @@ export default function BillingClaimsPage() {
       return "환자 ID는 0보다 큰 숫자여야 합니다.";
     }
 
+    if (items.length === 0) {
+      return "청구 항목은 최소 1건 이상 필요합니다.";
+    }
+
+    for (let index = 0; index < items.length; index += 1) {
+      const item = items[index];
+      const rowNumber = index + 1;
+
+      if (!item.sourceId.trim()) {
+        return `${rowNumber}번째 항목의 sourceId를 입력해주세요.`;
+      }
+
+      const sourceIdNumber = Number(item.sourceId);
+      if (Number.isNaN(sourceIdNumber) || sourceIdNumber <= 0) {
+        return `${rowNumber}번째 항목의 sourceId는 0보다 큰 숫자여야 합니다.`;
+      }
+
+      if (!item.orderType.trim()) {
+        return `${rowNumber}번째 항목의 orderType을 선택해주세요.`;
+      }
+
+      if (!item.itemName.trim() && !item.itemCode.trim()) {
+        return `${rowNumber}번째 항목은 itemName 또는 itemCode 중 하나는 입력해야 합니다.`;
+      }
+    }
+
     return "";
-  }, [visitId, patientId]);
+  }, [visitId, patientId, items]);
+
+  const handleChangeItem = (
+    index: number,
+    field: keyof ClaimItemForm,
+    value: string
+  ) => {
+    setItems((prev) =>
+      prev.map((item, itemIndex) => {
+        if (itemIndex !== index) return item;
+
+        return {
+          ...item,
+          [field]: field === "sourceId" ? onlyNumber(value) : value,
+        };
+      })
+    );
+  };
+
+  const handleAddItem = () => {
+    setItems((prev) => [...prev, createEmptyClaimItem()]);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    setItems((prev) => {
+      if (prev.length === 1) {
+        return [createEmptyClaimItem()];
+      }
+
+      return prev.filter((_, itemIndex) => itemIndex !== index);
+    });
+  };
 
   const handleSubmit = () => {
     if (validationMessage) return;
@@ -107,35 +155,17 @@ export default function BillingClaimsPage() {
     const autoEventId = createAutoEventId();
     const autoOccurredAt = new Date().toISOString();
 
-    /* ================================
-       추가: 제출 시 자동 세팅값 화면에도 반영
-    ================================ */
     setEventId(autoEventId);
     setOccurredAt(toDatetimeLocal(autoOccurredAt));
-
     setSubmitAttempted(true);
 
-    /* ================================
-       추가: claims 테스트용 항목 배열
-       현재 백엔드 claims는 items가 필수이므로
-       화면에서도 items를 함께 전송하도록 반영
-    ================================ */
-    const items: BillingClaimItemRequest[] = [
-      {
-        itemName: "혈액검사",
-        itemCode: "LAB001",
-        orderType: "BLOOD",
-        sourceId: 2001,
-        sourceType: "CLINICAL_ORDER_ITEM",
-      },
-      {
-        itemName: "",
-        itemCode: "RX001",
-        orderType: "PRESCRIPTION",
-        sourceId: 2002,
-        sourceType: "CLINICAL_ORDER_ITEM",
-      },
-    ];
+    const requestItems: BillingClaimItemRequest[] = items.map((item) => ({
+      itemName: item.itemName.trim(),
+      itemCode: item.itemCode.trim(),
+      orderType: item.orderType.trim(),
+      sourceId: Number(item.sourceId),
+      sourceType: item.sourceType.trim() || SOURCE_TYPE,
+    }));
 
     dispatch(
       createBillingClaimRequest({
@@ -144,7 +174,7 @@ export default function BillingClaimsPage() {
         patientId: Number(patientId),
         status: "COMPLETED",
         occurredAt: autoOccurredAt,
-        items,
+        items: requestItems,
       })
     );
   };
@@ -155,6 +185,7 @@ export default function BillingClaimsPage() {
     setEventId(createAutoEventId());
     setOccurredAt(getDefaultOccurredAt());
     setSubmitAttempted(false);
+    setItems([createEmptyClaimItem()]);
     dispatch(setBillingClaimResult(null));
   };
 
@@ -169,9 +200,6 @@ export default function BillingClaimsPage() {
       >
         <Box sx={{ maxWidth: 980, mx: "auto" }}>
           <Stack spacing={3}>
-            {/* ================================
-                상단 헤더
-            ================================= */}
             <Card
               sx={{
                 borderRadius: 3,
@@ -207,9 +235,6 @@ export default function BillingClaimsPage() {
               </CardContent>
             </Card>
 
-            {/* ================================
-                입력 안내
-            ================================= */}
             <Card
               sx={{
                 borderRadius: 3,
@@ -227,26 +252,23 @@ export default function BillingClaimsPage() {
                   </Stack>
 
                   <Typography variant="body2" color="text.secondary">
-                    현재 화면에서는 진료 ID와 환자 ID만 입력하고,
+                    현재 화면에서는 진료 ID, 환자 ID, 청구 항목(items)을 직접 입력하고,
                     이벤트 ID / 처리 상태 / 발생 일시는 자동으로 세팅됩니다.
                   </Typography>
 
-                  {/* ================================
-                      추가: 현재는 테스트용 items를 같이 전송한다는 안내
-                  ================================= */}
                   <Typography variant="body2" color="text.secondary">
-                    현재 claims 화면에서는 백엔드 연동 검증을 위해 테스트용
-                    청구 항목(items)이 함께 전송됩니다. 이후 clinical 연동이 완료되면
-                    실제 Order / OrderItem 기반 데이터로 대체될 예정입니다.
+                    각 청구 항목은 sourceId가 필수이며, itemName이 비어 있어도 itemCode가
+                    있으면 전송 가능합니다. sourceType은 현재 billing 기준으로
+                    CLINICAL_ORDER_ITEM 고정값을 사용합니다.
                   </Typography>
 
                   <Stack direction="row" spacing={1} flexWrap="wrap">
                     <Chip label="이벤트 ID 자동 생성" size="small" />
                     <Chip label="진료 ID 입력" size="small" />
                     <Chip label="환자 ID 입력" size="small" />
+                    <Chip label="청구 항목 직접 입력" size="small" />
                     <Chip label="처리 상태 자동 고정" size="small" />
                     <Chip label="발생 일시 자동 세팅" size="small" />
-                    <Chip label="테스트용 items 자동 포함" size="small" />
                   </Stack>
                 </Stack>
               </CardContent>
@@ -261,14 +283,10 @@ export default function BillingClaimsPage() {
             {billingClaimResult && (
               <Alert severity="success" sx={{ borderRadius: 2 }}>
                 청구 요청 처리 결과: billId = {billingClaimResult.billId},{" "}
-                alreadyProcessed ={" "}
-                {billingClaimResult.alreadyProcessed ? "true" : "false"}
+                alreadyProcessed = {billingClaimResult.alreadyProcessed ? "true" : "false"}
               </Alert>
             )}
 
-            {/* ================================
-                입력 폼
-            ================================= */}
             <Card
               sx={{
                 borderRadius: 3,
@@ -284,9 +302,6 @@ export default function BillingClaimsPage() {
 
                   <Divider />
 
-                  {/* ================================
-                      수정: 자동 세팅값은 읽기 전용 표시
-                  ================================= */}
                   <TextField
                     label="이벤트 ID"
                     value={eventId}
@@ -316,9 +331,6 @@ export default function BillingClaimsPage() {
                     />
                   </Stack>
 
-                  {/* ================================
-                      수정: 처리 상태는 고정값 표시
-                  ================================= */}
                   <TextField
                     label="처리 상태"
                     value="완료 (COMPLETED)"
@@ -328,9 +340,6 @@ export default function BillingClaimsPage() {
                     helperText="현재 청구 요청은 완료 이벤트 기준으로만 생성됩니다."
                   />
 
-                  {/* ================================
-                      수정: 발생 일시는 자동 세팅 표시
-                  ================================= */}
                   <TextField
                     label="발생 일시"
                     value={occurredAt}
@@ -339,6 +348,133 @@ export default function BillingClaimsPage() {
                     InputProps={{ readOnly: true }}
                     helperText="제출 시 현재 시각 기준으로 자동 반영됩니다."
                   />
+
+                  <Divider />
+
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    alignItems={{ xs: "flex-start", sm: "center" }}
+                    justifyContent="space-between"
+                    spacing={1.5}
+                  >
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight={700}>
+                        청구 항목 입력
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        clinical에서 전달되는 items 구조를 기준으로 직접 입력합니다.
+                      </Typography>
+                    </Box>
+
+                    <Button
+                      variant="outlined"
+                      startIcon={<AddCircleOutlineIcon />}
+                      onClick={handleAddItem}
+                      disabled={loading}
+                      sx={{ borderRadius: 2, textTransform: "none" }}
+                    >
+                      항목 추가
+                    </Button>
+                  </Stack>
+
+                  <Stack spacing={2}>
+                    {items.map((item, index) => (
+                      <Card
+                        key={`claim-item-${index}`}
+                        variant="outlined"
+                        sx={{ borderRadius: 2.5, borderColor: "rgba(0,0,0,0.08)" }}
+                      >
+                        <CardContent sx={{ p: 2 }}>
+                          <Stack spacing={2}>
+                            <Stack
+                              direction="row"
+                              justifyContent="space-between"
+                              alignItems="center"
+                            >
+                              <Typography variant="subtitle2" fontWeight={700}>
+                                항목 {index + 1}
+                              </Typography>
+
+                              <IconButton
+                                aria-label={`항목 ${index + 1} 삭제`}
+                                onClick={() => handleRemoveItem(index)}
+                                disabled={loading}
+                                size="small"
+                              >
+                                <DeleteOutlineIcon fontSize="small" />
+                              </IconButton>
+                            </Stack>
+
+                            <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+                              <TextField
+                                label="항목명 (itemName)"
+                                value={item.itemName}
+                                onChange={(e) =>
+                                  handleChangeItem(index, "itemName", e.target.value)
+                                }
+                                fullWidth
+                                size="small"
+                                placeholder="예: 혈액검사"
+                              />
+
+                              <TextField
+                                label="항목코드 (itemCode)"
+                                value={item.itemCode}
+                                onChange={(e) =>
+                                  handleChangeItem(index, "itemCode", e.target.value)
+                                }
+                                fullWidth
+                                size="small"
+                                placeholder="예: LAB001"
+                              />
+                            </Stack>
+
+                            <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+                              <TextField
+                                select
+                                label="orderType"
+                                value={item.orderType}
+                                onChange={(e) =>
+                                  handleChangeItem(index, "orderType", e.target.value)
+                                }
+                                fullWidth
+                                size="small"
+                              >
+                                {ORDER_TYPE_OPTIONS.map((option) => (
+                                  <MenuItem key={option} value={option}>
+                                    {option}
+                                  </MenuItem>
+                                ))}
+                              </TextField>
+
+                              <TextField
+                                label="sourceId"
+                                value={item.sourceId}
+                                onChange={(e) =>
+                                  handleChangeItem(index, "sourceId", e.target.value)
+                                }
+                                fullWidth
+                                size="small"
+                                placeholder="예: 2001"
+                              />
+                            </Stack>
+
+                            <TextField
+                              label="sourceType"
+                              value={item.sourceType}
+                              onChange={(e) =>
+                                handleChangeItem(index, "sourceType", e.target.value)
+                              }
+                              fullWidth
+                              size="small"
+                              InputProps={{ readOnly: true }}
+                              helperText="현재 billing 기준으로 CLINICAL_ORDER_ITEM 고정값을 사용합니다."
+                            />
+                          </Stack>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </Stack>
 
                   {validationMessage && (
                     <Alert severity="warning" sx={{ borderRadius: 2 }}>
@@ -394,16 +530,10 @@ export default function BillingClaimsPage() {
   );
 }
 
-/* ================================
-   추가: 자동 이벤트 ID 생성
-================================ */
 function createAutoEventId() {
   return `EVT-${Date.now()}`;
 }
 
-/* ================================
-   기본 datetime-local 값 생성
-================================ */
 function getDefaultOccurredAt() {
   const now = new Date();
 
@@ -416,9 +546,6 @@ function getDefaultOccurredAt() {
   return `${year}-${month}-${date}T${hours}:${minutes}`;
 }
 
-/* ================================
-   추가: ISO 문자열을 화면 표시용 datetime-local 형식으로 변환
-================================ */
 function toDatetimeLocal(isoString: string) {
   const date = new Date(isoString);
 
@@ -431,9 +558,16 @@ function toDatetimeLocal(isoString: string) {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
-/* ================================
-   숫자만 입력되도록 처리
-================================ */
 function onlyNumber(value: string) {
   return value.replace(/[^\d]/g, "");
+}
+
+function createEmptyClaimItem(): ClaimItemForm {
+  return {
+    itemName: "",
+    itemCode: "",
+    orderType: "PRESCRIPTION",
+    sourceId: "",
+    sourceType: SOURCE_TYPE,
+  };
 }

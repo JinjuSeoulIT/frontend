@@ -10,6 +10,9 @@ import Script from "next/script";
 import MainLayout from "@/components/layout/MainLayout";
 import { fetchPatientsApi } from "@/lib/patient/patientApi";
 import type { Patient } from "@/features/patients/patientTypes";
+import InsurancePanel, {
+  type InsuranceCalculationSummary,
+} from "@/components/billing/detail/InsurancePanel";
 
 declare global {
   interface Window {
@@ -214,6 +217,20 @@ const methodBoxStyle: React.CSSProperties = {
   borderRadius: "8px",
 };
 
+const getStoredStaffId = () => {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return (
+    sessionStorage.getItem("staffId") ||
+    localStorage.getItem("staffId") ||
+    sessionStorage.getItem("STAFF_ID") ||
+    localStorage.getItem("STAFF_ID") ||
+    ""
+  ).trim();
+};
+
 type PaymentMethodFilter = "ALL" | PaymentMethod;
 
 export default function BillingDetailPage() {
@@ -248,6 +265,8 @@ export default function BillingDetailPage() {
   const [patientNameById, setPatientNameById] = useState<Record<number, string>>(
     {}
   );
+  const [insuranceSummary, setInsuranceSummary] =
+    useState<InsuranceCalculationSummary | null>(null);
 
   const [cancelTargetPayment, setCancelTargetPayment] = useState<{
     paymentId: number;
@@ -324,6 +343,37 @@ export default function BillingDetailPage() {
     [patientNameById]
   );
 
+  const requireStaffId = useCallback(() => {
+    const storedStaffId = getStoredStaffId();
+
+    if (!storedStaffId) {
+      toast.error("직원 ID를 확인할 수 없습니다.");
+      return null;
+    }
+
+    return storedStaffId;
+  }, []);
+  const applyInsurancePatientBurdenAmount = useCallback(() => {
+    if (!billingDetail || !insuranceSummary) return;
+
+    const nextAmount = normalizeAmount(
+      insuranceSummary.patientBurdenAmount,
+      billingDetail.remainingAmount
+    );
+
+    setPayAmount(nextAmount);
+  }, [billingDetail, insuranceSummary]);
+
+  const isInsurancePatientBurdenApplicable = useMemo(() => {
+    return (
+      !!billingDetail &&
+      !!insuranceSummary &&
+      insuranceSummary.patientBurdenAmount > 0 &&
+      billingDetail.remainingAmount > 0
+    );
+  }, [billingDetail, insuranceSummary]);
+
+
   const tossClientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
 
   const createOrderId = (billId: number) => {
@@ -332,6 +382,9 @@ export default function BillingDetailPage() {
 
   const requestTossCardPayment = async (amount: number) => {
     if (!billingDetail) return;
+
+    const staffId = requireStaffId();
+    if (!staffId) return;
 
     if (!tossClientKey) {
       toast.error("토스 클라이언트 키가 없습니다.");
@@ -352,6 +405,7 @@ export default function BillingDetailPage() {
         patientId: billingDetail.patientId,
         requestedAmount: amount,
         orderId,
+        staffId,
       })
     );
 
@@ -423,6 +477,9 @@ export default function BillingDetailPage() {
   const handlePayment = () => {
     if (!billingDetail) return;
 
+    const staffId = requireStaffId();
+    if (!staffId) return;
+
     if (payAmount <= 0) {
       toast.error("결제 금액을 입력하세요.");
       return;
@@ -444,6 +501,7 @@ export default function BillingDetailPage() {
         amount: payAmount,
         patientId: billingDetail.patientId,
         method: paymentMethod,
+        staffId,
       })
     );
   };
@@ -477,6 +535,9 @@ export default function BillingDetailPage() {
   const handleConfirmCancelPayment = () => {
     if (!billingDetail || !cancelTargetPayment) return;
 
+    const staffId = requireStaffId();
+    if (!staffId) return;
+
     if (cancelReasonInput.trim() === "") {
       toast.error("취소 사유를 입력하세요.");
       return;
@@ -502,6 +563,7 @@ export default function BillingDetailPage() {
         paymentId: cancelTargetPayment.paymentId,
         billId: billingDetail.billId,
         patientId: billingDetail.patientId,
+        staffId,
       })
     );
 
@@ -514,6 +576,9 @@ export default function BillingDetailPage() {
 
   const handleFullPayment = () => {
     if (!billingDetail) return;
+
+    const staffId = requireStaffId();
+    if (!staffId) return;
 
     if (billingDetail.remainingAmount <= 0) {
       toast.error("이미 전액 수납 완료되었습니다.");
@@ -531,6 +596,7 @@ export default function BillingDetailPage() {
         amount: billingDetail.remainingAmount,
         patientId: billingDetail.patientId,
         method: paymentMethod,
+        staffId,
       })
     );
   };
@@ -542,7 +608,16 @@ export default function BillingDetailPage() {
 
   const handleConfirmBillUnconfirm = () => {
     if (!billingDetail) return;
-    dispatch(unconfirmBillRequest(billingDetail.billId));
+
+    const staffId = requireStaffId();
+    if (!staffId) return;
+
+    dispatch(
+      unconfirmBillRequest({
+        billId: billingDetail.billId,
+        staffId,
+      })
+    );
     setOpenBillUnconfirmDialog(false);
   };
 
@@ -554,7 +629,15 @@ export default function BillingDetailPage() {
   const handleConfirmBillCancel = () => {
     if (!billingDetail) return;
 
-    dispatch(cancelBillRequest(billingDetail.billId));
+    const staffId = requireStaffId();
+    if (!staffId) return;
+
+    dispatch(
+      cancelBillRequest({
+        billId: billingDetail.billId,
+        staffId,
+      })
+    );
     setOpenBillCancelDialog(false);
   };
 
@@ -566,8 +649,30 @@ export default function BillingDetailPage() {
   const handleConfirmBillRestore = () => {
     if (!billingDetail) return;
 
-    dispatch(restoreBillRequest(billingDetail.billId));
+    const staffId = requireStaffId();
+    if (!staffId) return;
+
+    dispatch(
+      restoreBillRequest({
+        billId: billingDetail.billId,
+        staffId,
+      })
+    );
     setOpenBillRestoreDialog(false);
+  };
+
+  const handleConfirmBill = () => {
+    if (!billingDetail) return;
+
+    const staffId = requireStaffId();
+    if (!staffId) return;
+
+    dispatch(
+      confirmBillRequest({
+        billId: billingDetail.billId,
+        staffId,
+      })
+    );
   };
 
   const formatDateTime = (isoString: string) => {
@@ -841,6 +946,32 @@ export default function BillingDetailPage() {
                       sx={{ ml: 1 }}
                     />
                   </Typography>
+
+                  {insuranceSummary && (
+                    <>
+                      <Divider sx={{ my: 1 }} />
+
+                      <Typography>
+                        보험 종류: {insuranceSummary.insuranceType ?? "미적용"}
+                      </Typography>
+
+                      <Typography>
+                        보험 보장 비율: {(insuranceSummary.coverageRate * 100).toFixed(0)}%
+                      </Typography>
+
+                      <Typography sx={{ color: "#1976d2", fontWeight: 700 }}>
+                        보험 적용 예정 금액: {insuranceSummary.insuranceAppliedAmount.toLocaleString()} 원
+                      </Typography>
+
+                      <Typography sx={{ color: "#d32f2f", fontWeight: 700 }}>
+                        예상 본인부담금: {insuranceSummary.patientBurdenAmount.toLocaleString()} 원
+                      </Typography>
+
+                      <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
+                        {insuranceSummary.note}
+                      </Typography>
+                    </>
+                  )}
                 </Stack>
 
                 {calculatedBill && (
@@ -902,9 +1033,7 @@ export default function BillingDetailPage() {
                       <Button
                         variant="contained"
                         color="warning"
-                        onClick={() =>
-                          dispatch(confirmBillRequest(billingDetail.billId))
-                        }
+                        onClick={handleConfirmBill}
                         disabled={loading || hasCalculatedMismatch}
                       >
                         {loading ? "처리 중..." : "청구 확정"}
@@ -963,6 +1092,16 @@ export default function BillingDetailPage() {
                   )}
               </CardContent>
             </Card>
+
+            <InsurancePanel
+              billId={billId}
+              patientId={billingDetail.patientId}
+              originalAmount={billingDetail.totalAmount}
+              calculatedAmount={
+                calculatedBill?.calculatedAmount ?? billingDetail.totalAmount
+              }
+              onCalculationChange={setInsuranceSummary}
+            />
 
             <Card
               sx={{
@@ -1131,6 +1270,18 @@ export default function BillingDetailPage() {
                             >
                               처리 일시: {formatDateTime(history.occurredAt)}
                             </Typography>
+
+                            {history.changedBy && (
+                              <Typography
+                                sx={{
+                                  fontSize: 12,
+                                  color: "text.secondary",
+                                  mt: 0.5,
+                                }}
+                              >
+                                처리 담당 직원: {history.changedBy}
+                              </Typography>
+                            )}
                           </Box>
 
                           <Typography sx={{ fontWeight: 700 }}>
@@ -1166,6 +1317,13 @@ export default function BillingDetailPage() {
                   >
                     결제 금액 입력 후 전액 또는 부분 수납을 진행할 수 있습니다.
                   </Typography>
+
+                  {insuranceSummary && (
+                    <Alert severity="info" sx={{ mt: 2 }}>
+                      보험 계산 기준 예상 본인부담금은 {insuranceSummary.patientBurdenAmount.toLocaleString()}원입니다.
+                      필요한 경우 아래 버튼으로 입력 금액에 바로 반영할 수 있습니다.
+                    </Alert>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -1186,6 +1344,29 @@ export default function BillingDetailPage() {
                   placeholder="결제 금액 입력"
                   style={inputStyle}
                 />
+
+                {insuranceSummary && (
+                  <Box sx={{ mt: 1.5, mb: 1.5 }}>
+                    <Stack
+                      direction={{ xs: "column", md: "row" }}
+                      spacing={1.5}
+                      alignItems={{ xs: "flex-start", md: "center" }}
+                    >
+                      <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
+                        예상 본인부담금: {insuranceSummary.patientBurdenAmount.toLocaleString()} 원
+                      </Typography>
+
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={applyInsurancePatientBurdenAmount}
+                        disabled={!isInsurancePatientBurdenApplicable || loading}
+                      >
+                        예상 본인부담금 적용
+                      </Button>
+                    </Stack>
+                  </Box>
+                )}
 
                 <div style={methodBoxStyle}>
                   <label>
@@ -1504,6 +1685,24 @@ export default function BillingDetailPage() {
                       처리 일시: {formatDateTime(p.paidAt)}
                     </Typography>
 
+                    {p.status === "COMPLETED" && p.createdBy && (
+                      <Typography variant="body2" color="text.secondary">
+                        결제 담당 직원: {p.createdBy}
+                      </Typography>
+                    )}
+
+                    {p.status === "REFUNDED" && p.createdBy && (
+                      <Typography variant="body2" color="text.secondary">
+                        환불 처리 직원: {p.createdBy}
+                      </Typography>
+                    )}
+
+                    {p.status === "CANCELED" && p.canceledBy && (
+                      <Typography variant="body2" color="text.secondary">
+                        취소 담당 직원: {p.canceledBy}
+                      </Typography>
+                    )}
+
                     <Typography
                       variant="body2"
                       sx={{
@@ -1621,12 +1820,18 @@ export default function BillingDetailPage() {
                                   return;
                                 }
 
+                                const staffId = requireStaffId();
+                                if (!staffId) {
+                                  return;
+                                }
+
                                 dispatch(
                                   refundPaymentRequest({
                                     paymentId: p.paymentId,
                                     amount: parsedRefundAmount,
                                     billId: billingDetail.billId,
                                     patientId: billingDetail.patientId,
+                                    staffId,
                                   })
                                 );
 

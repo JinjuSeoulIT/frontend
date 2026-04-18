@@ -331,7 +331,7 @@ export default function ClinicalPage() {
     return listForLeft.some((r) => {
       if (r.receptionId === selectedReception.receptionId) return false;
       if (!inProg(r.status)) return false;
-      if (sid != null && r.doctorId != null) return Number(r.doctorId) === Number(sid);
+      if (sid != null && r.doctorId != null) return String(r.doctorId) === String(sid);
       return true;
     });
   }, [listForLeft, selectedReception]);

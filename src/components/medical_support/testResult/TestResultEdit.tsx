@@ -54,12 +54,10 @@ const TYPE_DETAIL_FIELDS: Record<string, DetailFieldConfig[]> = {
   ],
   PATHOLOGY: [
     { key: "judgedAt", label: "병리 판정 시각", inputType: "datetime-local" },
-    { key: "readerId", label: "판독자 ID" },
     { key: "diagnosisName", label: "병리 진단명" },
   ],
   ENDOSCOPY: [
     { key: "biopsyYn", label: "조직검사 여부", inputType: "biopsyYn" },
-    { key: "readerId", label: "판독자 ID" },
   ],
   PHYSIOLOGICAL: [
     { key: "report", label: "검사 리포트 본문", inputType: "textarea" },
@@ -1194,16 +1192,6 @@ export default function TestResultEdit() {
                   <TextField
                     fullWidth
                     size="small"
-                    label="판독자 ID"
-                    value={getValue("readerId")}
-                    onChange={(event) =>
-                      updateDraftValue("readerId", event.target.value)
-                    }
-                    disabled={updateLoading}
-                  />
-                  <TextField
-                    fullWidth
-                    size="small"
                     label="병리진단명"
                     value={getValue("diagnosisName")}
                     onChange={(event) =>
@@ -1380,16 +1368,6 @@ export default function TestResultEdit() {
                       <MenuItem value="N">아니오</MenuItem>
                     </Select>
                   </FormControl>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="판독자 ID"
-                    value={getValue("readerId")}
-                    onChange={(event) =>
-                      updateDraftValue("readerId", event.target.value)
-                    }
-                    disabled={updateLoading}
-                  />
                 </FieldGrid>
               </SectionCard>
 

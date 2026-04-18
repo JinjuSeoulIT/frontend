@@ -185,7 +185,7 @@ export default function PathologyList() {
       },
       {
         key: "tissueStatus",
-        label: "조직 상태",
+        label: "조직상태",
         type: "select",
         options: tissueStatusOptions,
       },
@@ -425,11 +425,11 @@ export default function PathologyList() {
                     <TableHead>
                       <TableRow>
                         <TableCell align="center">번호</TableCell>
+                        <TableCell align="center">검사코드</TableCell>
                         <TableCell align="center">환자명</TableCell>
                         <TableCell align="center">진료과</TableCell>
-                        <TableCell align="center">검사코드</TableCell>
-                        <TableCell align="center">조직 상태</TableCell>
-                        <TableCell align="center">채취 일시</TableCell>
+                        <TableCell align="center">조직상태</TableCell>
+                        <TableCell align="center">채취일시</TableCell>
                         <TableCell align="center">진행상태</TableCell>
                       </TableRow>
                     </TableHead>
@@ -471,13 +471,13 @@ export default function PathologyList() {
                               {currentPage * rowsPerPage + index + 1}
                             </TableCell>
                             <TableCell align="center">
+                              {safeValue(item.detailCode)}
+                            </TableCell>
+                            <TableCell align="center">
                               {safeValue(item.patientName)}
                             </TableCell>
                             <TableCell align="center">
                               {safeValue(item.departmentName)}
-                            </TableCell>
-                            <TableCell align="center">
-                              {safeValue(item.detailCode)}
                             </TableCell>
                             <TableCell align="center">
                               {safeValue(item.tissueStatus)}

@@ -40,6 +40,8 @@ import {
 import type { AppDispatch, RootState } from "@/store/store";
 import RecordSearch from "./RecordSearch";
 
+const RECEPTION_DETAIL_CACHE_TTL_MS = 60 * 1000;
+
 const formatDateTime = (value?: string | null) => {
   if (!value) return "-";
 
@@ -135,10 +137,21 @@ export default function RecordList() {
   const [isReceptionDialogOpen, setIsReceptionDialogOpen] = useState(false);
   const [selectedReceptionDetail, setSelectedReceptionDetail] =
     useState<Reception | null>(null);
+  const [receptionDetailLoading, setReceptionDetailLoading] = useState(false);
+  const [receptionDetailError, setReceptionDetailError] = useState<string | null>(
+    null
+  );
+  const [inFlightReceptionId, setInFlightReceptionId] = useState<number | null>(
+    null
+  );
   const [pendingStatusRecordId, setPendingStatusRecordId] = useState<
     string | null
   >(null);
   const pendingStatusActionRef = useRef<"ACTIVE" | "INACTIVE" | null>(null);
+  const receptionDetailCacheRef = useRef<
+    Map<number, { data: Reception; fetchedAt: number }>
+  >(new Map());
+  const selectedReceptionIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     dispatch(RecActions.fetchRecordsRequest());
@@ -264,21 +277,72 @@ export default function RecordList() {
     );
   };
 
-  const handleReceptionClick = async (reception: Reception) => {
-    setSelectedReceptionId(reception.receptionId);
+  const loadReceptionDetail = async (
+    receptionId: number,
+    options?: { forceRefresh?: boolean }
+  ) => {
+    const forceRefresh = options?.forceRefresh ?? false;
+
+    if (inFlightReceptionId === receptionId) {
+      return;
+    }
+
+    const cached = receptionDetailCacheRef.current.get(receptionId);
+    const isCacheValid =
+      !forceRefresh &&
+      cached !== undefined &&
+      Date.now() - cached.fetchedAt < RECEPTION_DETAIL_CACHE_TTL_MS;
+
+    if (isCacheValid) {
+      setSelectedReceptionDetail(cached.data);
+      setReceptionDetailError(null);
+      setReceptionDetailLoading(false);
+      return;
+    }
+
+    setReceptionDetailLoading(true);
+    setReceptionDetailError(null);
+    setSelectedReceptionDetail(null);
+    setInFlightReceptionId(receptionId);
 
     try {
-      const detail = await fetchReceptionDetailApi(reception.receptionId);
+      const detail = await fetchReceptionDetailApi(receptionId);
 
       if (!detail) {
         throw new Error("Reception detail fetch failed");
       }
 
-      setSelectedReceptionDetail(detail);
-      setIsReceptionDialogOpen(true);
-    } catch {
-      alert("접수 상세 정보를 불러오지 못했습니다.");
+      receptionDetailCacheRef.current.set(receptionId, {
+        data: detail,
+        fetchedAt: Date.now(),
+      });
+
+      if (selectedReceptionIdRef.current === receptionId) {
+        setSelectedReceptionDetail(detail);
+      }
+    } catch (requestError: unknown) {
+      if (selectedReceptionIdRef.current === receptionId) {
+        setSelectedReceptionDetail(null);
+        setReceptionDetailError(
+          getErrorMessage(requestError, "접수 상세 정보를 불러오지 못했습니다.")
+        );
+      }
+    } finally {
+      if (selectedReceptionIdRef.current === receptionId) {
+        setReceptionDetailLoading(false);
+      }
+      setInFlightReceptionId((current) =>
+        current === receptionId ? null : current
+      );
     }
+  };
+
+  const handleReceptionClick = (reception: Reception) => {
+    const receptionId = reception.receptionId;
+    selectedReceptionIdRef.current = receptionId;
+    setSelectedReceptionId(receptionId);
+    setIsReceptionDialogOpen(true);
+    void loadReceptionDetail(receptionId);
   };
 
   const handleCreateWithReception = () => {
@@ -736,15 +800,27 @@ export default function RecordList() {
 
       <Dialog
         open={isReceptionDialogOpen}
-        onClose={() => setIsReceptionDialogOpen(false)}
+        onClose={() => {
+          setIsReceptionDialogOpen(false);
+          setReceptionDetailError(null);
+          setReceptionDetailLoading(false);
+        }}
         fullWidth
         maxWidth="sm"
       >
         <DialogTitle>접수 환자 상세</DialogTitle>
 
         <DialogContent dividers>
-          {!selectedReceptionDetail ? (
-            <Typography>상세 정보를 불러오는 중입니다.</Typography>
+          {receptionDetailLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : receptionDetailError ? (
+            <Alert severity="error" sx={{ mb: 1 }}>
+              {receptionDetailError}
+            </Alert>
+          ) : !selectedReceptionDetail ? (
+            <Typography>표시할 접수 상세 정보가 없습니다.</Typography>
           ) : (
             <Box sx={{ display: "grid", gap: 2 }}>
               <Box>
@@ -796,11 +872,33 @@ export default function RecordList() {
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={() => setIsReceptionDialogOpen(false)}>닫기</Button>
+          {receptionDetailError && selectedReceptionId ? (
+            <Button
+              onClick={() =>
+                void loadReceptionDetail(selectedReceptionId, { forceRefresh: true })
+              }
+              disabled={Boolean(inFlightReceptionId)}
+            >
+              다시 시도
+            </Button>
+          ) : null}
+          <Button
+            onClick={() => {
+              setIsReceptionDialogOpen(false);
+              setReceptionDetailError(null);
+              setReceptionDetailLoading(false);
+            }}
+          >
+            닫기
+          </Button>
           <Button
             variant="contained"
             onClick={handleCreateWithReception}
-            disabled={!selectedReceptionDetail}
+            disabled={
+              !selectedReceptionDetail ||
+              receptionDetailLoading ||
+              Boolean(receptionDetailError)
+            }
           >
             간호 기록 등록
           </Button>

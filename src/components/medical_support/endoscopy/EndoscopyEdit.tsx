@@ -315,7 +315,7 @@ export default function EndoscopyEdit() {
               시술 정보
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              시술실, 장비, 진정 여부와 시술 일시를 등록합니다.
+              시술실, 장비, 진정여부와 시술 일시를 등록합니다.
             </Typography>
           </Box>
 
@@ -358,7 +358,7 @@ export default function EndoscopyEdit() {
 
               <TextField
                 select
-                label="진정 여부"
+                label="진정여부"
                 size="small"
                 value={form.sedationYn}
                 onChange={(e) =>

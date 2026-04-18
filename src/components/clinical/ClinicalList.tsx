@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import type { ClinicalRes } from "./types";
 import type { ReceptionQueueItem } from "@/lib/clinical/visitApi";
-import { resolveClinicalStatus } from "./clinicalDocumentation";
+import { isTerminalVisitClinicalStatus, resolveClinicalStatus } from "./clinicalDocumentation";
 import { formatDepartmentName } from "@/lib/clinical/departmentLabel";
 
 function effectiveQueueStatusForChip(r: ReceptionQueueItem, clinicals: ClinicalRes[]): string {
@@ -22,7 +22,7 @@ function effectiveQueueStatusForChip(r: ReceptionQueueItem, clinicals: ClinicalR
     (c) =>
       c.receptionId != null &&
       Number(c.receptionId) === Number(r.receptionId) &&
-      resolveClinicalStatus(c) === "COMPLETED"
+      isTerminalVisitClinicalStatus(resolveClinicalStatus(c))
   );
   if (done) return "COMPLETED";
   return (r.status ?? "").trim();
@@ -38,6 +38,8 @@ function receptionStatusLabel(status?: string | null): string {
     case "COMPLETED":
     case "DONE":
       return "완료";
+    case "AUTO_CLOSED":
+      return "자동마감";
     case "PAYMENT_WAIT":
       return "수납대기";
     case "CANCELLED":
@@ -56,7 +58,7 @@ function receptionStatusColor(
   const s = status?.toUpperCase?.();
   if (s === "WAITING" || s === "CALLED") return "warning";
   if (s === "IN_PROGRESS") return "success";
-  if (s === "COMPLETED" || s === "DONE") return "default";
+  if (s === "COMPLETED" || s === "DONE" || s === "AUTO_CLOSED") return "default";
   return "default";
 }
 

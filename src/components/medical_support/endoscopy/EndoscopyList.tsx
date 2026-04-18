@@ -180,7 +180,7 @@ export default function EndoscopyList() {
       },
       {
         key: "sedationYn",
-        label: "진정 여부",
+        label: "진정여부",
         type: "select",
         options: YES_NO_FILTER_OPTIONS,
       },
@@ -420,11 +420,11 @@ export default function EndoscopyList() {
                     <TableHead>
                       <TableRow>
                         <TableCell align="center">번호</TableCell>
+                        <TableCell align="center">검사코드</TableCell>
                         <TableCell align="center">환자명</TableCell>
                         <TableCell align="center">진료과</TableCell>
-                        <TableCell align="center">검사코드</TableCell>
                         <TableCell align="center">시술실</TableCell>
-                        <TableCell align="center">진정 여부</TableCell>
+                        <TableCell align="center">진정여부</TableCell>
                         <TableCell align="center">시술일시</TableCell>
                         <TableCell align="center">진행상태</TableCell>
                       </TableRow>
@@ -467,13 +467,13 @@ export default function EndoscopyList() {
                               {currentPage * rowsPerPage + index + 1}
                             </TableCell>
                             <TableCell align="center">
+                              {safeValue(item.detailCode)}
+                            </TableCell>
+                            <TableCell align="center">
                               {safeValue(item.patientName)}
                             </TableCell>
                             <TableCell align="center">
                               {safeValue(item.departmentName)}
-                            </TableCell>
-                            <TableCell align="center">
-                              {safeValue(item.detailCode)}
                             </TableCell>
                             <TableCell align="center">
                               {safeValue(item.procedureRoom)}

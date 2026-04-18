@@ -52,6 +52,8 @@ const EXAM_ORDER_TYPES: LabOrderType[] = [
 
 const TREATMENT_ORDER_TYPES: LabOrderType[] = ["PROCEDURE", "MEDICATION"];
 
+const TREATMENT_SUGGEST_FETCH_MS = 20000;
+
 function defaultOrderType(variant: ClinicalOrderDialogVariant): LabOrderType {
   return variant === "exam" ? "IMAGING" : "PROCEDURE";
 }
@@ -195,6 +197,7 @@ export function ClinicalOrderDialog({
       const ac = new AbortController();
       suggestAbortRef.current = ac;
       const run = async () => {
+        const timeoutId = window.setTimeout(() => ac.abort(), TREATMENT_SUGGEST_FETCH_MS);
         try {
           if (newOrderType === "PROCEDURE") {
             const data = await searchProceduresForVisit(visitId, {
@@ -217,9 +220,8 @@ export function ClinicalOrderDialog({
           if (e instanceof DOMException && e.name === "AbortError") return;
           setTreatmentOptions([]);
         } finally {
-          if (!ac.signal.aborted) {
-            setTreatmentSuggestLoading(false);
-          }
+          window.clearTimeout(timeoutId);
+          setTreatmentSuggestLoading(false);
         }
       };
       void run();

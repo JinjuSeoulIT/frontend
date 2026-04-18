@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   Alert,
   Box,
@@ -44,12 +44,10 @@ const TYPE_DETAIL_FIELDS: Record<string, DetailFieldConfig[]> = {
   ],
   PATHOLOGY: [
     { key: "judgedAt", label: "병리 판정 시각", formatter: formatDetailDateTime },
-    { key: "readerId", label: "판독자 ID" },
     { key: "diagnosisName", label: "병리 진단명" },
   ],
   ENDOSCOPY: [
     { key: "biopsyYn", label: "조직검사 여부", formatter: formatDetailYn },
-    { key: "readerId", label: "판독자 ID" },
   ],
   PHYSIOLOGICAL: [
     { key: "report", label: "검사 리포트 본문", fullWidth: true },
@@ -334,6 +332,7 @@ function DetailGrid({ children }: { children: ReactNode }) {
 
 export default function TestResultDetail() {
   const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const resultId = getRouteParam(params?.resultId).trim();
@@ -380,7 +379,8 @@ export default function TestResultDetail() {
     alert(message);
     pendingSuccessMessageRef.current = null;
     dispatch(TestResultActions.resetUpdateSuccess());
-  }, [dispatch, updateSuccess]);
+    router.push(listHref);
+  }, [dispatch, listHref, router, updateSuccess]);
 
   useEffect(() => {
     if (!updateError) {
@@ -802,10 +802,6 @@ export default function TestResultDetail() {
                     value={formatDetailDateTime(detail.detail?.judgedAt)}
                   />
                   <DetailField
-                    label="판독자 ID"
-                    value={formatDetailValue(detail.detail?.readerId)}
-                  />
-                  <DetailField
                     label="병리진단명"
                     value={formatDetailValue(detail.detail?.diagnosisName)}
                   />
@@ -904,10 +900,6 @@ export default function TestResultDetail() {
                   <DetailField
                     label="조직검사 여부"
                     value={formatDetailYn(detail.detail?.biopsyYn)}
-                  />
-                  <DetailField
-                    label="판독자 ID"
-                    value={formatDetailValue(detail.detail?.readerId)}
                   />
                 </DetailGrid>
               </SectionCard>

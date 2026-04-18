@@ -77,14 +77,14 @@ const getInitialResultType = (resultTypeValue?: string | null) => {
 
 const TABLE_HEADERS = [
   LABELS.rowNumber,
-  LABELS.resultType,
   LABELS.resultId,
+  LABELS.resultType,
   LABELS.detailCode,
   LABELS.patientName,
   LABELS.departmentName,
   LABELS.performer,
-  LABELS.progressStatus,
   LABELS.resultAt,
+  LABELS.progressStatus,
 ];
 
 const safeValue = (value?: string | number | null) => {
@@ -617,10 +617,10 @@ export default function TestResultList() {
                             {currentPage * rowsPerPage + index + 1}
                           </TableCell>
                           <TableCell align="center">
-                            {getResultTypeLabel(row)}
+                            {safeValue(row.resultId)}
                           </TableCell>
                           <TableCell align="center">
-                            {safeValue(row.resultId)}
+                            {getResultTypeLabel(row)}
                           </TableCell>
                           <TableCell align="center">
                             {safeValue(row.detailCode)}
@@ -635,15 +635,15 @@ export default function TestResultList() {
                             {formatNameWithId(row.performerName, row.performerId)}
                           </TableCell>
                           <TableCell align="center">
+                            {formatDateTime(row.resultAt)}
+                          </TableCell>
+                          <TableCell align="center">
                             <Chip
                               label={formatProgressStatus(row.progressStatus)}
                               color={getProgressStatusColor(row.progressStatus)}
                               size="small"
                               variant="outlined"
                             />
-                          </TableCell>
-                          <TableCell align="center">
-                            {formatDateTime(row.resultAt)}
                           </TableCell>
                         </TableRow>
                       );

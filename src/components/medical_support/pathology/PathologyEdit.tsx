@@ -374,7 +374,7 @@ export default function PathologyEdit() {
               />
 
               <TextField
-                label="조직 부위"
+                label="조직부위"
                 size="small"
                 value={form.tissueSite}
                 onChange={(e) =>
@@ -387,7 +387,7 @@ export default function PathologyEdit() {
               />
 
               <TextField
-                label="조직 종류"
+                label="조직종류"
                 size="small"
                 value={form.tissueType}
                 onChange={(e) =>
@@ -400,7 +400,7 @@ export default function PathologyEdit() {
               />
 
               <TextField
-                label="채취 방법"
+                label="채취방법"
                 size="small"
                 value={form.collectionMethod}
                 onChange={(e) =>
@@ -429,7 +429,7 @@ export default function PathologyEdit() {
 
               <TextField
                 select
-                label="재검 여부"
+                label="재검여부"
                 size="small"
                 value={form.reexamYn}
                 onChange={(e) =>

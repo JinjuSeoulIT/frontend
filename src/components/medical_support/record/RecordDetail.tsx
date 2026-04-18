@@ -2,23 +2,34 @@
 
 import {
   Box,
-  Paper,
-  Typography,
-  CircularProgress,
   Button,
+  Chip,
+  CircularProgress,
   Divider,
   Grid,
-  Chip,
+  Paper,
   Stack,
+  Typography,
 } from "@mui/material";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import type { AppDispatch } from "@/store/store";
-import type { RootState } from "@/store/rootReducer";
-import dayjs from "dayjs";
+import type { Patient } from "@/features/patients/patientTypes";
 import { RecActions } from "@/features/medical_support/record/recordSlice";
+import type {
+  RecordFormType,
+} from "@/features/medical_support/record/recordTypes";
+import type {
+  AssessmentRes,
+  VitalSignsRes,
+} from "@/lib/clinical/clinicalVitalsApi";
+import { fetchVitalsAndAssessmentWithMedicalSupport } from "@/lib/clinical/medicalSupportRecordBridge";
+import { fetchClinicalApi } from "@/lib/clinical/visitApi";
+import RecordVisitChartDialog from "@/components/medical_support/record/RecordVisitChartDialog";
+import type { RootState } from "@/store/rootReducer";
+import type { AppDispatch } from "@/store/store";
+import dayjs from "dayjs";
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return "-";
@@ -56,7 +67,7 @@ function DetailItem({
 
 function StatusChip({ status }: { status?: string | null }) {
   if (status === "ACTIVE") {
-    return <Chip label="활성화" color="success" size="small" />;
+    return <Chip label="활성" color="success" size="small" />;
   }
 
   if (status === "INACTIVE") {
@@ -66,22 +77,43 @@ function StatusChip({ status }: { status?: string | null }) {
   return <Chip label={status || "-"} color="default" size="small" />;
 }
 
+function buildChartPatient(record: RecordFormType): Patient | null {
+  if (record.patientId == null) return null;
+
+  return {
+    patientId: record.patientId,
+    name: record.patientName?.trim() || `환자 ${record.patientId}`,
+  };
+}
+
 export default function RecordDetail() {
   const params = useParams<{ recordId?: string | string[] }>();
   const dispatch = useDispatch<AppDispatch>();
 
   const pendingStatusActionRef = useRef<"ACTIVE" | "INACTIVE" | null>(null);
+  const [visitChartOpen, setVisitChartOpen] = useState(false);
+  const [visitChartLoading, setVisitChartLoading] = useState(false);
+  const [visitChartPatient, setVisitChartPatient] = useState<Patient | null>(
+    null
+  );
+  const [visitChartVitals, setVisitChartVitals] =
+    useState<VitalSignsRes | null>(null);
+  const [visitChartAssessment, setVisitChartAssessment] =
+    useState<AssessmentRes | null>(null);
 
   const recordId: string | undefined =
     typeof params?.recordId === "string"
       ? params.recordId
       : Array.isArray(params?.recordId)
-      ? params.recordId[0]
-      : undefined;
+        ? params.recordId[0]
+        : undefined;
 
-  const { selected: record, loading, error, statusToggleSuccess } = useSelector(
-    (state: RootState) => state.records
-  );
+  const {
+    selected: record,
+    loading,
+    error,
+    statusToggleSuccess,
+  } = useSelector((state: RootState) => state.records);
 
   useEffect(() => {
     if (!recordId) return;
@@ -92,9 +124,9 @@ export default function RecordDetail() {
     if (!statusToggleSuccess) return;
 
     if (pendingStatusActionRef.current === "INACTIVE") {
-      alert("간호 기록이 비활성화되었습니다.");
+      window.alert("간호 기록이 비활성화되었습니다.");
     } else if (pendingStatusActionRef.current === "ACTIVE") {
-      alert("간호 기록이 활성화되었습니다.");
+      window.alert("간호 기록이 활성화되었습니다.");
     }
 
     pendingStatusActionRef.current = null;
@@ -103,17 +135,15 @@ export default function RecordDetail() {
     if (recordId) {
       dispatch(RecActions.fetchRecordRequest(recordId));
     }
-  }, [dispatch, statusToggleSuccess, recordId]);
+  }, [dispatch, recordId, statusToggleSuccess]);
 
   useEffect(() => {
-    if (!error) return;
-    if (!record?.recordId) return;
-    if (!pendingStatusActionRef.current) return;
+    if (!error || !record?.recordId || !pendingStatusActionRef.current) return;
 
     if (error === "Network Error") {
-      alert("서버에 연결할 수 없습니다.\n잠시 후 다시 시도해주세요.");
+      window.alert("서버에 연결할 수 없습니다.\n잠시 후 다시 시도해주세요.");
     } else {
-      alert("상태 변경에 실패했습니다.\n다시 시도해주세요.");
+      window.alert("상태 변경에 실패했습니다.\n다시 시도해주세요.");
     }
 
     pendingStatusActionRef.current = null;
@@ -138,6 +168,59 @@ export default function RecordDetail() {
         status: nextStatus,
       })
     );
+  };
+
+  const handleOpenVisitChart = async () => {
+    if (!record || visitChartLoading) return;
+
+    if (record.patientId == null || record.receptionId == null) {
+      window.alert("진료 차트를 조회할 방문 정보가 없습니다.");
+      return;
+    }
+
+    setVisitChartLoading(true);
+    setVisitChartVitals(null);
+    setVisitChartAssessment(null);
+
+    try {
+      const visits = await fetchClinicalApi();
+      const matchedVisit = visits
+        .filter(
+          (visit) =>
+            visit.patientId === record.patientId &&
+            visit.receptionId != null &&
+            Number(visit.receptionId) === Number(record.receptionId)
+        )
+        .sort(
+          (a, b) => (b.clinicalId ?? b.id ?? 0) - (a.clinicalId ?? a.id ?? 0)
+        )[0];
+
+      if (!matchedVisit) {
+        window.alert("동일 방문의 진료 차트를 찾을 수 없습니다.");
+        return;
+      }
+
+      const visitId = matchedVisit.clinicalId ?? matchedVisit.id;
+      if (visitId == null) {
+        window.alert("동일 방문의 진료 차트를 찾을 수 없습니다.");
+        return;
+      }
+
+      const chartData = await fetchVitalsAndAssessmentWithMedicalSupport(
+        visitId,
+        record.receptionId
+      );
+
+      setVisitChartPatient(buildChartPatient(record));
+      setVisitChartVitals(chartData.vitals);
+      setVisitChartAssessment(chartData.assessment);
+      setVisitChartOpen(true);
+    } catch (chartError) {
+      console.error("[medical_support/record/detail] visit chart fetch failed", chartError);
+      window.alert("진료 차트 조회 중 오류가 발생했습니다.");
+    } finally {
+      setVisitChartLoading(false);
+    }
   };
 
   if (!recordId) {
@@ -215,6 +298,15 @@ export default function RecordDetail() {
             </Box>
 
             <Stack direction="row" spacing={1} flexWrap="wrap">
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => void handleOpenVisitChart()}
+                disabled={visitChartLoading}
+              >
+                {visitChartLoading ? "조회 중..." : "진료 차트"}
+              </Button>
+
               <Link href="/medical_support/record/list">
                 <Button variant="outlined" size="small">
                   목록으로
@@ -234,7 +326,11 @@ export default function RecordDetail() {
                 onClick={handleToggleStatus}
                 disabled={loading}
               >
-                {loading ? "처리 중..." : isActive ? "비활성화" : "활성화"}
+                {loading
+                  ? "처리 중..."
+                  : isActive
+                    ? "비활성화"
+                    : "활성화"}
               </Button>
             </Stack>
           </Stack>
@@ -253,9 +349,6 @@ export default function RecordDetail() {
               </Typography>
 
               <Grid container spacing={2}>
-                {/* <Grid size={{ xs: 12, md: 6 }}>
-                  <DetailItem label="간호 기록 아이디" value={record.recordId} />
-                </Grid> */}
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem label="환자명" value={record.patientName || "-"} />
                 </Grid>
@@ -268,9 +361,6 @@ export default function RecordDetail() {
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem label="간호사 ID" value={record.nursingId || "-"} />
                 </Grid>
-                {/* <Grid size={{ xs: 12, md: 6 }}>
-                  <DetailItem label="진료 ID" value="-" />
-                </Grid> */}
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem label="진료과" value={record.departmentName || "-"} />
                 </Grid>
@@ -279,6 +369,9 @@ export default function RecordDetail() {
                     label="생성일시"
                     value={formatDateTime(record.createdAt ?? record.recordedAt)}
                   />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <DetailItem label="접수 ID" value={record.receptionId ?? "-"} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Box>
@@ -302,7 +395,8 @@ export default function RecordDetail() {
                 신체 정보 및 활력징후
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                키, 몸무게, 혈압, 맥박, 호흡수, 체온, 산소포화도 등을 확인할 수 있습니다.
+                키, 몸무게, 혈압, 맥박, 호흡수, 체온, 산소포화도 등을 확인할 수
+                있습니다.
               </Typography>
 
               <Grid container spacing={2}>
@@ -310,7 +404,10 @@ export default function RecordDetail() {
                   <DetailItem label="키" value={formatValue(record.heightCm, "cm")} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
-                  <DetailItem label="몸무게" value={formatValue(record.weightKg, "kg")} />
+                  <DetailItem
+                    label="몸무게"
+                    value={formatValue(record.weightKg, "kg")}
+                  />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem
@@ -375,10 +472,7 @@ export default function RecordDetail() {
                   />
                 </Grid>
                 <Grid size={{ xs: 12 }}>
-                  <DetailItem
-                    label="과거력"
-                    value={record.pastMedicalHistory || "-"}
-                  />
+                  <DetailItem label="과거력" value={record.pastMedicalHistory || "-"} />
                 </Grid>
                 <Grid size={{ xs: 12 }}>
                   <DetailItem
@@ -397,6 +491,17 @@ export default function RecordDetail() {
           </Stack>
         </Box>
       </Paper>
+
+      <RecordVisitChartDialog
+        open={visitChartOpen}
+        title="진료 차트"
+        subtitle="동일 방문 진료기록"
+        patient={visitChartPatient}
+        vitals={visitChartVitals}
+        assessment={visitChartAssessment}
+        loading={visitChartLoading}
+        onClose={() => setVisitChartOpen(false)}
+      />
     </Box>
   );
 }

@@ -53,6 +53,9 @@ type TestResultApiRaw = Partial<TestResult> & {
   RESULT_MANAGER_NAME?: string | null;
   result_manager_name?: string | null;
   SUMMARY?: string | null;
+  confirmedAt?: string | null;
+  CONFIRMED_AT?: string | null;
+  confirmed_at?: string | null;
   RESULT_AT?: string | null;
   STATUS?: string | null;
   PROGRESS_STATUS?: string | null;
@@ -72,38 +75,45 @@ const normalizeTestResult = (item?: TestResultApiRaw | null): TestResult => {
       : null;
 
   return {
-  resultType: item?.resultType ?? item?.RESULT_TYPE ?? null,
-  resultTypeName: item?.resultTypeName ?? item?.RESULT_TYPE_NAME ?? null,
-  resultId: item?.resultId ?? item?.RESULT_ID ?? null,
-  examId: item?.examId ?? item?.EXAM_ID ?? null,
-  testExecutionId: item?.testExecutionId ?? item?.TEST_EXECUTION_ID ?? null,
-  detailCode: item?.detailCode ?? item?.DETAIL_CODE ?? null,
-  patientId: item?.patientId ?? item?.PATIENT_ID ?? null,
-  patientName: item?.patientName ?? item?.PATIENT_NAME ?? null,
-  departmentName: item?.departmentName ?? item?.DEPARTMENT_NAME ?? null,
-  performerId: item?.performerId ?? item?.PERFORMER_ID ?? item?.performer_id ?? null,
-  performerName:
-    item?.performerName ?? item?.PERFORMER_NAME ?? item?.performer_name ?? null,
-  resultManagerId:
-    item?.resultManagerId ??
-    item?.RESULT_MANAGER_ID ??
-    item?.result_manager_id ??
-    null,
-  resultManagerName:
-    item?.resultManagerName ??
-    item?.RESULT_MANAGER_NAME ??
-    item?.result_manager_name ??
-    null,
-  summary: item?.summary ?? item?.SUMMARY ?? null,
-  resultAt: item?.resultAt ?? item?.RESULT_AT ?? null,
-  status: rawStatus,
-  progressStatus:
-    item?.progressStatus ??
-    item?.PROGRESS_STATUS ??
-    item?.progress_status ??
-    normalizedProgressStatusFromRawStatus,
-  createdAt: item?.createdAt ?? item?.CREATED_AT ?? null,
-  detail: item?.detail ?? item?.DETAIL ?? null,
+    resultType: item?.resultType ?? item?.RESULT_TYPE ?? null,
+    resultTypeName: item?.resultTypeName ?? item?.RESULT_TYPE_NAME ?? null,
+    resultId: item?.resultId ?? item?.RESULT_ID ?? null,
+    examId: item?.examId ?? item?.EXAM_ID ?? null,
+    testExecutionId: item?.testExecutionId ?? item?.TEST_EXECUTION_ID ?? null,
+    detailCode: item?.detailCode ?? item?.DETAIL_CODE ?? null,
+    patientId: item?.patientId ?? item?.PATIENT_ID ?? null,
+    patientName: item?.patientName ?? item?.PATIENT_NAME ?? null,
+    departmentName: item?.departmentName ?? item?.DEPARTMENT_NAME ?? null,
+    performerId:
+      item?.performerId ?? item?.PERFORMER_ID ?? item?.performer_id ?? null,
+    performerName:
+      item?.performerName ?? item?.PERFORMER_NAME ?? item?.performer_name ?? null,
+    resultManagerId:
+      item?.resultManagerId ??
+      item?.RESULT_MANAGER_ID ??
+      item?.result_manager_id ??
+      null,
+    resultManagerName:
+      item?.resultManagerName ??
+      item?.RESULT_MANAGER_NAME ??
+      item?.result_manager_name ??
+      null,
+    summary: item?.summary ?? item?.SUMMARY ?? null,
+    resultAt:
+      item?.resultAt ??
+      item?.RESULT_AT ??
+      item?.confirmedAt ??
+      item?.CONFIRMED_AT ??
+      item?.confirmed_at ??
+      null,
+    status: rawStatus,
+    progressStatus:
+      item?.progressStatus ??
+      item?.PROGRESS_STATUS ??
+      item?.progress_status ??
+      normalizedProgressStatusFromRawStatus,
+    createdAt: item?.createdAt ?? item?.CREATED_AT ?? null,
+    detail: item?.detail ?? item?.DETAIL ?? null,
   };
 };
 

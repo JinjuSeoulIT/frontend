@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "@/store/store";
 import { useRouter } from "next/navigation";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import Script from "next/script";
+import toast from "react-hot-toast";
 
 import MainLayout from "@/components/layout/MainLayout";
 import Link from "next/link";
@@ -22,15 +24,41 @@ import {
   Chip,
   Button,
   Stack,
+  TextField,
+  MenuItem,
 } from "@mui/material";
 
-import { fetchOutstandingBillsRequest } from "@/features/billing/billingSlice";
+import {
+  fetchOutstandingBillsRequest,
+  fetchBillingStatsRequest,
+} from "@/features/billing/billingSlice";
 import { fetchPatientsApi } from "@/lib/patient/patientApi";
 import type { Patient } from "@/features/patients/patientTypes";
+import {
+  createPaymentApi,
+  type BillSummary,
+  type PaymentMethod,
+  PAYMENT_METHOD_OPTIONS,
+} from "@/lib/billing/billingApi";
 import {
   getBillingStatusLabel,
   getBillingStatusColor,
 } from "@/lib/billing/billingStatus";
+
+declare global {
+  interface Window {
+    TossPayments?: any;
+  }
+}
+
+interface TossOutstandingPaymentContext {
+  billId: number;
+  patientId: number;
+  requestedAmount: number;
+  orderId: string;
+  returnTo: string;
+  returnLabel: string;
+}
 
 export default function OutstandingBillingPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -43,13 +71,18 @@ export default function OutstandingBillingPage() {
   const [patientNameById, setPatientNameById] = useState<Record<number, string>>(
     {}
   );
+  const [amountByBillId, setAmountByBillId] = useState<Record<number, string>>({});
+  const [methodByBillId, setMethodByBillId] = useState<
+    Record<number, PaymentMethod>
+  >({});
+  const [processingBillId, setProcessingBillId] = useState<number | null>(null);
 
-  // 미수금 조회
+  const tossClientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
+
   useEffect(() => {
     dispatch(fetchOutstandingBillsRequest());
   }, [dispatch]);
 
-  // 환자 목록 조회 후 patientId -> patientName 매핑
   useEffect(() => {
     let active = true;
 
@@ -82,6 +115,19 @@ export default function OutstandingBillingPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const nextAmounts: Record<number, string> = {};
+    const nextMethods: Record<number, PaymentMethod> = {};
+
+    (billingList ?? []).forEach((bill) => {
+      nextAmounts[bill.billId] = String(bill.remainingAmount);
+      nextMethods[bill.billId] = methodByBillId[bill.billId] ?? "CASH";
+    });
+
+    setAmountByBillId(nextAmounts);
+    setMethodByBillId(nextMethods);
+  }, [billingList]);
+
   const resolvePatientName = useCallback(
     (patientId: number) => {
       return patientNameById[patientId] || "-";
@@ -89,18 +135,148 @@ export default function OutstandingBillingPage() {
     [patientNameById]
   );
 
-  // 진료일 최신순 정렬
-  const sortedBillingList = [...(billingList ?? [])].sort((a, b) => {
-    return (
-      new Date(b.treatmentDate).getTime() -
-      new Date(a.treatmentDate).getTime()
-    );
-  });
+  const sortedBillingList = useMemo(() => {
+    return [...(billingList ?? [])].sort((a, b) => {
+      return (
+        new Date(b.treatmentDate).getTime() -
+        new Date(a.treatmentDate).getTime()
+      );
+    });
+  }, [billingList]);
+
+  const createOrderId = (billId: number) => {
+    return `bill-${billId}-${Date.now()}`;
+  };
+
+  const getBaseUrl = () => {
+    return typeof window !== "undefined" && window.location.hostname !== "localhost"
+      ? `http://${window.location.hostname}:8081`
+      : "http://192.168.1.68:8081";
+  };
+
+  const refreshOutstanding = () => {
+    dispatch(fetchOutstandingBillsRequest());
+    dispatch(fetchBillingStatsRequest());
+  };
+
+  const requestTossCardPayment = async (
+    bill: BillSummary,
+    amount: number
+  ) => {
+    if (!tossClientKey) {
+      toast.error("토스 클라이언트 키가 없습니다.");
+      return;
+    }
+
+    if (!window.TossPayments) {
+      toast.error("토스 SDK가 아직 로드되지 않았습니다.");
+      return;
+    }
+
+    const orderId = createOrderId(bill.billId);
+
+    const context: TossOutstandingPaymentContext = {
+      billId: bill.billId,
+      patientId: bill.patientId,
+      requestedAmount: amount,
+      orderId,
+      returnTo: "/billing/outstanding",
+      returnLabel: "미수금 목록",
+    };
+
+    sessionStorage.setItem("tossPaymentContext", JSON.stringify(context));
+
+    try {
+      const tossPayments = window.TossPayments(tossClientKey);
+      const payment = tossPayments.payment({
+        customerKey: `patient-${bill.patientId}`,
+      });
+
+      await payment.requestPayment({
+        method: "CARD",
+        amount: {
+          currency: "KRW",
+          value: amount,
+        },
+        orderId,
+        orderName: `미수금 정산 - ${bill.billingNo ?? bill.billId}`,
+        successUrl: `${window.location.origin}/billing/toss/success`,
+        failUrl: `${window.location.origin}/billing/toss/fail`,
+      });
+    } catch (error) {
+      console.error("[billing/outstanding] toss requestPayment error", error);
+      toast.error("토스 결제창 호출 중 오류가 발생했습니다.");
+    }
+  };
+
+  const validateAmount = (bill: BillSummary, amount: number) => {
+    if (Number.isNaN(amount) || amount <= 0) {
+      toast.error("정산 금액을 올바르게 입력하세요.");
+      return false;
+    }
+
+    if (amount > bill.remainingAmount) {
+      toast.error("미수금 금액보다 크게 입력할 수 없습니다.");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleDirectSettlement = async (
+    bill: BillSummary,
+    amount: number,
+    method: PaymentMethod
+  ) => {
+    if (!validateAmount(bill, amount)) return;
+
+    if (processingBillId != null) {
+      toast.error("현재 다른 정산을 처리 중입니다.");
+      return;
+    }
+
+    setProcessingBillId(bill.billId);
+
+    try {
+      if (method === "CARD") {
+        await requestTossCardPayment(bill, amount);
+        return;
+      }
+
+      await createPaymentApi(bill.billId, amount, method);
+      toast.success("미수금 정산이 완료되었습니다.");
+      refreshOutstanding();
+    } catch (err: any) {
+      toast.error(err?.message || "미수금 정산에 실패했습니다.");
+    } finally {
+      setProcessingBillId(null);
+    }
+  };
+
+  const handleFullSettlement = async (bill: BillSummary) => {
+    const method = methodByBillId[bill.billId] ?? "CASH";
+    await handleDirectSettlement(bill, bill.remainingAmount, method);
+  };
+
+  const handlePartialSettlement = async (bill: BillSummary) => {
+    const amount = Number(amountByBillId[bill.billId] ?? "0");
+    const method = methodByBillId[bill.billId] ?? "CASH";
+    await handleDirectSettlement(bill, amount, method);
+  };
+
+  const isRowProcessing = useCallback(
+    (billId: number) => processingBillId === billId,
+    [processingBillId]
+  );
 
   return (
     <MainLayout>
+      <Script
+        src="https://js.tosspayments.com/v2/standard"
+        strategy="afterInteractive"
+      />
+
       <Box sx={{ display: "grid", gap: 3 }}>
-        {/* [추가] 상단 헤더 + 뒤로 가기 */}
         <Stack
           direction={{ xs: "column", sm: "row" }}
           spacing={1.5}
@@ -120,7 +296,6 @@ export default function OutstandingBillingPage() {
           </Typography>
         </Stack>
 
-        {/* [추가] 안내 문구 */}
         <Paper
           elevation={0}
           sx={{
@@ -134,9 +309,9 @@ export default function OutstandingBillingPage() {
             미수금 정산 안내
           </Typography>
           <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
-            남은 금액이 있는 청구를 조회한 뒤, 우측의
-            <strong> 정산 처리</strong> 버튼으로 상세 페이지에 들어가
-            전액 또는 부분 수납을 진행할 수 있습니다.
+            미수금 목록에서 바로 전액 정산 또는 부분 정산을 진행할 수 있습니다.
+            카드 결제는 토스 결제창으로 연결되며, 현금/계좌이체는 즉시 정산됩니다.
+            상세 확인이 필요한 경우 청구번호 링크 또는 우측 상세 이동 버튼을 사용하세요.
           </Typography>
         </Paper>
 
@@ -154,7 +329,7 @@ export default function OutstandingBillingPage() {
                 <TableCell>총 금액</TableCell>
                 <TableCell>미수금 금액</TableCell>
                 <TableCell>상태</TableCell>
-                <TableCell align="center">정산</TableCell>
+                <TableCell align="center">정산 처리</TableCell>
               </TableRow>
             </TableHead>
 
@@ -172,26 +347,19 @@ export default function OutstandingBillingPage() {
                         fontWeight: 600,
                       }}
                     >
-                      {/* [수정] billingNo 우선 표시 */}
                       {bill.billingNo ?? bill.billId}
                     </Link>
                   </TableCell>
 
                   <TableCell>{resolvePatientName(bill.patientId)}</TableCell>
-
                   <TableCell>{bill.patientId}</TableCell>
-
                   <TableCell>{bill.treatmentDate}</TableCell>
-
                   <TableCell>{bill.totalAmount.toLocaleString()} 원</TableCell>
-
-                  {/* [추가] 미수금 금액 표시 */}
                   <TableCell>
                     <Typography sx={{ fontWeight: 700, color: "#d32f2f" }}>
                       {bill.remainingAmount.toLocaleString()} 원
                     </Typography>
                   </TableCell>
-
                   <TableCell>
                     <Chip
                       label={getBillingStatusLabel(
@@ -207,18 +375,88 @@ export default function OutstandingBillingPage() {
                     />
                   </TableCell>
 
-                  {/* [추가] 정산 처리 버튼 */}
                   <TableCell align="center">
-                    <Button
-                      component={Link}
-                      href={`/billing/${bill.billId}?returnTo=${encodeURIComponent(
-                        "/billing/outstanding"
-                      )}`}
-                      variant="contained"
-                      size="small"
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                        gap: 1,
+                        minWidth: 360,
+                      }}
                     >
-                      정산 처리
-                    </Button>
+                      <Stack
+                        direction={{ xs: "column", md: "row" }}
+                        spacing={1}
+                        alignItems={{ xs: "stretch", md: "center" }}
+                        useFlexGap
+                        flexWrap="wrap"
+                      >
+                        <TextField
+                          size="small"
+                          label="부분 정산 금액"
+                          value={amountByBillId[bill.billId] ?? String(bill.remainingAmount)}
+                          onChange={(e) => {
+                            setAmountByBillId((prev) => ({
+                              ...prev,
+                              [bill.billId]: e.target.value,
+                            }));
+                          }}
+                          sx={{ minWidth: 130 }}
+                        />
+
+                        <TextField
+                          select
+                          size="small"
+                          label="결제 수단"
+                          value={methodByBillId[bill.billId] ?? "CASH"}
+                          onChange={(e) => {
+                            setMethodByBillId((prev) => ({
+                              ...prev,
+                              [bill.billId]: e.target.value as PaymentMethod,
+                            }));
+                          }}
+                          sx={{ minWidth: 120 }}
+                        >
+                          {PAYMENT_METHOD_OPTIONS.map((option) => (
+                            <MenuItem key={option.value} value={option.value}>
+                              {option.label}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          disabled={isRowProcessing(bill.billId)}
+                          onClick={() => handlePartialSettlement(bill)}
+                        >
+                          부분 정산
+                        </Button>
+
+                        <Button
+                          variant="contained"
+                          size="small"
+                          color="success"
+                          disabled={isRowProcessing(bill.billId)}
+                          onClick={() => handleFullSettlement(bill)}
+                        >
+                          전액 정산
+                        </Button>
+                      </Stack>
+
+                      <Button
+                        component={Link}
+                        href={`/billing/${bill.billId}?returnTo=${encodeURIComponent(
+                          "/billing/outstanding"
+                        )}`}
+                        variant="text"
+                        size="small"
+                        sx={{ px: 0.5 }}
+                      >
+                        상세 이동
+                      </Button>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}

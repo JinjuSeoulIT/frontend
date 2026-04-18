@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import Link from "next/link";
@@ -382,7 +382,7 @@ export default function ReceptionList({
   });
   const [createModalForm, setCreateModalForm] = React.useState<{
     departmentId: string;
-    doctorId: number | null;
+    doctorId: string | null;
     arrivedTime: string;
     note: string;
   }>({
@@ -820,7 +820,7 @@ export default function ReceptionList({
     if (!department) return;
 
     const doctor =
-      doctors.find((item) => item.doctorId === createModalForm.doctorId) ??
+      doctors.find((item) => String(item.doctorId) === String(createModalForm.doctorId)) ??
       doctors.find((item) => String(item.departmentId ?? "") === String(department.departmentId)) ??
       null;
     const arrivedTime = createModalForm.arrivedTime || "00:00";
@@ -833,9 +833,9 @@ export default function ReceptionList({
         patientName,
         visitType: "OUTPATIENT",
         departmentId: department.departmentId,
-        departmentName: null,
+        departmentName: department.departmentName,
         doctorId: doctor?.doctorId ?? null,
-        doctorName: null,
+        doctorName: doctor?.doctorName ?? null,
         scheduledAt: null,
         arrivedAt,
         status: "WAITING",
@@ -1542,8 +1542,8 @@ export default function ReceptionList({
               label={"담당의"}
               value={createModalForm.doctorId ?? ""}
               onChange={(e) => {
-                const doctorId = Number(e.target.value);
-                const doctor = doctors.find((item) => item.doctorId === doctorId);
+                const doctorId = e.target.value || null;
+                const doctor = doctors.find((item) => String(item.doctorId) === String(doctorId));
                 setCreateModalForm((prev) => ({
                   ...prev,
                   doctorId,

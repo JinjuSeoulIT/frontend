@@ -70,7 +70,7 @@ export default function ReceptionDetailPage() {
     visitType: value.visitType,
     departmentId: value.departmentId ?? null,
     departmentName: null,
-    doctorId: value.doctorId ?? null,
+    doctorId: value.doctorId == null ? null : String(value.doctorId).trim(),
     doctorName: null,
     reservationId: value.reservationId ?? null,
     scheduledAt: value.scheduledAt ?? null,

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import {
@@ -139,7 +139,13 @@ export default function ReceptionForm({
     const departmentId = toOptionalString(form.departmentId);
     if (!departmentId) return;
 
-    const doctorId = Number(form.doctorId.trim() || "");
+    const doctorId = toOptionalString(form.doctorId);
+    const selectedDepartment = departments.find(
+      (item) => String(item.departmentId) === departmentId
+    );
+    const selectedDoctor = doctorId
+      ? doctors.find((item) => String(item.doctorId) === doctorId)
+      : null;
 
     onSubmit({
       receptionNo: isEditMode ? form.receptionNo.trim() : "",
@@ -147,9 +153,9 @@ export default function ReceptionForm({
       patientId: form.patientId ?? null,
       visitType: "OUTPATIENT",
       departmentId,
-      departmentName: null,
-      doctorId: Number.isFinite(doctorId) ? doctorId : null,
-      doctorName: null,
+      departmentName: selectedDepartment?.departmentName ?? null,
+      doctorId: doctorId ?? null,
+      doctorName: selectedDoctor?.doctorName ?? null,
       scheduledAt: toOptionalString(form.scheduledAt),
       arrivedAt: toOptionalString(form.arrivedAt),
       status: (form.status || "WAITING") as ReceptionFormPayload["status"],

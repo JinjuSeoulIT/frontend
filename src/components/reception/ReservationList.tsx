@@ -179,7 +179,7 @@ export default function ReservationList({
   });
   const [createModalForm, setCreateModalForm] = React.useState<{
     departmentId: string;
-    doctorId: number | null;
+    doctorId: string | null;
     reservedAt: string;
     note: string;
   }>({
@@ -455,9 +455,9 @@ export default function ReservationList({
         patientId: createTargetPatient.patientId,
         patientName: createTargetPatient.patientName || null,
         departmentId: department.departmentId,
-        departmentName: null,
+        departmentName: department.departmentName ?? null,
         doctorId: doctor?.doctorId ?? null,
-        doctorName: null,
+        doctorName: doctor?.doctorName ?? null,
         reservedAt: createModalForm.reservedAt,
         status: "RESERVED",
         note: createModalForm.note.trim() ? createModalForm.note.trim() : null,
@@ -1144,7 +1144,7 @@ export default function ReservationList({
               label={"담당의"}
               value={createModalForm.doctorId ?? ""}
               onChange={(e) => {
-                const doctorId = Number(e.target.value);
+                const doctorId = e.target.value || null;
                 const doctor = doctors.find((item) => item.doctorId === doctorId);
                 setCreateModalForm((prev) => ({
                   ...prev,
@@ -1155,7 +1155,7 @@ export default function ReservationList({
               fullWidth
             >
               {doctorsForSelectedDepartment.map((item) => (
-                <MenuItem key={item.doctorId} value={item.doctorId}>
+                <MenuItem key={item.doctorId} value={String(item.doctorId)}>
                   {item.doctorName}
                 </MenuItem>
               ))}
@@ -1231,6 +1231,7 @@ export default function ReservationList({
     </Box>
   );
 }
+
 
 
 

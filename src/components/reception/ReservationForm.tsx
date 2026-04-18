@@ -204,16 +204,22 @@ export default function ReservationForm({
 
     if (!form.patientName.trim() || !departmentId) return;
 
-    const doctorId = toOptionalNumber(form.doctorId);
+    const doctorId = toOptionalString(form.doctorId);
+    const department = departmentOptions.find(
+      (item) => String(item.departmentId) === String(departmentId)
+    );
+    const doctor = doctorOptions.find(
+      (item) => String(item.doctorId) === String(doctorId ?? "")
+    );
 
     onSubmit({
       reservationNo: isEditMode ? form.reservationNo.trim() : "",
       patientId,
       patientName: toOptionalString(form.patientName) ?? null,
       departmentId,
-      departmentName: null,
+      departmentName: toOptionalString(form.departmentName) ?? department?.departmentName ?? null,
       doctorId: doctorId ?? null,
-      doctorName: null,
+      doctorName: toOptionalString(form.doctorName) ?? doctor?.doctorName ?? null,
       reservedAt: form.reservedAt,
       status: (form.status || "RESERVED") as ReservationFormPayload["status"],
       note: toOptionalString(form.note) ?? null,

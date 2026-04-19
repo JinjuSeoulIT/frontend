@@ -18,6 +18,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { ImagingActions } from "@/features/medical_support/imaging/imagingSlice";
 import type { RootState } from "@/store/rootReducer";
 import type { AppDispatch } from "@/store/store";
+import {
+  EXAM_PROGRESS_STATUS_MENU_OPTIONS,
+  isExamProgressDropdownLocked,
+  isExamProgressTerminalMenuItemDisabled,
+} from "@/lib/medical_support/examProgressStatus";
 
 type ImagingEditForm = {
   imagingExamId: string;
@@ -33,11 +38,6 @@ type ImagingEditForm = {
   createdAt: string;
   updatedAt: string;
 };
-
-const IMAGING_PROGRESS_STATUS_OPTIONS = [
-  { value: "WAITING", label: "대기중" },
-  { value: "IN_PROGRESS", label: "검사중" },
-];
 
 const ACTIVE_STATUS_OPTIONS = [
   { value: "ACTIVE", label: "활성" },
@@ -322,12 +322,7 @@ export default function ImagingEdit() {
                 select
                 label="진행상태"
                 size="small"
-                value={
-                  form.progressStatus === "COMPLETED" ||
-                  form.progressStatus === "CANCELLED"
-                    ? ""
-                    : form.progressStatus
-                }
+                value={form.progressStatus}
                 onChange={(event) =>
                   setDraftForm({
                     ...form,
@@ -335,10 +330,15 @@ export default function ImagingEdit() {
                   })
                 }
                 fullWidth
+                disabled={loading || isExamProgressDropdownLocked(form.progressStatus)}
                 helperText="대기중 또는 검사중만 직접 선택합니다."
               >
-                {IMAGING_PROGRESS_STATUS_OPTIONS.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
+                {EXAM_PROGRESS_STATUS_MENU_OPTIONS.map((option) => (
+                  <MenuItem
+                    key={option.value}
+                    value={option.value}
+                    disabled={isExamProgressTerminalMenuItemDisabled(form.progressStatus, option.value)}
+                  >
                     {option.label}
                   </MenuItem>
                 ))}

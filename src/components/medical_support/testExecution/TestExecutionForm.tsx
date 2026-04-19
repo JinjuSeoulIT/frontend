@@ -16,6 +16,10 @@ import {
   type TestExecution,
   type TestExecutionUpdatePayload,
 } from "@/features/medical_support/testExecution/testExecutionType";
+import {
+  isExamProgressDropdownLocked,
+  normalizeExamProgressStatus,
+} from "@/lib/medical_support/examProgressStatus";
 
 type TestExecutionFormData = {
   testExecutionId: string;
@@ -59,7 +63,12 @@ type ProgressStatus =
   | "COMPLETED"
   | "CANCELLED";
 
-const editableProgressStatusOptions = ["WAITING", "IN_PROGRESS"] as const;
+const allProgressStatuses: ProgressStatus[] = [
+  "WAITING",
+  "IN_PROGRESS",
+  "COMPLETED",
+  "CANCELLED",
+];
 
 const progressStatusOptionLabels: Record<ProgressStatus, string> = {
   WAITING: "대기중",
@@ -203,18 +212,8 @@ export default function TestExecutionForm({
   const readOnlyTextFieldProps = {
     InputProps: { readOnly: true },
   } as const;
-  const normalizedProgressStatus = form.progressStatus.trim().toUpperCase();
-  const shouldShowReadOnlyStatus =
-    Boolean(normalizedProgressStatus) &&
-    !editableProgressStatusOptions.includes(
-      normalizedProgressStatus as (typeof editableProgressStatusOptions)[number]
-    );
-  const visibleProgressStatusOptions = shouldShowReadOnlyStatus
-    ? [
-        normalizedProgressStatus as ProgressStatus,
-        ...editableProgressStatusOptions,
-      ]
-    : [...editableProgressStatusOptions];
+  const progressDropdownLocked =
+    loading || (isEditMode && isExamProgressDropdownLocked(form.progressStatus));
 
   const handleChange =
     (field: keyof TestExecutionFormData) =>
@@ -481,20 +480,29 @@ export default function TestExecutionForm({
               onChange={handleChange("progressStatus")}
               size="small"
               fullWidth
+              disabled={progressDropdownLocked}
+              helperText={
+                isEditMode && isExamProgressDropdownLocked(form.progressStatus)
+                  ? "대기중일 때만 직접 변경할 수 있습니다. 그 외는 하단 버튼을 사용하세요."
+                  : undefined
+              }
             >
-              <MenuItem value="">선택</MenuItem>
-              {visibleProgressStatusOptions.map((option) => {
-                const isReadOnlyStatus =
-                  !editableProgressStatusOptions.includes(
-                    option as (typeof editableProgressStatusOptions)[number]
+              {!isEditMode ? <MenuItem value="">선택</MenuItem> : null}
+              {(isEditMode ? allProgressStatuses : (["WAITING", "IN_PROGRESS"] as const)).map(
+                (option) => {
+                  const optionKey = option as ProgressStatus;
+                  const greyOutTerminalInWaiting =
+                    isEditMode &&
+                    !progressDropdownLocked &&
+                    normalizeExamProgressStatus(form.progressStatus) === "WAITING" &&
+                    (optionKey === "COMPLETED" || optionKey === "CANCELLED");
+                  return (
+                    <MenuItem key={option} value={option} disabled={greyOutTerminalInWaiting}>
+                      {progressStatusOptionLabels[optionKey]}
+                    </MenuItem>
                   );
-
-                return (
-                  <MenuItem key={option} value={option} disabled={isReadOnlyStatus}>
-                    {progressStatusOptionLabels[option]}
-                  </MenuItem>
-                );
-              })}
+                }
+              )}
             </TextField>
 
             {isEditMode ? (

@@ -221,6 +221,86 @@ function formatNameWithId(
   return displayName !== "-" ? displayName : displayId;
 }
 
+function isRevisedResult(value?: boolean | null) {
+  return value === true;
+}
+
+function ProgressStatusValue({
+  progressStatus,
+  isRevised,
+}: {
+  progressStatus?: string | null;
+  isRevised?: boolean | null;
+}) {
+  return (
+    <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+      <Chip
+        label={formatProgressStatus(progressStatus)}
+        color={getProgressStatusColor(progressStatus)}
+        size="small"
+        variant="outlined"
+        sx={{ fontWeight: 600 }}
+      />
+      {isRevisedResult(isRevised) ? (
+        <Chip
+          label="수정됨"
+          color="info"
+          size="small"
+          variant="outlined"
+          sx={{ fontWeight: 600 }}
+        />
+      ) : null}
+    </Stack>
+  );
+}
+
+function ResultManagementFields({
+  detail,
+  resultAtLabel = "결과등록일시",
+  createdAtLabel = "생성일시",
+}: {
+  detail: TestResult;
+  resultAtLabel?: string;
+  createdAtLabel?: string;
+}) {
+  return (
+    <>
+      <DetailField label={resultAtLabel} value={formatDateTime(detail.resultAt)} />
+      <DetailField label={createdAtLabel} value={formatDateTime(detail.createdAt)} />
+      {isRevisedResult(detail.isRevised) ? (
+        <DetailField
+          label="최종수정일시"
+          value={formatDateTime(detail.updatedAt)}
+        />
+      ) : null}
+      <DetailField
+        label="검사결과관리자"
+        value={formatNameWithId(detail.resultManagerName, detail.resultManagerId)}
+      />
+      <DetailField
+        label="상태"
+        value={
+          <Chip
+            label={formatStatus(detail.status)}
+            color={getStatusColor(detail.status)}
+            size="small"
+            sx={{ fontWeight: 600 }}
+          />
+        }
+      />
+      <DetailField
+        label="진행상태"
+        value={
+          <ProgressStatusValue
+            progressStatus={detail.progressStatus}
+            isRevised={detail.isRevised}
+          />
+        }
+      />
+    </>
+  );
+}
+
 function DetailField({
   label,
   value,
@@ -544,41 +624,7 @@ export default function TestResultDetail() {
                 description="결과등록일시, 생성일시, 검사결과관리자와 상태를 확인합니다."
               >
                 <DetailGrid>
-                  <DetailField
-                    label="결과등록일시"
-                    value={formatDateTime(detail.resultAt)}
-                  />
-                  <DetailField label="생성일시" value={formatDateTime(detail.createdAt)} />
-                  <DetailField
-                    label="검사결과관리자"
-                    value={formatNameWithId(
-                      detail.resultManagerName,
-                      detail.resultManagerId
-                    )}
-                  />
-                  <DetailField
-                    label="상태"
-                    value={
-                      <Chip
-                        label={formatStatus(detail.status)}
-                        color={getStatusColor(detail.status)}
-                        size="small"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    }
-                  />
-                  <DetailField
-                    label="진행상태"
-                    value={
-                      <Chip
-                        label={formatProgressStatus(detail.progressStatus)}
-                        color={getProgressStatusColor(detail.progressStatus)}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    }
-                  />
+                  <ResultManagementFields detail={detail} />
                 </DetailGrid>
               </SectionCard>
 
@@ -641,41 +687,7 @@ export default function TestResultDetail() {
                 description="결과등록일시, 생성일시, 검사결과관리자와 상태를 확인합니다."
               >
                 <DetailGrid>
-                  <DetailField
-                    label="결과등록일시"
-                    value={formatDateTime(detail.resultAt)}
-                  />
-                  <DetailField label="생성일시" value={formatDateTime(detail.createdAt)} />
-                  <DetailField
-                    label="검사결과관리자"
-                    value={formatNameWithId(
-                      detail.resultManagerName,
-                      detail.resultManagerId
-                    )}
-                  />
-                  <DetailField
-                    label="상태"
-                    value={
-                      <Chip
-                        label={formatStatus(detail.status)}
-                        color={getStatusColor(detail.status)}
-                        size="small"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    }
-                  />
-                  <DetailField
-                    label="진행상태"
-                    value={
-                      <Chip
-                        label={formatProgressStatus(detail.progressStatus)}
-                        color={getProgressStatusColor(detail.progressStatus)}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    }
-                  />
+                  <ResultManagementFields detail={detail} />
                 </DetailGrid>
               </SectionCard>
 
@@ -749,41 +761,7 @@ export default function TestResultDetail() {
                 description="결과등록일시, 생성일시, 검사결과관리자와 상태를 확인합니다."
               >
                 <DetailGrid>
-                  <DetailField
-                    label="결과등록일시"
-                    value={formatDateTime(detail.resultAt)}
-                  />
-                  <DetailField label="생성일시" value={formatDateTime(detail.createdAt)} />
-                  <DetailField
-                    label="검사결과관리자"
-                    value={formatNameWithId(
-                      detail.resultManagerName,
-                      detail.resultManagerId
-                    )}
-                  />
-                  <DetailField
-                    label="상태"
-                    value={
-                      <Chip
-                        label={formatStatus(detail.status)}
-                        color={getStatusColor(detail.status)}
-                        size="small"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    }
-                  />
-                  <DetailField
-                    label="진행상태"
-                    value={
-                      <Chip
-                        label={formatProgressStatus(detail.progressStatus)}
-                        color={getProgressStatusColor(detail.progressStatus)}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    }
-                  />
+                  <ResultManagementFields detail={detail} />
                 </DetailGrid>
               </SectionCard>
 
@@ -849,41 +827,7 @@ export default function TestResultDetail() {
                 description="결과등록일시, 생성일시, 검사결과관리자와 상태를 확인합니다."
               >
                 <DetailGrid>
-                  <DetailField
-                    label="결과등록일시"
-                    value={formatDateTime(detail.resultAt)}
-                  />
-                  <DetailField label="생성일시" value={formatDateTime(detail.createdAt)} />
-                  <DetailField
-                    label="검사결과관리자"
-                    value={formatNameWithId(
-                      detail.resultManagerName,
-                      detail.resultManagerId
-                    )}
-                  />
-                  <DetailField
-                    label="상태"
-                    value={
-                      <Chip
-                        label={formatStatus(detail.status)}
-                        color={getStatusColor(detail.status)}
-                        size="small"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    }
-                  />
-                  <DetailField
-                    label="진행상태"
-                    value={
-                      <Chip
-                        label={formatProgressStatus(detail.progressStatus)}
-                        color={getProgressStatusColor(detail.progressStatus)}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    }
-                  />
+                  <ResultManagementFields detail={detail} />
                 </DetailGrid>
               </SectionCard>
 
@@ -945,41 +889,7 @@ export default function TestResultDetail() {
                 description="결과등록일시, 생성일시, 검사결과관리자와 상태를 확인합니다."
               >
                 <DetailGrid>
-                  <DetailField
-                    label="결과등록일시"
-                    value={formatDateTime(detail.resultAt)}
-                  />
-                  <DetailField label="생성일시" value={formatDateTime(detail.createdAt)} />
-                  <DetailField
-                    label="검사결과관리자"
-                    value={formatNameWithId(
-                      detail.resultManagerName,
-                      detail.resultManagerId
-                    )}
-                  />
-                  <DetailField
-                    label="상태"
-                    value={
-                      <Chip
-                        label={formatStatus(detail.status)}
-                        color={getStatusColor(detail.status)}
-                        size="small"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    }
-                  />
-                  <DetailField
-                    label="진행상태"
-                    value={
-                      <Chip
-                        label={formatProgressStatus(detail.progressStatus)}
-                        color={getProgressStatusColor(detail.progressStatus)}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    }
-                  />
+                  <ResultManagementFields detail={detail} />
                 </DetailGrid>
               </SectionCard>
 
@@ -1073,44 +983,14 @@ export default function TestResultDetail() {
                   />
                   <DetailField label="진료과" value={safeValue(detail.departmentName)} />
                   <DetailField
-                    label="결과 확정 시각"
-                    value={formatDateTime(detail.resultAt)}
-                  />
-                  <DetailField
                     label="검사 시행자"
                     value={formatNameWithId(detail.performerName, detail.performerId)}
                   />
-                  <DetailField
-                    label="결과 관리자"
-                    value={formatNameWithId(
-                      detail.resultManagerName,
-                      detail.resultManagerId
-                    )}
+                  <ResultManagementFields
+                    detail={detail}
+                    resultAtLabel="결과 확정 시각"
+                    createdAtLabel="생성 시각"
                   />
-                  <DetailField
-                    label="상태"
-                    value={
-                      <Chip
-                        label={formatStatus(detail.status)}
-                        color={getStatusColor(detail.status)}
-                        size="small"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    }
-                  />
-                  <DetailField
-                    label="진행상태"
-                    value={
-                      <Chip
-                        label={formatProgressStatus(detail.progressStatus)}
-                        color={getProgressStatusColor(detail.progressStatus)}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    }
-                  />
-                  <DetailField label="생성 시각" value={formatDateTime(detail.createdAt)} />
                 </DetailGrid>
               </Section>
 

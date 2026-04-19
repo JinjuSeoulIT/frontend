@@ -1,7 +1,5 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import MeBox from "@/components/UserLogin/MeBox";
-
-export default function LoginPage() {
-  return <MeBox />;
+export default function LegacyMyPageRedirect() {
+  redirect("/mypage");
 }

@@ -31,6 +31,10 @@ const nextConfig: NextConfig = {
       process.env.NEXT_PUBLIC_AUTH_API_BASE_URL,
       DEFAULT_AUTH_API_BASE_URL
     );
+    const notificationApiBase = resolveBaseUrl(
+      process.env.NEXT_PUBLIC_NOTIFICATION_API_BASE_URL,
+      authApiBase
+    );
     const billingApiBase = resolveBaseUrl(
       process.env.NEXT_PUBLIC_BILLING_API_BASE_URL,
       DEFAULT_BILLING_API_BASE_URL
@@ -80,6 +84,10 @@ const nextConfig: NextConfig = {
       {
         source: "/api/auth/:path*",
         destination: `${authApiBase}/api/auth/:path*`,
+      },
+      {
+        source: "/api/notifications/:path*",
+        destination: `${notificationApiBase}/api/notifications/:path*`,
       },
       {
         source: "/api/billing/:path*",

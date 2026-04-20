@@ -61,7 +61,54 @@ type TestResultApiRaw = Partial<TestResult> & {
   PROGRESS_STATUS?: string | null;
   progress_status?: string | null;
   CREATED_AT?: string | null;
+  updated_at?: string | null;
+  UPDATED_AT?: string | null;
+  isRevised?: boolean | string | number | null;
+  IS_REVISED?: boolean | string | number | null;
+  revisedYn?: boolean | string | number | null;
+  REVISED_YN?: boolean | string | number | null;
+  revised_yn?: boolean | string | number | null;
   DETAIL?: TestResultDetailData | null;
+};
+
+const normalizeBooleanField = (value: unknown): boolean | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    if (value === 1) {
+      return true;
+    }
+
+    if (value === 0) {
+      return false;
+    }
+
+    return null;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toUpperCase();
+
+    if (!normalized) {
+      return null;
+    }
+
+    if (["Y", "YES", "TRUE", "1"].includes(normalized)) {
+      return true;
+    }
+
+    if (["N", "NO", "FALSE", "0"].includes(normalized)) {
+      return false;
+    }
+  }
+
+  return null;
 };
 
 const normalizeTestResult = (item?: TestResultApiRaw | null): TestResult => {
@@ -73,6 +120,14 @@ const normalizeTestResult = (item?: TestResultApiRaw | null): TestResult => {
     normalizedRawStatus === "IN_PROGRESS" || normalizedRawStatus === "COMPLETED"
       ? normalizedRawStatus
       : null;
+  const normalizedIsRevised = normalizeBooleanField(
+    item?.isRevised ??
+      item?.IS_REVISED ??
+      item?.revisedYn ??
+      item?.REVISED_YN ??
+      item?.revised_yn ??
+      null
+  );
 
   return {
     resultType: item?.resultType ?? item?.RESULT_TYPE ?? null,
@@ -113,6 +168,8 @@ const normalizeTestResult = (item?: TestResultApiRaw | null): TestResult => {
       item?.progress_status ??
       normalizedProgressStatusFromRawStatus,
     createdAt: item?.createdAt ?? item?.CREATED_AT ?? null,
+    updatedAt: item?.updatedAt ?? item?.UPDATED_AT ?? item?.updated_at ?? null,
+    isRevised: normalizedIsRevised,
     detail: item?.detail ?? item?.DETAIL ?? null,
   };
 };

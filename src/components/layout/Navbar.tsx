@@ -19,6 +19,7 @@ import {
   getSessionUser,
   type SessionUser,
 } from "@/lib/auth/session";
+import NotificationBell from "@/components/layout/NotificationBell";
 
 export default function Navbar() {
   const [sessionUser, setSessionUser] = React.useState<SessionUser | null>(null);
@@ -102,6 +103,8 @@ export default function Navbar() {
         <Box sx={{ flexGrow: 1 }} />
 
         <Stack direction="row" spacing={2} alignItems="center">
+          <NotificationBell />
+
           <Stack direction="row" spacing={1} alignItems="center">
             <PersonOutlineOutlinedIcon sx={{ color: "#dbe8ff" }} />
             <Typography sx={{ color: "#e8f1ff", fontSize: 14, fontWeight: 600 }}>
@@ -113,6 +116,24 @@ export default function Navbar() {
               </Typography>
             ) : null}
           </Stack>
+
+          <Button
+            component={Link}
+            href="/mypage"
+            variant="outlined"
+            sx={{
+              color: "#e8f1ff",
+              borderColor: "rgba(232, 241, 255, 0.32)",
+              fontWeight: 700,
+              minWidth: 88,
+              "&:hover": {
+                borderColor: "#e8f1ff",
+                backgroundColor: "rgba(255,255,255,0.08)",
+              },
+            }}
+          >
+            내 정보
+          </Button>
 
           <Button
             onClick={handleLogout}

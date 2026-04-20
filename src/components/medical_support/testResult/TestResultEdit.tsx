@@ -368,6 +368,7 @@ export default function TestResultEdit() {
   const currentStatus = draftValues.status ?? initialValues.status ?? "ACTIVE";
   const currentProgressStatus =
     draftValues.progressStatus ?? initialValues.progressStatus ?? "IN_PROGRESS";
+  const isInactiveStatus = normalizeStatus(currentStatus) === "INACTIVE";
   const isImaging = resultType === "IMAGING";
   const isSpecimen = resultType === "SPECIMEN";
   const isPathology = resultType === "PATHOLOGY";
@@ -502,6 +503,27 @@ export default function TestResultEdit() {
         resultType,
         resultId,
         form,
+      })
+    );
+  };
+
+  const handleToggleActiveStatus = () => {
+    if (!detail || updateLoading || !resultId || !resultType) {
+      return;
+    }
+
+    const nextStatus = isInactiveStatus ? "ACTIVE" : "INACTIVE";
+    pendingSuccessMessageRef.current = isInactiveStatus
+      ? "검사 결과가 활성화되었습니다."
+      : "검사 결과가 비활성화되었습니다.";
+
+    dispatch(
+      TestResultActions.updateTestResultRequest({
+        resultType,
+        resultId,
+        form: {
+          status: nextStatus,
+        },
       })
     );
   };
@@ -671,6 +693,15 @@ export default function TestResultEdit() {
                 size="small"
               >
                 목록으로
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                color={isInactiveStatus ? "success" : "warning"}
+                onClick={handleToggleActiveStatus}
+                disabled={updateLoading}
+              >
+                {isInactiveStatus ? "활성화" : "비활성화"}
               </Button>
               <Button
                 variant="contained"

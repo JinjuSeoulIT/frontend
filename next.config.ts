@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
     "127.0.0.1",
     "192.168.1.64",
     "192.168.1.64:3001",
+    "192.168.1.67",
+    "192.168.1.67:3001",
   ],
   async rewrites() {
     const patientsApiBase = resolveBaseUrl(
@@ -30,6 +32,10 @@ const nextConfig: NextConfig = {
     const authApiBase = resolveBaseUrl(
       process.env.NEXT_PUBLIC_AUTH_API_BASE_URL,
       DEFAULT_AUTH_API_BASE_URL
+    );
+    const notificationApiBase = resolveBaseUrl(
+      process.env.NEXT_PUBLIC_NOTIFICATION_API_BASE_URL,
+      authApiBase
     );
     const billingApiBase = resolveBaseUrl(
       process.env.NEXT_PUBLIC_BILLING_API_BASE_URL,
@@ -80,6 +86,14 @@ const nextConfig: NextConfig = {
       {
         source: "/api/auth/:path*",
         destination: `${authApiBase}/api/auth/:path*`,
+      },
+      {
+        source: "/api/boards/:path*",
+        destination: `${authApiBase}/api/boards/:path*`,
+      },
+      {
+        source: "/api/notifications/:path*",
+        destination: `${notificationApiBase}/api/notifications/:path*`,
       },
       {
         source: "/api/billing/:path*",

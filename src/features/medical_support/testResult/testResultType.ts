@@ -109,6 +109,8 @@ export interface TestResult {
   status?: TestResultStatus | null;
   progressStatus?: TestResultProgressStatus | null;
   createdAt?: string | null;
+  updatedAt?: string | null;
+  isRevised?: boolean | null;
   detail?: TestResultDetailData | null;
 }
 

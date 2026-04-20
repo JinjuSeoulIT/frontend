@@ -16,6 +16,10 @@ import {
   type TestExecution,
   type TestExecutionUpdatePayload,
 } from "@/features/medical_support/testExecution/testExecutionType";
+import {
+  isExamProgressDropdownLocked,
+  normalizeExamProgressStatus,
+} from "@/lib/medical_support/examProgressStatus";
 
 type TestExecutionFormData = {
   testExecutionId: string;
@@ -59,7 +63,12 @@ type ProgressStatus =
   | "COMPLETED"
   | "CANCELLED";
 
-const editableProgressStatusOptions = ["WAITING", "IN_PROGRESS"] as const;
+const allProgressStatuses: ProgressStatus[] = [
+  "WAITING",
+  "IN_PROGRESS",
+  "COMPLETED",
+  "CANCELLED",
+];
 
 const progressStatusOptionLabels: Record<ProgressStatus, string> = {
   WAITING: "대기중",
@@ -203,18 +212,8 @@ export default function TestExecutionForm({
   const readOnlyTextFieldProps = {
     InputProps: { readOnly: true },
   } as const;
-  const normalizedProgressStatus = form.progressStatus.trim().toUpperCase();
-  const shouldShowReadOnlyStatus =
-    Boolean(normalizedProgressStatus) &&
-    !editableProgressStatusOptions.includes(
-      normalizedProgressStatus as (typeof editableProgressStatusOptions)[number]
-    );
-  const visibleProgressStatusOptions = shouldShowReadOnlyStatus
-    ? [
-        normalizedProgressStatus as ProgressStatus,
-        ...editableProgressStatusOptions,
-      ]
-    : [...editableProgressStatusOptions];
+  const progressDropdownLocked =
+    loading || (isEditMode && isExamProgressDropdownLocked(form.progressStatus));
 
   const handleChange =
     (field: keyof TestExecutionFormData) =>
@@ -459,7 +458,8 @@ export default function TestExecutionForm({
             수행 상태 및 담당자 정보
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-            검사 진행 상태와 담당자, 재시도 정보를 함께 관리합니다.
+            검사실 접수 담당자는 진료 오더 의사와 자동으로 채워지지 않을 수 있습니다. 접수
+            업무 처리 후 실제 접수 담당 직원 정보를 입력해 주세요.
           </Typography>
         </Box>
 
@@ -481,20 +481,29 @@ export default function TestExecutionForm({
               onChange={handleChange("progressStatus")}
               size="small"
               fullWidth
+              disabled={progressDropdownLocked}
+              helperText={
+                isEditMode && isExamProgressDropdownLocked(form.progressStatus)
+                  ? "대기중일 때만 직접 변경할 수 있습니다. 그 외는 하단 버튼을 사용하세요."
+                  : undefined
+              }
             >
-              <MenuItem value="">선택</MenuItem>
-              {visibleProgressStatusOptions.map((option) => {
-                const isReadOnlyStatus =
-                  !editableProgressStatusOptions.includes(
-                    option as (typeof editableProgressStatusOptions)[number]
+              {!isEditMode ? <MenuItem value="">선택</MenuItem> : null}
+              {(isEditMode ? allProgressStatuses : (["WAITING", "IN_PROGRESS"] as const)).map(
+                (option) => {
+                  const optionKey = option as ProgressStatus;
+                  const greyOutTerminalInWaiting =
+                    isEditMode &&
+                    !progressDropdownLocked &&
+                    normalizeExamProgressStatus(form.progressStatus) === "WAITING" &&
+                    (optionKey === "COMPLETED" || optionKey === "CANCELLED");
+                  return (
+                    <MenuItem key={option} value={option} disabled={greyOutTerminalInWaiting}>
+                      {progressStatusOptionLabels[optionKey]}
+                    </MenuItem>
                   );
-
-                return (
-                  <MenuItem key={option} value={option} disabled={isReadOnlyStatus}>
-                    {progressStatusOptionLabels[option]}
-                  </MenuItem>
-                );
-              })}
+                }
+              )}
             </TextField>
 
             {isEditMode ? (
@@ -528,6 +537,8 @@ export default function TestExecutionForm({
                 onChange={handleChange("performerId")}
                 size="small"
                 fullWidth
+                placeholder="접수 후 입력"
+                helperText="진료 의사 ID가 아닙니다. 검사실에서 접수를 처리한 직원의 사용자 ID입니다."
               />
             ) : null}
 
@@ -539,6 +550,8 @@ export default function TestExecutionForm({
                   onChange={handleChange("performerName")}
                   size="small"
                   fullWidth
+                  placeholder="접수 후 입력"
+                  helperText="비어 있으면 접수 담당이 아직 확정되지 않은 상태로 볼 수 있습니다."
                 />
               </Box>
             ) : null}
@@ -642,7 +655,7 @@ export default function TestExecutionForm({
                   작업 실행
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  검사 상태와 담당자 정보를 확인한 뒤 작업을 진행하세요.
+                  접수 담당 정보는 검사실 업무 후 저장하는 것을 권장합니다.
                 </Typography>
               </Box>
 

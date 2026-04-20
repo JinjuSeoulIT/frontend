@@ -230,19 +230,6 @@ export const createStaffCredentialApi = async (payload: {
   }
 };
 
-export const changeMyPasswordApi = async (
-  currentPassword: string,
-  newPassword: string
-): Promise<void> => {
-  const res = await api.patch<ApiResponse<void>>("/api/jpa/medical-staff/me/password", {
-    currentPassword,
-    newPassword,
-  });
-  if (!res.data.success) {
-    throw new Error(res.data.message || "Password change failed");
-  }
-};
-
 export const resetStaffPasswordApi = async (
   staffId: number,
   newPassword: string

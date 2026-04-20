@@ -18,6 +18,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { SpecimenActions } from "@/features/medical_support/specimen/specimenSlice";
 import type { RootState } from "@/store/rootReducer";
 import type { AppDispatch } from "@/store/store";
+import {
+  EXAM_PROGRESS_STATUS_MENU_OPTIONS,
+  isExamProgressDropdownLocked,
+  isExamProgressTerminalMenuItemDisabled,
+} from "@/lib/medical_support/examProgressStatus";
 
 type SpecimenEditForm = {
   specimenExamId: string;
@@ -38,11 +43,6 @@ type SpecimenEditForm = {
   createdAt: string;
   updatedAt: string;
 };
-
-const SPECIMEN_PROGRESS_STATUS_OPTIONS = [
-  { value: "WAITING", label: "대기중" },
-  { value: "IN_PROGRESS", label: "검사중" },
-];
 
 const ACTIVE_STATUS_OPTIONS = [
   { value: "ACTIVE", label: "활성" },
@@ -100,7 +100,8 @@ export default function SpecimenEdit() {
   }, [params]);
 
   const [draftForm, setDraftForm] = useState<SpecimenEditForm | null>(null);
-  const lastRequestedProgressStatusRef = useRef<string | null>(null);
+  const pendingSuccessMessageRef = useRef<string | null>(null);
+  const pendingRedirectPathRef = useRef<string | null>(null);
 
   const { selected, loading, error, updateSuccess } = useSelector(
     (state: RootState) => state.specimens
@@ -145,15 +146,17 @@ export default function SpecimenEdit() {
   useEffect(() => {
     if (!updateSuccess) return;
 
-    const nextPath =
-      lastRequestedProgressStatusRef.current === "COMPLETED"
-        ? "/medical_support/testResult/list?resultType=SPECIMEN"
-        : "/medical_support/specimen/list";
-    lastRequestedProgressStatusRef.current = null;
+    const nextPath = pendingRedirectPathRef.current;
+    const message =
+      pendingSuccessMessageRef.current ?? "검체 검사가 처리되었습니다.";
+    pendingSuccessMessageRef.current = null;
+    pendingRedirectPathRef.current = null;
 
-    alert("검체 검사가 완료되었습니다.");
+    alert(message);
     dispatch(SpecimenActions.resetUpdateSuccess());
-    router.push(nextPath);
+    if (nextPath) {
+      router.push(nextPath);
+    }
   }, [dispatch, router, updateSuccess]);
 
   useEffect(() => {
@@ -164,7 +167,14 @@ export default function SpecimenEdit() {
   const handleUpdate = (nextProgressStatus: string) => {
     if (!specimenExamId) return;
 
-    lastRequestedProgressStatusRef.current = nextProgressStatus;
+    const normalizedProgressStatus = nextProgressStatus.trim().toUpperCase();
+    const isCompleted = normalizedProgressStatus === "COMPLETED";
+    pendingSuccessMessageRef.current = isCompleted
+      ? "검체 검사가 완료되었습니다."
+      : "검체 검사가 취소되었습니다.";
+    pendingRedirectPathRef.current = isCompleted
+      ? "/medical_support/testResult/list?resultType=SPECIMEN"
+      : "/medical_support/specimen/list";
 
     dispatch(
       SpecimenActions.updateSpecimenRequest({
@@ -184,6 +194,37 @@ export default function SpecimenEdit() {
           recollectionYn: form.recollectionYn,
           progressStatus: nextProgressStatus,
           status: form.status,
+        },
+      })
+    );
+  };
+
+  const handleToggleActiveStatus = () => {
+    if (!specimenExamId) return;
+
+    const nextStatus = form.status?.trim().toUpperCase() === "INACTIVE" ? "ACTIVE" : "INACTIVE";
+    const actionLabel = nextStatus === "INACTIVE" ? "비활성화" : "활성화";
+    pendingSuccessMessageRef.current = `검체 검사가 ${actionLabel}되었습니다.`;
+    pendingRedirectPathRef.current = null;
+
+    dispatch(
+      SpecimenActions.updateSpecimenRequest({
+        specimenExamId,
+        form: {
+          testExecutionId: form.testExecutionId,
+          detailCode: form.detailCode,
+          patientId: form.patientId.trim() ? Number(form.patientId) : null,
+          patientName: form.patientName,
+          departmentName: form.departmentName,
+          specimenType: form.specimenType,
+          specimenStatus: form.specimenStatus,
+          collectedAt: toNullableDateTime(form.collectedAt),
+          performerId: form.performerId,
+          performerName: form.performerName,
+          collectionSite: form.collectionSite,
+          recollectionYn: form.recollectionYn,
+          progressStatus: form.progressStatus,
+          status: nextStatus,
         },
       })
     );
@@ -212,12 +253,22 @@ export default function SpecimenEdit() {
             </Typography>
           </Box>
 
-          <Button
-            variant="outlined"
-            onClick={() => router.push("/medical_support/testResult/list")}
-          >
-            목록으로
-          </Button>
+          <Stack direction="row" spacing={1} justifyContent="flex-end">
+            <Button
+              variant="outlined"
+              color={form.status?.trim().toUpperCase() === "INACTIVE" ? "success" : "warning"}
+              onClick={handleToggleActiveStatus}
+              disabled={loading}
+            >
+              {form.status?.trim().toUpperCase() === "INACTIVE" ? "활성화" : "비활성화"}
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => router.push("/medical_support/testResult/list")}
+            >
+              목록으로
+            </Button>
+          </Stack>
         </Stack>
 
         {error ? (
@@ -335,12 +386,7 @@ export default function SpecimenEdit() {
                 select
                 label="진행상태"
                 size="small"
-                value={
-                  form.progressStatus === "COMPLETED" ||
-                  form.progressStatus === "CANCELLED"
-                    ? ""
-                    : form.progressStatus
-                }
+                value={form.progressStatus}
                 onChange={(e) =>
                   setDraftForm({
                     ...form,
@@ -348,10 +394,15 @@ export default function SpecimenEdit() {
                   })
                 }
                 fullWidth
+                disabled={loading || isExamProgressDropdownLocked(form.progressStatus)}
                 helperText="대기중 또는 검사중만 직접 선택합니다."
               >
-                {SPECIMEN_PROGRESS_STATUS_OPTIONS.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
+                {EXAM_PROGRESS_STATUS_MENU_OPTIONS.map((option) => (
+                  <MenuItem
+                    key={option.value}
+                    value={option.value}
+                    disabled={isExamProgressTerminalMenuItemDisabled(form.progressStatus, option.value)}
+                  >
                     {option.label}
                   </MenuItem>
                 ))}

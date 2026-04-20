@@ -289,6 +289,22 @@ export default function BillingPage() {
                     buttonText="바로가기"
                     onClick={() => router.push("/billing/claims")}
                   />
+
+                  <QuickActionCard
+                    icon={<AccountBalanceWalletIcon />}
+                    title="선수금 등록"
+                    description="환자 선수금을 등록하고 목록을 조회합니다."
+                    buttonText="바로가기"
+                    onClick={() => router.push("/billing/deposits")}
+                  />
+
+                  <QuickActionCard
+                    icon={<MonetizationOnOutlinedIcon />}
+                    title="미수금 목록"
+                    description="미수금 대상 청구를 확인하고 즉시 정산합니다."
+                    buttonText="바로가기"
+                    onClick={() => router.push("/billing/outstanding")}
+                  />
                 </Box>
 
                 <Divider sx={{ mb: 3 }} />

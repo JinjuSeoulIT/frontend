@@ -16,6 +16,7 @@ import {
   Typography,
   Stack,
   Chip,
+  TextField,
   Table,
   TableHead,
   TableRow,
@@ -52,6 +53,7 @@ export default function BillingListPage() {
   const [patientNameById, setPatientNameById] = useState<Record<number, string>>(
     {}
   );
+  const [keyword, setKeyword] = useState("");
 
   const getTodayString = () => {
     const now = new Date();
@@ -216,6 +218,22 @@ export default function BillingListPage() {
     return bill.status === status;
   });
 
+  const keywordNormalized = keyword.trim().toLowerCase();
+
+  const searchedBillingList = filteredBillingList.filter((bill) => {
+    if (!keywordNormalized) return true;
+
+    const billingNoText = String(bill.billingNo ?? bill.billId).toLowerCase();
+    const patientIdText = String(bill.patientId);
+    const patientNameText = resolvePatientName(bill.patientId).toLowerCase();
+
+    return (
+      billingNoText.includes(keywordNormalized) ||
+      patientIdText.includes(keywordNormalized) ||
+      patientNameText.includes(keywordNormalized)
+    );
+  });
+
   return (
     <MainLayout>
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
@@ -313,6 +331,26 @@ export default function BillingListPage() {
           )}
         </Stack>
 
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={1}
+          alignItems={{ xs: "stretch", md: "center" }}
+        >
+          <TextField
+            size="small"
+            label="목록 검색"
+            placeholder="청구번호 / 환자명 / 환자ID"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            sx={{ minWidth: { md: 320 } }}
+          />
+          <Chip
+            label={`표시 ${searchedBillingList.length}건 / 조건 ${filteredBillingList.length}건`}
+            color="primary"
+            variant="outlined"
+          />
+        </Stack>
+
         {(status || billingDate) && (
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
             <Typography variant="subtitle1">현재 필터:</Typography>
@@ -356,7 +394,7 @@ export default function BillingListPage() {
             </TableHead>
 
             <TableBody>
-              {filteredBillingList.map((bill) => (
+              {searchedBillingList.map((bill) => (
                 <TableRow key={bill.billId}>
                   <TableCell>
                     <Link
@@ -393,7 +431,7 @@ export default function BillingListPage() {
                 </TableRow>
               ))}
 
-              {filteredBillingList.length === 0 && !loading && (
+              {searchedBillingList.length === 0 && !loading && (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
                     조회 결과가 없습니다

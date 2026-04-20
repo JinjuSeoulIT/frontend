@@ -13,8 +13,12 @@ import { fetchClinicalOrdersApi, type ClinicalOrder } from "@/lib/clinical/clini
 import {
   type VitalSignsRes,
   type AssessmentRes,
+  toDatetimeLocalInputValue,
 } from "@/lib/clinical/clinicalVitalsApi";
-import { fetchVitalsAndAssessmentWithMedicalSupport } from "@/lib/clinical/medicalSupportRecordBridge";
+import {
+  fetchVitalsAndAssessmentWithMedicalSupport,
+  type VitalAssessmentAuditLine,
+} from "@/lib/clinical/medicalSupportRecordBridge";
 import {
   fetchPastHistoryApi,
   type PastHistoryItem,
@@ -80,6 +84,8 @@ export default function ClinicalPage() {
 
   const [vitals, setVitals] = React.useState<VitalSignsRes | null>(null);
   const [assessment, setAssessment] = React.useState<AssessmentRes | null>(null);
+  const [vitalAuditLines, setVitalAuditLines] = React.useState<VitalAssessmentAuditLine[]>([]);
+  const [supportVitalMeasurementAt, setSupportVitalMeasurementAt] = React.useState<string | null>(null);
   const [vitalsLoading, setVitalsLoading] = React.useState(false);
   const [assessmentLoading, setAssessmentLoading] = React.useState(false);
   const [vitalAssessmentDialogOpen, setVitalAssessmentDialogOpen] = React.useState(false);
@@ -182,15 +188,17 @@ export default function ClinicalPage() {
       setVitalsLoading(true);
       setAssessmentLoading(true);
       try {
-        const { vitals: v, assessment: a } = await fetchVitalsAndAssessmentWithMedicalSupport(
-          visitId,
-          receptionId
-        );
+        const { vitals: v, assessment: a, auditLines, supportMeasurementAt: sAt } =
+          await fetchVitalsAndAssessmentWithMedicalSupport(visitId, receptionId);
         setVitals(v);
         setAssessment(a);
+        setVitalAuditLines(auditLines);
+        setSupportVitalMeasurementAt(sAt);
       } catch {
         setVitals(null);
         setAssessment(null);
+        setVitalAuditLines([]);
+        setSupportVitalMeasurementAt(null);
       } finally {
         setVitalsLoading(false);
         setAssessmentLoading(false);
@@ -331,7 +339,7 @@ export default function ClinicalPage() {
     return listForLeft.some((r) => {
       if (r.receptionId === selectedReception.receptionId) return false;
       if (!inProg(r.status)) return false;
-      if (sid != null && r.doctorId != null) return Number(r.doctorId) === Number(sid);
+      if (sid != null && r.doctorId != null) return String(r.doctorId) === String(sid);
       return true;
     });
   }, [listForLeft, selectedReception]);
@@ -632,6 +640,9 @@ export default function ClinicalPage() {
   }, [selectedReception, dispatch, blockStartVisitOtherInProgress]); 
 
   const openVitalDialog = React.useCallback((_mode: "new" | "edit") => {
+    const supportLocal = toDatetimeLocalInputValue(supportVitalMeasurementAt);
+    const clinicalMeasuredLocal = vitals?.measuredAt ? toDatetimeLocalInputValue(vitals.measuredAt) : "";
+    const measuredAtForForm = supportLocal || clinicalMeasuredLocal;
     if (vitals) {
       setVitalsForm({
         temperature: String(vitals.temperature ?? ""),
@@ -639,9 +650,7 @@ export default function ClinicalPage() {
         bpSystolic: String(vitals.bpSystolic ?? ""),
         bpDiastolic: String(vitals.bpDiastolic ?? ""),
         respiratoryRate: String(vitals.respiratoryRate ?? ""),
-        measuredAt: vitals.measuredAt
-          ? new Date(vitals.measuredAt).toISOString().slice(0, 16)
-          : new Date().toISOString().slice(0, 16),
+        measuredAt: measuredAtForForm,
         spo2: vitals.spo2 != null && vitals.spo2 !== "" ? String(vitals.spo2) : "",
         painScore: vitals.painScore != null && vitals.painScore !== "" ? String(vitals.painScore) : "",
         consciousnessLevel: vitals.consciousnessLevel ?? "",
@@ -657,7 +666,7 @@ export default function ClinicalPage() {
         bpSystolic: "",
         bpDiastolic: "",
         respiratoryRate: "",
-        measuredAt: new Date().toISOString().slice(0, 16),
+        measuredAt: supportLocal,
         spo2: "",
         painScore: "",
         consciousnessLevel: "",
@@ -687,7 +696,7 @@ export default function ClinicalPage() {
       });
     }
     setVitalAssessmentDialogOpen(true);
-  }, [vitals, assessment]);
+  }, [vitals, assessment, supportVitalMeasurementAt]);
 
   const handleRepeatPrescription = React.useCallback(
     async (fromVisitId: number) => {
@@ -789,6 +798,8 @@ export default function ClinicalPage() {
             }
             vitals={vitals}
             assessment={assessment}
+            vitalAuditLines={vitalAuditLines}
+            supportVitalMeasurementAt={supportVitalMeasurementAt}
             vitalsLoading={vitalsLoading}
             assessmentLoading={assessmentLoading}
             onOpenVitalDialog={openVitalDialog}
@@ -885,6 +896,11 @@ export default function ClinicalPage() {
         variant={orderDialogVariant}
         onClose={() => setOrderDialogOpen(false)}
         visitId={currentClinicalId}
+        contextDoctorId={
+          selectedReception?.doctorId != null && String(selectedReception.doctorId).trim() !== ""
+            ? String(selectedReception.doctorId).trim()
+            : null
+        }
         contextPatientName={
           selectedReception?.patientName?.trim() ?? selectedPatient?.name?.trim() ?? null
         }
@@ -910,6 +926,7 @@ export default function ClinicalPage() {
         open={vitalAssessmentDialogOpen}
         onClose={() => setVitalAssessmentDialogOpen(false)}
         visitId={currentClinicalId}
+        fallbackRecordedAtIso={supportVitalMeasurementAt}
         vitalsForm={vitalsForm}
         onVitalsFormChange={setVitalsForm}
         assessmentForm={assessmentForm}

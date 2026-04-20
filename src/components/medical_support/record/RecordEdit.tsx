@@ -1,7 +1,7 @@
 "use client";
 
 import { CircularProgress } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import dayjs from "dayjs";
@@ -27,6 +27,8 @@ const RecordEdit = () => {
   );
 
   const [draftForm, setDraftForm] = useState<RecordFormType | null>(null);
+  const pendingSuccessMessageRef = useRef<string | null>(null);
+  const pendingRedirectPathRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!recordId) return;
@@ -69,9 +71,17 @@ const RecordEdit = () => {
   useEffect(() => {
     if (!updateSuccess) return;
 
-    alert("간호 기록이 수정되었습니다.");
+    const message =
+      pendingSuccessMessageRef.current ?? "간호 기록이 수정되었습니다.";
+    const nextPath = pendingRedirectPathRef.current;
+    pendingSuccessMessageRef.current = null;
+    pendingRedirectPathRef.current = null;
+
+    alert(message);
     dispatch(RecActions.resetUpdateSuccess());
-    router.push("/medical_support/record/list");
+    if (nextPath) {
+      router.push(nextPath);
+    }
   }, [updateSuccess, dispatch, router]);
 
   useEffect(() => {
@@ -90,12 +100,38 @@ const RecordEdit = () => {
     if (!form || !recordId) return;
 
     const now = dayjs().format("YYYY-MM-DDTHH:mm:ss");
+    pendingSuccessMessageRef.current = "간호 기록이 수정되었습니다.";
+    pendingRedirectPathRef.current = "/medical_support/record/list";
 
     dispatch(
       RecActions.updateRecordRequest({
         recordId,
         form: {
           ...form,
+          updatedAt: now,
+        },
+      })
+    );
+  };
+
+  const handleToggleActiveStatus = () => {
+    if (!form || !recordId) return;
+
+    const now = dayjs().format("YYYY-MM-DDTHH:mm:ss");
+    const nextStatus =
+      String(form.status ?? "").trim().toUpperCase() === "INACTIVE"
+        ? "ACTIVE"
+        : "INACTIVE";
+    const actionLabel = nextStatus === "INACTIVE" ? "비활성화" : "활성화";
+    pendingSuccessMessageRef.current = `간호 기록이 ${actionLabel}되었습니다.`;
+    pendingRedirectPathRef.current = null;
+
+    dispatch(
+      RecActions.updateRecordRequest({
+        recordId,
+        form: {
+          ...form,
+          status: nextStatus,
           updatedAt: now,
         },
       })
@@ -129,6 +165,7 @@ const RecordEdit = () => {
         onNavigateDetail={() =>
           router.push(`/medical_support/record/detail/${recordId}`)
         }
+        onToggleActiveStatus={handleToggleActiveStatus}
         loading={loading}
       />
     </main>

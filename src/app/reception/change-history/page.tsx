@@ -34,13 +34,12 @@ type StatusFilter = "ALL" | ReceptionStatus;
 const STATUS_OPTIONS: Array<{ value: StatusFilter; label: string }> = [
   { value: "ALL", label: "전체" },
   { value: "WAITING", label: "대기" },
-  { value: "CALLED", label: "호출" },
   { value: "IN_PROGRESS", label: "진료중" },
   { value: "PAYMENT_WAIT", label: "수납대기" },
   { value: "COMPLETED", label: "완료" },
-  { value: "ON_HOLD", label: "보류" },
+  //{ value: "ON_HOLD", label: "보류" },
   { value: "CANCELED", label: "취소" },
-  { value: "INACTIVE", label: "비활성" },
+//  { value: "INACTIVE", label: "비활성" },
 ];
 
 const toDateInput = (d: Date) => {
@@ -57,11 +56,11 @@ const normalizeStatus = (value?: string | null): ReceptionStatus | "UNKNOWN" => 
   if (normalized === "CANCELED") return "CANCELED";
   if (normalized === "CANCELLED") return "CANCELED";
   if (normalized === "WAITING") return "WAITING";
-  if (normalized === "CALLED") return "CALLED";
+  if (normalized === "CALLED") return "WAITING";
   if (normalized === "IN_PROGRESS") return "IN_PROGRESS";
   if (normalized === "PAYMENT_WAIT") return "PAYMENT_WAIT";
   if (normalized === "COMPLETED") return "COMPLETED";
-  if (normalized === "INACTIVE") return "INACTIVE";
+//  if (normalized === "INACTIVE") return "INACTIVE";
   return "UNKNOWN";
 };
 
@@ -69,20 +68,18 @@ const statusLabel = (value?: string | null) => {
   switch (normalizeStatus(value)) {
     case "WAITING":
       return "대기";
-    case "CALLED":
-      return "호출";
     case "IN_PROGRESS":
       return "진료중";
     case "PAYMENT_WAIT":
       return "수납대기";
     case "COMPLETED":
       return "완료";
-    case "ON_HOLD":
-      return "보류";
+    //case "ON_HOLD":
+    //  return "보류";
     case "CANCELED":
       return "취소";
-    case "INACTIVE":
-      return "비활성";
+//    case "INACTIVE":
+//      return "비활성";
     default:
       return value ?? "-";
   }
@@ -92,20 +89,18 @@ const statusChipSx = (value?: string | null) => {
   switch (normalizeStatus(value)) {
     case "WAITING":
       return { bgcolor: "#eef4ff", color: "#2b5aa9", borderColor: "#c9ddff" };
-    case "CALLED":
-      return { bgcolor: "#edf7ff", color: "#0b5b8f", borderColor: "#b8e2ff" };
     case "IN_PROGRESS":
       return { bgcolor: "#eafaf4", color: "#117a4d", borderColor: "#bfe9d3" };
     case "PAYMENT_WAIT":
       return { bgcolor: "#fff7e8", color: "#9a5b00", borderColor: "#ffdca8" };
     case "COMPLETED":
       return { bgcolor: "#ecfdf3", color: "#13613d", borderColor: "#b9e6cb" };
-    case "ON_HOLD":
-      return { bgcolor: "#f3f4f6", color: "#374151", borderColor: "#d1d5db" };
+  // case "ON_HOLD":
+  //    return { bgcolor: "#f3f4f6", color: "#374151", borderColor: "#d1d5db" };
     case "CANCELED":
       return { bgcolor: "#fef2f2", color: "#991b1b", borderColor: "#fecaca" };
-    case "INACTIVE":
-      return { bgcolor: "#f5f3ff", color: "#5b21b6", borderColor: "#ddd6fe" };
+//    case "INACTIVE":
+//      return { bgcolor: "#f5f3ff", color: "#5b21b6", borderColor: "#ddd6fe" };
     default:
       return { bgcolor: "#f8fafc", color: "#475569", borderColor: "#e2e8f0" };
   }

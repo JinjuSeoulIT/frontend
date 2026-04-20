@@ -2,7 +2,11 @@
 
 import * as React from "react";
 import CloseIcon from "@mui/icons-material/Close";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
   Button,
   Card,
@@ -12,6 +16,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   Grid,
   IconButton,
   Paper,
@@ -33,6 +38,7 @@ import { ClinicalPastHistoryCard } from "./ClinicalPastHistoryCard";
 import { ClinicalPastVisitsCard, type PriorSubjectiveApplyMode } from "./ClinicalPastVisitsCard";
 import { ClinicalSoapCard } from "./ClinicalSoapCard";
 import type { RecordFormType } from "@/features/medical_support/record/recordTypes";
+import type { VitalAssessmentAuditLine } from "@/lib/clinical/medicalSupportRecordBridge";
 import { formatDateTime } from "../clinicalDocumentation";
 import TestResultList from "@/components/medical_support/testResult/TestResultList";
 
@@ -360,6 +366,8 @@ type Props = {
   currentVisitStartedAt?: string | null;
   vitals: VitalSignsRes | null;
   assessment: AssessmentRes | null;
+  vitalAuditLines: VitalAssessmentAuditLine[];
+  supportVitalMeasurementAt?: string | null;
   vitalsLoading: boolean;
   assessmentLoading: boolean;
   onOpenVitalDialog: (mode: "new" | "edit") => void;
@@ -698,15 +706,70 @@ export function ClinicalChartCenter(p: Props) {
                     항목을 묶어 보여 주고, 이상 구간은 강조합니다. 동일 환자 과거 방문 활력이 있으면 미니 추세선과 직전 대비 변화를 표시합니다.
                   </Typography>
                 </Box>
-                {!p.vitalsLoading && p.vitals?.measuredAt ? (
+                {!p.vitalsLoading &&
+                p.vitals &&
+                (p.vitals.updatedAt || p.vitals.measuredAt) ? (
                   <Chip
                     size="small"
                     variant="outlined"
-                    label={`측정 ${formatDateTime(p.vitals.measuredAt)}`}
+                    label={`최종 반영 ${formatDateTime(p.vitals.updatedAt ?? p.vitals.measuredAt ?? null)}`}
                     sx={{ fontWeight: 600, flexShrink: 0 }}
                   />
                 ) : null}
               </Stack>
+              {p.vitalAuditLines.length > 0 ? (
+                <Accordion
+                  disableGutters
+                  elevation={0}
+                  sx={{
+                    mt: 1,
+                    border: 1,
+                    borderColor: "divider",
+                    borderRadius: 1,
+                    "&:before": { display: "none" },
+                  }}
+                >
+                  <AccordionSummary expandIcon={<ExpandMoreIcon fontSize="small" />}>
+                    <Typography variant="body2" fontWeight={700}>
+                      기록 이력 ({p.vitalAuditLines.length})
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails sx={{ pt: 0 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                      진료지원 → 차트 저장 순입니다.
+                    </Typography>
+                    <Stack divider={<Divider flexItem sx={{ opacity: 0.6 }} />} spacing={1}>
+                      {p.vitalAuditLines.map((row, idx) => (
+                        <Stack
+                          key={`${row.label}-${row.at ?? ""}-${idx}`}
+                          direction="row"
+                          spacing={1.25}
+                          alignItems="baseline"
+                        >
+                          <Typography
+                            variant="caption"
+                            color="text.disabled"
+                            sx={{
+                              minWidth: "1.75rem",
+                              fontWeight: 700,
+                              fontVariantNumeric: "tabular-nums",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {idx + 1}.
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ flex: 1, minWidth: 0 }}>
+                            <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
+                              {row.label}
+                            </Box>{" "}
+                            {formatDateTime(row.at)}
+                          </Typography>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  </AccordionDetails>
+                </Accordion>
+              ) : null}
               <Paper
                 variant="outlined"
                 sx={{
@@ -799,6 +862,8 @@ export function ClinicalChartCenter(p: Props) {
             selectedPatient={p.selectedPatient}
             vitals={p.vitals}
             assessment={p.assessment}
+            vitalAuditLines={p.vitalAuditLines}
+            supportVitalMeasurementAt={p.supportVitalMeasurementAt ?? null}
             vitalsLoading={p.vitalsLoading}
             assessmentLoading={p.assessmentLoading}
             visitId={p.visitId}

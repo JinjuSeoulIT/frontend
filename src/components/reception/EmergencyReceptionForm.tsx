@@ -85,7 +85,6 @@ function isSameFormState(a: EmergencyReceptionFormState, b: EmergencyReceptionFo
 const statusOptions = [
   { value: "REGISTERED", label: "접수 완료" },
   { value: "WAITING", label: "대기" },
-  { value: "CALLED", label: "호출" },
   { value: "TRIAGE", label: "트리아지 진행" },
   { value: "IN_PROGRESS", label: "진료중" },
   { value: "OBSERVATION", label: "관찰중" },
@@ -117,7 +116,7 @@ const statusLabelToCode: Record<string, string> = {
   "접수 완료": "REGISTERED",
   "응급 접수 완료": "REGISTERED",
   대기: "WAITING",
-  호출: "CALLED",
+  호출: "WAITING",
   "트리아지 진행": "TRIAGE",
   진료중: "IN_PROGRESS",
   관찰중: "OBSERVATION",
@@ -135,13 +134,12 @@ const arrivalLabelToCode: Record<string, string> = {
   기타: "OTHER",
 };
 
-const STATUS_POLICY_HIDDEN = new Set(["WAITING", "CALLED", "PAYMENT_WAIT", "INACTIVE"]);
+const STATUS_POLICY_HIDDEN = new Set(["WAITING", "PAYMENT_WAIT", "INACTIVE"]);
 const STATUS_REASON_REQUIRED = new Set(["CANCELED", "TRANSFERRED", "ON_HOLD"]);
 
 const STATUS_TRANSITIONS: Record<string, string[]> = {
   REGISTERED: ["TRIAGE", "IN_PROGRESS", "OBSERVATION", "ON_HOLD", "TRANSFERRED", "CANCELED"],
   WAITING: ["REGISTERED", "TRIAGE", "IN_PROGRESS", "OBSERVATION", "ON_HOLD", "TRANSFERRED", "CANCELED"],
-  CALLED: ["TRIAGE", "IN_PROGRESS", "OBSERVATION", "ON_HOLD", "TRANSFERRED", "CANCELED"],
   TRIAGE: ["IN_PROGRESS", "OBSERVATION", "ON_HOLD", "TRANSFERRED", "CANCELED"],
   IN_PROGRESS: ["OBSERVATION", "COMPLETED", "ON_HOLD", "TRANSFERRED", "CANCELED"],
   OBSERVATION: ["IN_PROGRESS", "COMPLETED", "ON_HOLD", "TRANSFERRED", "CANCELED"],

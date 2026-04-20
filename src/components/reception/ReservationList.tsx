@@ -45,8 +45,8 @@ const statusLabel = (value?: string | null) => {
       return "완료";
     case "CANCELED":
       return "취소";
-    case "INACTIVE":
-      return "비활성";
+//    case "INACTIVE":
+//      return "비활성";
     default:
       return value ?? "-";
   }
@@ -62,8 +62,8 @@ const normalizeStatus = (value?: string | null) => {
       return "COMPLETED";
     case "취소":
       return "CANCELED";
-    case "비활성":
-      return "INACTIVE";
+//    case "비활성":
+//      return "INACTIVE";
     default:
       return trimmed;
   }
@@ -86,11 +86,11 @@ const reservationStatusChipSx = (value?: string | null) => {
         color: "#ffffff",
         bgcolor: "#c62828",
       };
-    case "INACTIVE":
-      return {
-        color: "#ffffff",
-        bgcolor: "#546e7a",
-      };
+//    case "INACTIVE":
+//      return {
+//        color: "#ffffff",
+//        bgcolor: "#546e7a",
+//      };
     default:
       return {
         color: "#ffffff",

@@ -307,21 +307,9 @@ export default function RecordDetail() {
                 {visitChartLoading ? "조회 중..." : "진료 차트"}
               </Button>
 
-              <Link href="/medical_support/record/list">
-                <Button variant="outlined" size="small">
-                  목록으로
-                </Button>
-              </Link>
-
-              <Link href={`/medical_support/record/edit/${recordId}`}>
-                <Button variant="outlined" size="small">
-                  수정
-                </Button>
-              </Link>
-
               <Button
-                variant="contained"
-                color={isActive ? "error" : "primary"}
+                variant="outlined"
+                color={isActive ? "warning" : "success"}
                 size="small"
                 onClick={handleToggleStatus}
                 disabled={loading}
@@ -332,6 +320,18 @@ export default function RecordDetail() {
                     ? "비활성화"
                     : "활성화"}
               </Button>
+
+              <Link href={`/medical_support/record/edit/${recordId}`}>
+                <Button variant="outlined" size="small">
+                  수정
+                </Button>
+              </Link>
+
+              <Link href="/medical_support/record/list">
+                <Button variant="outlined" size="small">
+                  목록으로
+                </Button>
+              </Link>
             </Stack>
           </Stack>
         </Box>

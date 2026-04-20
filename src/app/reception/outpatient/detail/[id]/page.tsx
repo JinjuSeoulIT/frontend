@@ -115,19 +115,20 @@ export default function ReceptionDetailPage() {
       case "WAITING":
         return "대기";
       case "CALLED":
-        return "호출";
+        return "대기";
       case "IN_PROGRESS":
         return "진료중";
       case "COMPLETED":
         return "완료";
       case "PAYMENT_WAIT":
-        return "수납대기";
-      case "ON_HOLD":
-        return "보류";
+      case "TREATMENT_COMPLETED":
+        return "진료완료";
+     // case "ON_HOLD":
+     //   return "보류";
       case "CANCELED":
         return "취소";
-      case "INACTIVE":
-        return "비활성";
+    //  case "INACTIVE":
+    //    return "비활성";
       default:
         return value ?? "-";
     }

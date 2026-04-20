@@ -113,14 +113,14 @@ export interface ReceptionQueueItem {
   patientName?: string | null;
   departmentId?: number | null;
   departmentName?: string | null;
-  doctorId?: number | null;
+  doctorId?: string | number | null;
   doctorName?: string | null;
   status?: string | null;
 }
 
 export async function fetchReceptionQueueApi(params?: {
   departmentId?: number | null;
-  doctorId?: number | null;
+  doctorId?: string | number | null;
   date?: string | null;
 }): Promise<ReceptionQueueItem[]> {
   const sp = new URLSearchParams();

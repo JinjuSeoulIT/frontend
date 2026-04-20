@@ -134,7 +134,12 @@ export default function RecordVisitChartDialog({
   loading,
   onClose,
 }: RecordVisitChartDialogProps) {
-  const measuredAt = formatDateTime(vitals?.measuredAt ?? assessment?.assessedAt);
+  const lastUpdatedAt = formatDateTime(
+    vitals?.updatedAt ??
+      assessment?.updatedAt ??
+      vitals?.measuredAt ??
+      assessment?.assessedAt
+  );
   const hasVitals =
     vitals != null &&
     [
@@ -229,10 +234,10 @@ export default function RecordVisitChartDialog({
 
                   <Box>
                     <Typography variant="caption" color="text.secondary">
-                      측정/기록 시각
+                      최종 수정 시각
                     </Typography>
                     <Typography sx={{ mt: 0.5, fontWeight: 600 }}>
-                      {measuredAt}
+                      {lastUpdatedAt}
                     </Typography>
                   </Box>
                 </Stack>
@@ -253,7 +258,6 @@ export default function RecordVisitChartDialog({
                       },
                     }}
                   >
-                    <DetailItem label="측정 시각" value={measuredAt} />
                     <DetailItem label="키" value={formatValue(vitals?.heightCm, "cm")} />
                     <DetailItem
                       label="몸무게"

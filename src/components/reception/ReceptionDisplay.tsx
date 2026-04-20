@@ -12,11 +12,7 @@ const RECEPTION_API_BASE =
   process.env.NEXT_PUBLIC_RECEPTION_API_BASE_URL ?? "http://192.168.1.55:8283";
 const RECEPTION_STATUS_EVENT_NAME = "reception-status-changed";
 const NOTIFY_TARGET_STATUS = "IN_PROGRESS";
-const DISPLAY_POLICY = {
-  showCalledStatus: true,
-} as const;
-
-type ReceptionStatusNormalized = "WAITING" | "CALLED" | "IN_PROGRESS" | "DONE";
+type ReceptionStatusNormalized = "WAITING" | "IN_PROGRESS" | "DONE";
 type ReceptionStatusChangedEvent = {
   receptionId?: number;
   patientName?: string | null;
@@ -33,7 +29,6 @@ const TEXT = {
   labelWaiting: "대기",
   labelInProgress: "진료중",
   statusWaiting: "대기",
-  statusCalled: "호출",
   statusInProgress: "진료중",
   statusDone: "완료",
   noName: "이름없음",
@@ -47,7 +42,7 @@ const TEXT = {
 const normalizeStatus = (value?: string | null): ReceptionStatusNormalized => {
   const status = (value ?? "").trim().toUpperCase();
   if (status === "WAITING" || status === "대기") return "WAITING";
-  if (status === "CALLED" || status === "호출") return "CALLED";
+  if (status === "CALLED" || status === "호출") return "WAITING";
   if (status === "IN_PROGRESS" || status === "진료중") return "IN_PROGRESS";
   return "DONE";
 };
@@ -105,15 +100,13 @@ const maskPatientName = (name?: string | null) => {
 
 const statusLabel = (status: ReceptionStatusNormalized) => {
   if (status === "WAITING") return TEXT.statusWaiting;
-  if (status === "CALLED") return TEXT.statusCalled;
   if (status === "IN_PROGRESS") return TEXT.statusInProgress;
   return TEXT.statusDone;
 };
 
 const statusPriority = (status: ReceptionStatusNormalized) => {
   if (status === "IN_PROGRESS") return 0;
-  if (status === "CALLED") return 1;
-  if (status === "WAITING") return 2;
+  if (status === "WAITING") return 1;
   return 3;
 };
 
@@ -294,7 +287,6 @@ export default function ReceptionDisplay() {
       if (!departmentName || !map.has(departmentName)) continue;
       const normalized = normalizeStatus(item.status);
       if (normalized === "DONE") continue;
-      if (!DISPLAY_POLICY.showCalledStatus && normalized === "CALLED") continue;
       map.get(departmentName)?.push(item);
     }
 
@@ -518,9 +510,7 @@ export default function ReceptionDisplay() {
                           p: 1.1,
                           borderRadius: 1,
                           bgcolor:
-                            normalized === "CALLED"
-                              ? "rgba(59,130,246,0.2)"
-                              : normalized === "IN_PROGRESS"
+                            normalized === "IN_PROGRESS"
                               ? "rgba(16,185,129,0.2)"
                               : "rgba(239,247,255,0.95)",
                           border: "1px solid rgba(143,176,224,0.45)",

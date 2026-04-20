@@ -16,6 +16,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   Grid,
   IconButton,
   Paper,
@@ -366,6 +367,7 @@ type Props = {
   vitals: VitalSignsRes | null;
   assessment: AssessmentRes | null;
   vitalAuditLines: VitalAssessmentAuditLine[];
+  supportVitalMeasurementAt?: string | null;
   vitalsLoading: boolean;
   assessmentLoading: boolean;
   onOpenVitalDialog: (mode: "new" | "edit") => void;
@@ -733,14 +735,36 @@ export function ClinicalChartCenter(p: Props) {
                     </Typography>
                   </AccordionSummary>
                   <AccordionDetails sx={{ pt: 0 }}>
-                    <Stack spacing={0.75}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                      진료지원 → 차트 저장 순입니다.
+                    </Typography>
+                    <Stack divider={<Divider flexItem sx={{ opacity: 0.6 }} />} spacing={1}>
                       {p.vitalAuditLines.map((row, idx) => (
-                        <Typography key={idx} variant="body2" color="text.secondary">
-                          <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
-                            {row.label}
-                          </Box>{" "}
-                          {formatDateTime(row.at)}
-                        </Typography>
+                        <Stack
+                          key={`${row.label}-${row.at ?? ""}-${idx}`}
+                          direction="row"
+                          spacing={1.25}
+                          alignItems="baseline"
+                        >
+                          <Typography
+                            variant="caption"
+                            color="text.disabled"
+                            sx={{
+                              minWidth: "1.75rem",
+                              fontWeight: 700,
+                              fontVariantNumeric: "tabular-nums",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {idx + 1}.
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ flex: 1, minWidth: 0 }}>
+                            <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
+                              {row.label}
+                            </Box>{" "}
+                            {formatDateTime(row.at)}
+                          </Typography>
+                        </Stack>
                       ))}
                     </Stack>
                   </AccordionDetails>
@@ -839,6 +863,7 @@ export function ClinicalChartCenter(p: Props) {
             vitals={p.vitals}
             assessment={p.assessment}
             vitalAuditLines={p.vitalAuditLines}
+            supportVitalMeasurementAt={p.supportVitalMeasurementAt ?? null}
             vitalsLoading={p.vitalsLoading}
             assessmentLoading={p.assessmentLoading}
             visitId={p.visitId}

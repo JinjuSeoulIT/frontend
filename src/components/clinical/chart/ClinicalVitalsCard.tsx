@@ -66,6 +66,7 @@ type Props = {
   vitals: VitalSignsRes | null;
   assessment: AssessmentRes | null;
   vitalAuditLines?: VitalAssessmentAuditLine[];
+  supportVitalMeasurementAt?: string | null;
   vitalsLoading: boolean;
   assessmentLoading: boolean;
   visitId: number | null;
@@ -78,6 +79,7 @@ export function ClinicalVitalsCard({
   vitals,
   assessment,
   vitalAuditLines = [],
+  supportVitalMeasurementAt = null,
   vitalsLoading,
   assessmentLoading,
   visitId,
@@ -120,7 +122,7 @@ export function ClinicalVitalsCard({
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>최종 반영</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>측정 시각</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>혈압(수축)</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>혈압(이완)</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>체온</TableCell>
@@ -131,7 +133,9 @@ export function ClinicalVitalsCard({
                     <TableBody>
                       <TableRow>
                         <TableCell>
-                          {formatDateTime(vitals.updatedAt ?? vitals.measuredAt ?? null)}
+                          {formatDateTime(
+                            supportVitalMeasurementAt ?? vitals.measuredAt ?? vitals.updatedAt ?? null
+                          )}
                         </TableCell>
                         <TableCell>{vitals.bpSystolic ?? "-"}</TableCell>
                         <TableCell>{vitals.bpDiastolic ?? "-"}</TableCell>

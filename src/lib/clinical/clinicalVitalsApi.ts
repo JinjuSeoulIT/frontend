@@ -49,6 +49,8 @@ export type ClinicalVitalAssessApiRes = {
   status?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+  chartSaveHistory?: { label?: string | null; at?: string | null }[] | null;
+  chart_save_history?: { label?: string | null; at?: string | null }[] | null;
 };
 
 export type VitalAssessSavePayload = {
@@ -128,6 +130,16 @@ function mapRowToVitals(r: ClinicalVitalAssessApiRes): VitalSignsRes {
   };
 }
 
+function pickChartSaveHistoryRow(
+  row: ClinicalVitalAssessApiRes
+): { label?: string | null; at?: string | null }[] | null {
+  const a = row.chartSaveHistory;
+  if (Array.isArray(a) && a.length > 0) return a;
+  const b = row.chart_save_history;
+  if (Array.isArray(b) && b.length > 0) return b;
+  return null;
+}
+
 function mapRowToAssessment(r: ClinicalVitalAssessApiRes): AssessmentRes {
   return {
     assessmentId: r.vitalAssessId,
@@ -156,16 +168,19 @@ async function fetchVitalAssessRow(visitId: number): Promise<ClinicalVitalAssess
   return data ?? null;
 }
 
-export async function fetchVitalsAndAssessmentFromClinical(
-  visitId: number
-): Promise<{ vitals: VitalSignsRes | null; assessment: AssessmentRes | null }> {
+export async function fetchVitalsAndAssessmentFromClinical(visitId: number): Promise<{
+  vitals: VitalSignsRes | null;
+  assessment: AssessmentRes | null;
+  chartSaveHistory: { label?: string | null; at?: string | null }[] | null;
+}> {
   const row = await fetchVitalAssessRow(visitId);
   if (!row) {
-    return { vitals: null, assessment: null };
+    return { vitals: null, assessment: null, chartSaveHistory: null };
   }
   return {
     vitals: mapRowToVitals(row),
     assessment: mapRowToAssessment(row),
+    chartSaveHistory: pickChartSaveHistoryRow(row),
   };
 }
 
@@ -177,6 +192,45 @@ export async function fetchVitalsApi(clinicalId: number): Promise<VitalSignsRes 
 export async function fetchAssessmentApi(clinicalId: number): Promise<AssessmentRes | null> {
   const row = await fetchVitalAssessRow(clinicalId);
   return row ? mapRowToAssessment(row) : null;
+}
+
+function formatDateAsLocalDateTimePayload(d: Date): string {
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const h = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  const s = String(d.getSeconds()).padStart(2, "0");
+  return `${y}-${mo}-${day}T${h}:${mi}:${s}`;
+}
+
+export function parseToLocalDateTimePayload(input: string | null | undefined): string | null {
+  if (input == null) return null;
+  let s = String(input).trim();
+  if (!s) return null;
+  if (/^\d{4}\/\d{1,2}\/\d{1,2}/.test(s)) {
+    s = s.replace(/\//g, "-");
+  }
+  if (!s.includes("T")) {
+    s = s.replace(/^(\d{4}-\d{1,2}-\d{1,2})\s+(\d)/, "$1T$2");
+  }
+  if (!s.includes("T") && /^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) {
+    s = `${s}T00:00:00`;
+  }
+  s = s.replace(/(\.\d{3})\d+$/, "$1");
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return null;
+  return formatDateAsLocalDateTimePayload(d);
+}
+
+export function toDatetimeLocalInputValue(input: string | null | undefined): string {
+  const p = parseToLocalDateTimePayload(input);
+  if (!p) return "";
+  return p.length >= 16 ? p.slice(0, 16) : p;
+}
+
+export function nowLocalDateTimePayload(): string {
+  return formatDateAsLocalDateTimePayload(new Date());
 }
 
 export async function saveVitalAssessApi(

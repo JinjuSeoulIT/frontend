@@ -13,7 +13,11 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { saveVitalAssessApi } from "@/lib/clinical/clinicalVitalsApi";
+import {
+  nowLocalDateTimePayload,
+  parseToLocalDateTimePayload,
+  saveVitalAssessApi,
+} from "@/lib/clinical/clinicalVitalsApi";
 
 export type VitalsFormState = {
   temperature: string;
@@ -49,6 +53,7 @@ type Props = {
   onAssessmentFormChange: (f: AssessmentFormState) => void;
   onSaved: () => void | Promise<void>;
   onBackToVitalsOverview?: () => void;
+  fallbackRecordedAtIso?: string | null;
 };
 
 export function ClinicalVitalAssessmentDialog({
@@ -61,8 +66,10 @@ export function ClinicalVitalAssessmentDialog({
   onAssessmentFormChange,
   onSaved,
   onBackToVitalsOverview,
+  fallbackRecordedAtIso = null,
 }: Props) {
   const [saving, setSaving] = React.useState(false);
+  const saveInFlightRef = React.useRef(false);
 
   return (
     <Dialog
@@ -302,11 +309,15 @@ export function ClinicalVitalAssessmentDialog({
             disabled={visitId == null || saving}
             onClick={async () => {
             if (visitId == null) return;
+            if (saveInFlightRef.current) return;
+            saveInFlightRef.current = true;
             setSaving(true);
             try {
-              const recordedAt = vitalsForm.measuredAt
-                ? new Date(vitalsForm.measuredAt).toISOString()
-                : new Date().toISOString();
+              const m = vitalsForm.measuredAt?.trim() ?? "";
+              const recordedAt =
+                parseToLocalDateTimePayload(m) ??
+                parseToLocalDateTimePayload(fallbackRecordedAtIso) ??
+                nowLocalDateTimePayload();
               await saveVitalAssessApi(visitId, {
                 temperature: vitalsForm.temperature ? Number(vitalsForm.temperature) : null,
                 pulse: vitalsForm.pulse ? Number(vitalsForm.pulse) : null,
@@ -334,6 +345,7 @@ export function ClinicalVitalAssessmentDialog({
             } catch (err) {
               window.alert(err instanceof Error ? err.message : "저장에 실패했습니다.");
             } finally {
+              saveInFlightRef.current = false;
               setSaving(false);
             }
           }}

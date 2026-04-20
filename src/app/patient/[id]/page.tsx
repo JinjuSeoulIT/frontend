@@ -280,7 +280,7 @@ export default function PatientDetailPage() {
         patientName: p.name,
         departmentId: String(resolvedDept.id),
         departmentName: resolvedDept.name,
-        doctorId: Number(reservationForm.doctorId || resolvedDept.doctorId),
+        doctorId: String(reservationForm.doctorId || resolvedDept.doctorId),
         doctorName: resolvedDept.doctor,
         reservedAt,
         status: "RESERVED",
@@ -311,7 +311,7 @@ export default function PatientDetailPage() {
         patientId: p.patientId,
         visitType: "OUTPATIENT",
         departmentId: String(resolvedDept.id),
-        doctorId: Number(receptionForm.doctorId || resolvedDept.doctorId),
+        doctorId: String(receptionForm.doctorId || resolvedDept.doctorId),
         arrivedAt: toTodayDateTime(receptionForm.arrivedAt) ?? toLocalDateTime(),
         note: receptionForm.note?.trim() || "환자 상세 화면에서 접수 등록",
       });

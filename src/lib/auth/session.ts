@@ -3,9 +3,13 @@ export type SessionUser = {
   username: string;
   fullName: string;
   role: string;
+  authRole?: string | null;
   departmentId: string | null;
   departmentName: string | null;
 };
+
+export const getEffectiveSessionRole = (user: SessionUser | null | undefined) =>
+  user?.authRole ?? user?.role ?? null;
 
 const TOKEN_KEY = "his.accessToken";
 const USER_KEY = "his.user";
@@ -73,6 +77,10 @@ const normalizeSessionUser = (
     username: value.username,
     fullName: value.fullName,
     role: value.role,
+    authRole:
+      typeof value.authRole === "string" && value.authRole.trim().length > 0
+        ? value.authRole.trim()
+        : null,
     departmentId:
       typeof value.departmentId === "string" && value.departmentId.trim().length > 0
         ? value.departmentId.trim()

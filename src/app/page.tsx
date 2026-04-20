@@ -1,14 +1,13 @@
 "use client";
 
-import MainLayout from "@/components/layout/MainLayout";
 import Link from "next/link";
 import {
   Box,
+  Button,
   Card,
   CardContent,
   Stack,
   Typography,
-  Button,
 } from "@mui/material";
 import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
 import MedicalServicesOutlinedIcon from "@mui/icons-material/MedicalServicesOutlined";
@@ -17,12 +16,13 @@ import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettin
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import PersonSearchOutlinedIcon from "@mui/icons-material/PersonSearchOutlined";
 import MonetizationOnOutlinedIcon from "@mui/icons-material/MonetizationOnOutlined";
+import MainLayout from "@/components/layout/MainLayout";
 
-const ROLES = [
+const QUICK_MODULES = [
   {
     key: "doctor",
-    label: "임상",
-    desc: "임상 기본 화면",
+    label: "진료",
+    desc: "진료 기본 화면",
     href: "/clinical",
     icon: <LocalHospitalOutlinedIcon />,
     tone:
@@ -31,7 +31,7 @@ const ROLES = [
   {
     key: "medical_support",
     label: "진료 지원",
-    desc: "처치/바이탈/병동 모니터링",
+    desc: "처치, 검사, 판독 지원 관리",
     href: "/medical_support/dashboard",
     icon: <MedicalServicesOutlinedIcon />,
     tone:
@@ -40,7 +40,7 @@ const ROLES = [
   {
     key: "reception",
     label: "접수",
-    desc: "초진 등록/접수/예약",
+    desc: "초진 등록, 접수, 예약",
     href: "/reception/dashboard",
     icon: <FactCheckOutlinedIcon />,
     tone:
@@ -49,7 +49,7 @@ const ROLES = [
   {
     key: "billing",
     label: "수납",
-    desc: "수납/결제/보험 처리",
+    desc: "수납, 결제, 보험 처리",
     href: "/billing",
     icon: <MonetizationOnOutlinedIcon />,
     tone:
@@ -58,7 +58,7 @@ const ROLES = [
   {
     key: "patients",
     label: "환자",
-    desc: "환자 목록/상세/기록",
+    desc: "환자 목록, 상세, 기록",
     href: "/patient/list",
     icon: <PersonSearchOutlinedIcon />,
     tone:
@@ -66,8 +66,8 @@ const ROLES = [
   },
   {
     key: "staff",
-    label: "의료진",
-    desc: "직원/근무/권한 배정",
+    label: "직원",
+    desc: "직원, 근무, 권한 배정",
     href: "/staff",
     icon: <BadgeOutlinedIcon />,
     tone:
@@ -82,9 +82,17 @@ const ROLES = [
     tone:
       "linear-gradient(135deg, rgba(75, 85, 99, 0.24), rgba(75, 85, 99, 0))",
   },
-];
+] as const;
 
 export default function HomePage() {
+  const handleModuleNavigation = (href: string) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.location.assign(href);
+  };
+
   return (
     <MainLayout showSidebar={false}>
       <Stack spacing={3}>
@@ -99,14 +107,14 @@ export default function HomePage() {
             },
           }}
         >
-          {ROLES.map((role) => (
+          {QUICK_MODULES.map((module) => (
             <Card
-              key={role.key}
+              key={module.key}
               sx={{
                 borderRadius: 3,
                 border: "1px solid var(--line)",
                 boxShadow: "var(--shadow-1)",
-                background: role.tone,
+                background: module.tone,
               }}
             >
               <CardContent sx={{ p: 3 }}>
@@ -122,17 +130,28 @@ export default function HomePage() {
                     mb: 2,
                   }}
                 >
-                  {role.icon}
+                  {module.icon}
                 </Box>
                 <Typography sx={{ fontWeight: 800, fontSize: 18 }}>
-                  {role.label}
+                  {module.label}
                 </Typography>
                 <Typography sx={{ color: "var(--muted)", mt: 0.5, minHeight: 44 }}>
-                  {role.desc}
+                  {module.desc}
                 </Typography>
-                <Button component={Link} href={role.href} size="small" sx={{ mt: 2 }}>
-                  바로가기
-                </Button>
+
+                {module.href.startsWith("/admin") ? (
+                  <Button
+                    size="small"
+                    sx={{ mt: 2 }}
+                    onClick={() => handleModuleNavigation(module.href)}
+                  >
+                    바로가기
+                  </Button>
+                ) : (
+                  <Button component={Link} href={module.href} size="small" sx={{ mt: 2 }}>
+                    바로가기
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}

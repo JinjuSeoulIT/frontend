@@ -82,8 +82,8 @@ const getReceptionStatusLabel = (status?: string | null) => {
   switch (status) {
     case "WAITING":
       return "대기";
-    case "CALLED":
-      return "호출";
+    // case "CALLED":
+    //   return "호출";
     case "IN_PROGRESS":
       return "진료중";
     case "PAYMENT_WAIT":

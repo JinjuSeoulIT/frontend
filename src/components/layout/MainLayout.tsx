@@ -21,13 +21,6 @@ const redirectToLogin = () => {
   window.location.replace(`/login?next=${encodeURIComponent(nextPath)}`);
 };
 
-const getInitialAuthStatus = (): AuthStatus => {
-  if (typeof window === "undefined") return "checking";
-  const token = getAccessToken();
-  if (!token) return "checking";
-  return getSessionUser() ? "ready" : "checking";
-};
-
 export default function MainLayout({
   children,
   showSidebar = true,
@@ -38,7 +31,7 @@ export default function MainLayout({
   const pathname = usePathname();
   const NAV_H = { xs: 64, md: 76 };
   const SIDEBAR_W = 240;
-  const [authStatus, setAuthStatus] = React.useState<AuthStatus>(getInitialAuthStatus);
+  const [authStatus, setAuthStatus] = React.useState<AuthStatus>("checking");
   const menus = useMenus();
   const setMenus = useSetMenus();
 

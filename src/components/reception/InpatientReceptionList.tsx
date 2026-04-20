@@ -35,7 +35,7 @@ const statusLabel = (value?: string | null) => {
     case "WAITING":
       return "대기";
     case "CALLED":
-      return "호출";
+      return "대기";
     case "IN_PROGRESS":
       return "진료중";
     case "COMPLETED":

@@ -48,9 +48,22 @@ const api = axios.create({
 
 const normalizeDepartmentId = (value: unknown) => String(value ?? "").trim();
 
+const normalizeReceptionStatus = (value?: string | null): Reception["status"] => {
+  const normalized = value?.trim().toUpperCase();
+  if (normalized === "CALLED") return "WAITING";
+  if (normalized === "IN_PROGRESS") return "IN_PROGRESS";
+  if (normalized === "COMPLETED") return "COMPLETED";
+  if (normalized === "PAYMENT_WAIT") return "PAYMENT_WAIT";
+  if (normalized === "ON_HOLD") return "ON_HOLD";
+  if (normalized === "CANCELED" || normalized === "CANCELLED") return "CANCELED";
+  if (normalized === "INACTIVE") return "INACTIVE";
+  return "WAITING";
+};
+
 const normalizeReception = (item: Reception): Reception => ({
   ...item,
   departmentId: normalizeDepartmentId((item as Reception & { departmentId?: unknown }).departmentId),
+  status: normalizeReceptionStatus(item.status),
 });
 
 function unwrap<T>(data: VisitApiResponse<T> | T): T {

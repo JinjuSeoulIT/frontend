@@ -24,6 +24,12 @@ const api = axios.create({
     "http://192.168.1.55:8283",
 });
 
+const normalizeHistoryStatus = (value?: string | null) => {
+  const normalized = value?.trim().toUpperCase();
+  if (normalized === "CALLED") return "WAITING";
+  return value ?? null;
+};
+
 export const fetchReceptionStatusHistoryApi = async (
   receptionId: string
 ): Promise<ReceptionStatusHistory[]> => {
@@ -33,7 +39,11 @@ export const fetchReceptionStatusHistoryApi = async (
   if (!res.data.success) {
     throw new Error(res.data.message || "Fetch failed");
   }
-  return res.data.result;
+  return (res.data.result ?? []).map((item) => ({
+    ...item,
+    fromStatus: normalizeHistoryStatus(item.fromStatus),
+    toStatus: normalizeHistoryStatus(item.toStatus) ?? item.toStatus,
+  }));
 };
 
 

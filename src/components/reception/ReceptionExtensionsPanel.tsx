@@ -508,7 +508,7 @@ export default function ReceptionExtensionsPanel({ scope, entityId }: Props) {
                   "&:before": { display: "none" },
                 }}
               >
-                <AccordionSummary expandIcon={<ExpandMoreRoundedIcon />}>
+                <AccordionSummary component="div" expandIcon={<ExpandMoreRoundedIcon />}>
                   <Stack
                     direction={{ xs: "column", md: "row" }}
                     justifyContent="space-between"
@@ -523,7 +523,16 @@ export default function ReceptionExtensionsPanel({ scope, entityId }: Props) {
                     </Box>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Chip size="small" label={statusLabel} color={statusColor} variant="outlined" />
-                      <Button size="small" variant="outlined" onClick={() => loadTable(item)} disabled={isLoading}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void loadTable(item);
+                        }}
+                        onFocus={(event) => event.stopPropagation()}
+                        disabled={isLoading}
+                      >
                         {isLoading ? "조회 중..." : "조회"}
                       </Button>
                     </Stack>

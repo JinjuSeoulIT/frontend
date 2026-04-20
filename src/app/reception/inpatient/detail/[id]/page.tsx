@@ -65,7 +65,7 @@ export default function InpatientReceptionDetailPage() {
       case "WAITING":
         return "대기";
       case "CALLED":
-        return "호출";
+        return "대기";
       case "IN_PROGRESS":
         return "진행중";
       case "COMPLETED":

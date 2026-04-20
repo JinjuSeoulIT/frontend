@@ -330,6 +330,10 @@ export default function TestExecutionList() {
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                 검사 시작 전 대기중이거나 검사중인 작업을 확인하는 업무 목록입니다.
               </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: "block" }}>
+                결과작성완료 후 동기화된 검사완료 건은 기본 목록에서 숨겨질 수 있으며, 진행상태 검색에서
+                완료를 선택해 확인할 수 있습니다.
+              </Typography>
             </Box>
 
             <Box
@@ -396,6 +400,9 @@ export default function TestExecutionList() {
               }}
             />
           </Box>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            검사완료 건을 보려면 검색 기준을 진행상태로 바꾼 뒤 `검사완료`를 선택해 조회하세요.
+          </Alert>
 
           {loading && (
             <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>

@@ -454,7 +454,8 @@ export default function TestResultDetail() {
     }
 
     const message =
-      pendingSuccessMessageRef.current ?? "검사 결과가 작성완료 처리되었습니다.";
+      pendingSuccessMessageRef.current ??
+      "검사 결과가 작성완료 처리되었습니다. 검사수행 상태는 백엔드에서 자동 동기화됩니다.";
 
     alert(message);
     pendingSuccessMessageRef.current = null;
@@ -546,7 +547,8 @@ export default function TestResultDetail() {
       return;
     }
 
-    pendingSuccessMessageRef.current = "검사 결과가 작성완료 처리되었습니다.";
+    pendingSuccessMessageRef.current =
+      "검사 결과가 작성완료 처리되었습니다. 검사수행 상태는 백엔드에서 자동 동기화됩니다.";
     dispatch(
       TestResultActions.updateTestResultProgressStatusRequest({
         resultId,
@@ -1012,7 +1014,15 @@ export default function TestResultDetail() {
         </Box>
         <Divider />
         <Box sx={{ p: 2.5 }}>
-          <Stack direction="row" spacing={1} justifyContent="flex-end">
+          <Stack spacing={1}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ textAlign: "right" }}
+            >
+              완료 처리 후 검사수행 화면에 반영될 때까지 잠시 지연될 수 있습니다.
+            </Typography>
+            <Stack direction="row" spacing={1} justifyContent="flex-end">
             <Button
               variant="contained"
               color="success"
@@ -1022,6 +1032,7 @@ export default function TestResultDetail() {
             >
               작성완료
             </Button>
+            </Stack>
           </Stack>
         </Box>
       </Paper>

@@ -536,6 +536,7 @@ export default function TestResultDetail() {
   const detailFields = buildDetailFieldConfigs(resultType, detail.detail);
   const detailSectionTitle = getDetailSectionTitle(resultType);
   const isCompleted = normalizeValue(detail.progressStatus) === "COMPLETED";
+  const isInactive = normalizeValue(detail.status) === "INACTIVE";
   const isImaging = resultType === "IMAGING";
   const isSpecimen = resultType === "SPECIMEN";
   const isPathology = resultType === "PATHOLOGY";
@@ -553,6 +554,27 @@ export default function TestResultDetail() {
       TestResultActions.updateTestResultProgressStatusRequest({
         resultId,
         progressStatus: "COMPLETED",
+      })
+    );
+  };
+
+  const handleToggleActiveStatus = () => {
+    if (!resultId || !resultType || updateLoading) {
+      return;
+    }
+
+    const nextStatus = isInactive ? "ACTIVE" : "INACTIVE";
+    pendingSuccessMessageRef.current = isInactive
+      ? "검사 결과가 활성화되었습니다."
+      : "검사 결과가 비활성화되었습니다.";
+
+    dispatch(
+      TestResultActions.updateTestResultRequest({
+        resultType,
+        resultId,
+        form: {
+          status: nextStatus,
+        },
       })
     );
   };
@@ -586,11 +608,20 @@ export default function TestResultDetail() {
             </Box>
 
             <Stack direction="row" spacing={1}>
-              <Button component={Link} href={listHref} variant="outlined" size="small">
-                목록으로
+              <Button
+                variant="outlined"
+                size="small"
+                color={isInactive ? "success" : "warning"}
+                onClick={handleToggleActiveStatus}
+                disabled={updateLoading}
+              >
+                {isInactive ? "활성화" : "비활성화"}
               </Button>
               <Button component={Link} href={editHref} variant="contained" size="small">
                 수정
+              </Button>
+              <Button component={Link} href={listHref} variant="outlined" size="small">
+                목록으로
               </Button>
             </Stack>
           </Stack>

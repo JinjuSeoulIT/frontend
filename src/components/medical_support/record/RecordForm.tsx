@@ -22,6 +22,7 @@ interface Props {
   onSubmit: () => void;
   onCancel?: () => void;
   onNavigateDetail?: () => void;
+  onToggleActiveStatus?: () => void;
   loading: boolean;
 }
 
@@ -34,6 +35,7 @@ const RecordForm: React.FC<Props> = ({
   onSubmit,
   onCancel,
   onNavigateDetail,
+  onToggleActiveStatus,
   loading,
 }) => {
   const [errors, setErrors] = useState<RecordFormErrors>({});
@@ -205,13 +207,32 @@ const RecordForm: React.FC<Props> = ({
             </Box>
 
             {isEditMode && onNavigateDetail ? (
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={onNavigateDetail}
-              >
-                상세로
-              </Button>
+              <Stack direction="row" spacing={1}>
+                {onToggleActiveStatus ? (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    color={
+                      String(form.status ?? "").trim().toUpperCase() === "INACTIVE"
+                        ? "success"
+                        : "warning"
+                    }
+                    onClick={onToggleActiveStatus}
+                    disabled={loading}
+                  >
+                    {String(form.status ?? "").trim().toUpperCase() === "INACTIVE"
+                      ? "활성화"
+                      : "비활성화"}
+                  </Button>
+                ) : null}
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={onNavigateDetail}
+                >
+                  상세로
+                </Button>
+              </Stack>
             ) : null}
           </Stack>
         </Box>

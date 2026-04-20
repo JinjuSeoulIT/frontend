@@ -86,6 +86,9 @@ const normalizeProgressStatus = (value?: string | null) => {
   return "REQUESTED";
 };
 
+const normalizeActiveStatus = (value?: string | null) =>
+  (value ?? "").trim().toUpperCase() === "INACTIVE" ? "INACTIVE" : "ACTIVE";
+
 const parseTreatmentAt = (value: string): Dayjs | null => {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -174,9 +177,12 @@ export default function TreatmentResultEdit() {
 
   const isCompleted = normalizeProgressStatus(form.progressStatus) === "COMPLETED";
 
-  const buildUpdatePayload = (nextProgressStatus: string) => ({
+  const buildUpdatePayload = (
+    nextProgressStatus: string,
+    nextStatus?: string
+  ) => ({
     progressStatus: normalizeProgressStatus(nextProgressStatus),
-    status: toNullableString(form.status),
+    status: toNullableString(nextStatus ?? form.status),
     treatmentAt: toNullableString(form.treatmentAt),
     nursingId: toNullableString(form.nursingId),
     nurseName: toNullableString(form.nurseName),
@@ -216,6 +222,32 @@ export default function TreatmentResultEdit() {
               onClick={() => router.push("/medical_support/medicationTreatment")}
             >
               목록
+            </Button>
+            <Button
+              variant="outlined"
+              color={
+                normalizeActiveStatus(form.status) === "INACTIVE"
+                  ? "success"
+                  : "warning"
+              }
+              onClick={() => {
+                if (!treatmentResultId) return;
+                const nextStatus =
+                  normalizeActiveStatus(form.status) === "INACTIVE"
+                    ? "ACTIVE"
+                    : "INACTIVE";
+                dispatch(
+                  TreatmentResultActions.updateTreatmentResultRequest({
+                    treatmentResultId,
+                    form: buildUpdatePayload(form.progressStatus, nextStatus),
+                  })
+                );
+              }}
+              disabled={loading || detailLoading}
+            >
+              {normalizeActiveStatus(form.status) === "INACTIVE"
+                ? "활성화"
+                : "비활성화"}
             </Button>
             <Button
               variant="contained"

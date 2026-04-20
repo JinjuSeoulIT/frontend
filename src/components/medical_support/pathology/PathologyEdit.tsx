@@ -113,7 +113,8 @@ export default function PathologyEdit() {
   }, [params]);
 
   const [draftForm, setDraftForm] = useState<PathologyEditForm | null>(null);
-  const lastRequestedProgressStatusRef = useRef<string | null>(null);
+  const pendingSuccessMessageRef = useRef<string | null>(null);
+  const pendingRedirectPathRef = useRef<string | null>(null);
 
   const { selected, loading, error, updateSuccess } = useSelector(
     (state: RootState) => state.pathologies
@@ -167,15 +168,17 @@ export default function PathologyEdit() {
 
   useEffect(() => {
     if (!updateSuccess) return;
-    const nextPath =
-      lastRequestedProgressStatusRef.current === "COMPLETED"
-        ? "/medical_support/testResult/list?resultType=PATHOLOGY"
-        : "/medical_support/pathology/list";
-    lastRequestedProgressStatusRef.current = null;
+    const nextPath = pendingRedirectPathRef.current;
+    const message =
+      pendingSuccessMessageRef.current ?? "병리 검사가 처리되었습니다.";
+    pendingSuccessMessageRef.current = null;
+    pendingRedirectPathRef.current = null;
 
-    alert("병리 검사가 완료되었습니다.");
+    alert(message);
     dispatch(PathologyActions.resetUpdateSuccess());
-    router.push(nextPath);
+    if (nextPath) {
+      router.push(nextPath);
+    }
   }, [dispatch, router, updateSuccess]);
 
   useEffect(() => {
@@ -186,7 +189,14 @@ export default function PathologyEdit() {
   const handleUpdate = (nextProgressStatus: string) => {
     if (!pathologyExamId) return;
 
-    lastRequestedProgressStatusRef.current = nextProgressStatus;
+    const normalizedProgressStatus = nextProgressStatus.trim().toUpperCase();
+    const isCompleted = normalizedProgressStatus === "COMPLETED";
+    pendingSuccessMessageRef.current = isCompleted
+      ? "병리 검사가 완료되었습니다."
+      : "병리 검사가 취소되었습니다.";
+    pendingRedirectPathRef.current = isCompleted
+      ? "/medical_support/testResult/list?resultType=PATHOLOGY"
+      : "/medical_support/pathology/list";
 
     dispatch(
       PathologyActions.updatePathologyRequest({
@@ -215,6 +225,41 @@ export default function PathologyEdit() {
     );
   };
 
+  const handleToggleActiveStatus = () => {
+    if (!pathologyExamId) return;
+
+    const nextStatus = form.status?.trim().toUpperCase() === "INACTIVE" ? "ACTIVE" : "INACTIVE";
+    const actionLabel = nextStatus === "INACTIVE" ? "비활성화" : "활성화";
+    pendingSuccessMessageRef.current = `병리 검사가 ${actionLabel}되었습니다.`;
+    pendingRedirectPathRef.current = null;
+
+    dispatch(
+      PathologyActions.updatePathologyRequest({
+        pathologyExamId,
+        form: {
+          testExecutionId: form.testExecutionId,
+          detailCode: form.detailCode,
+          patientId: form.patientId.trim() ? Number(form.patientId) : null,
+          patientName: form.patientName,
+          departmentName: form.departmentName,
+          specimenId: form.specimenId,
+          resultSummary: form.resultSummary,
+          reportDocId: form.reportDocId,
+          tissueStatus: toNullableText(form.tissueStatus),
+          tissueSite: toNullableText(form.tissueSite),
+          tissueType: toNullableText(form.tissueType),
+          collectionMethod: toNullableText(form.collectionMethod),
+          collectedAt: toNullableDateTime(form.collectedAt),
+          performerId: form.performerId,
+          performerName: form.performerName,
+          reexamYn: toNullableText(form.reexamYn),
+          progressStatus: form.progressStatus,
+          status: nextStatus,
+        },
+      })
+    );
+  };
+
   if (loading && !form.pathologyExamId) {
     return <CircularProgress sx={{ m: 3 }} />;
   }
@@ -238,12 +283,22 @@ export default function PathologyEdit() {
             </Typography>
           </Box>
 
-          <Button
-            variant="outlined"
-            onClick={() => router.push("/medical_support/testResult/list")}
-          >
-            목록으로
-          </Button>
+          <Stack direction="row" spacing={1} justifyContent="flex-end">
+            <Button
+              variant="outlined"
+              color={form.status?.trim().toUpperCase() === "INACTIVE" ? "success" : "warning"}
+              onClick={handleToggleActiveStatus}
+              disabled={loading}
+            >
+              {form.status?.trim().toUpperCase() === "INACTIVE" ? "활성화" : "비활성화"}
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => router.push("/medical_support/testResult/list")}
+            >
+              목록으로
+            </Button>
+          </Stack>
         </Stack>
 
         {error ? (

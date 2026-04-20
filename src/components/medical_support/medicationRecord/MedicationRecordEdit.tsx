@@ -90,6 +90,9 @@ const normalizeProgressStatus = (value?: string | null) => {
   return "REQUESTED";
 };
 
+const normalizeActiveStatus = (value?: string | null) =>
+  (value ?? "").trim().toUpperCase() === "INACTIVE" ? "INACTIVE" : "ACTIVE";
+
 const parseAdministeredAt = (value: string): Dayjs | null => {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -181,7 +184,10 @@ export default function MedicationRecordEdit() {
 
   const isCompleted = normalizeProgressStatus(form.progressStatus) === "COMPLETED";
 
-  const buildUpdatePayload = (nextProgressStatus: string) => ({
+  const buildUpdatePayload = (
+    nextProgressStatus: string,
+    nextStatus?: string
+  ) => ({
     medicationId: toNullableString(form.medicationId),
     administeredAt: toNullableString(form.administeredAt),
     doseNumber: form.doseNumber.trim() ? Number(form.doseNumber) : null,
@@ -190,7 +196,7 @@ export default function MedicationRecordEdit() {
     nursingId: toNullableString(form.nursingId),
     nurseName: toNullableString(form.nurseName),
     progressStatus: normalizeProgressStatus(nextProgressStatus),
-    status: toNullableString(form.status),
+    status: toNullableString(nextStatus ?? form.status),
     patientId: form.patientId.trim() ? Number(form.patientId) : null,
     patientName: toNullableString(form.patientName),
     departmentName: toNullableString(form.departmentName),
@@ -225,6 +231,32 @@ export default function MedicationRecordEdit() {
               onClick={() => router.push("/medical_support/medicationTreatment")}
             >
               목록
+            </Button>
+            <Button
+              variant="outlined"
+              color={
+                normalizeActiveStatus(form.status) === "INACTIVE"
+                  ? "success"
+                  : "warning"
+              }
+              onClick={() => {
+                if (!medicationRecordId) return;
+                const nextStatus =
+                  normalizeActiveStatus(form.status) === "INACTIVE"
+                    ? "ACTIVE"
+                    : "INACTIVE";
+                dispatch(
+                  MedicationRecordActions.updateMedicationRecordRequest({
+                    medicationRecordId,
+                    form: buildUpdatePayload(form.progressStatus, nextStatus),
+                  })
+                );
+              }}
+              disabled={loading || detailLoading}
+            >
+              {normalizeActiveStatus(form.status) === "INACTIVE"
+                ? "활성화"
+                : "비활성화"}
             </Button>
             <Button
               variant="contained"

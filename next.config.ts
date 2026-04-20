@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
     "127.0.0.1",
     "192.168.1.64",
     "192.168.1.64:3001",
+    "192.168.1.67",
+    "192.168.1.67:3001",
   ],
   async rewrites() {
     const patientsApiBase = resolveBaseUrl(
@@ -84,6 +86,10 @@ const nextConfig: NextConfig = {
       {
         source: "/api/auth/:path*",
         destination: `${authApiBase}/api/auth/:path*`,
+      },
+      {
+        source: "/api/boards/:path*",
+        destination: `${authApiBase}/api/boards/:path*`,
       },
       {
         source: "/api/notifications/:path*",

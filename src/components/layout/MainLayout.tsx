@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { Box, CircularProgress } from "@mui/material";
@@ -22,9 +22,6 @@ const redirectToLogin = () => {
 };
 
 const getInitialAuthStatus = (pathname: string | null): AuthStatus => {
-  // IMPORTANT (Next.js hydration):
-  // Never branch initial render on `window` / storage in a way that differs between SSR and the first client render.
-  // Otherwise `authStatus` can be "checking" on server but "ready" on client -> hydration mismatch.
   const currentPath = pathname || "/";
   if (currentPath.startsWith("/login")) {
     return "ready";
@@ -53,7 +50,6 @@ export default function MainLayout({
     let mounted = true;
 
     const bootstrap = async () => {
-      // Keep SSR + client navigations aligned: initial UI should not depend on browser-only state.
       if (mounted) {
         setAuthStatus(getInitialAuthStatus(pathname));
       }
@@ -73,9 +69,7 @@ export default function MainLayout({
       }
 
       const user = getSessionUser();
-      if (user?.authRole) {
-        if (mounted) setAuthStatus("ready");
-      } else {
+      if (!user || !user.authRole) {
         if (mounted) setAuthStatus("checking");
         try {
           const me = await getMeApi();

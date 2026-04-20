@@ -44,8 +44,22 @@ type LooseMenuNode = Partial<{
 
 const MAX_MENU_DEPTH = 12;
 
-const DISABLED_MENU_CODES = new Set(["ADMIN_COMMON", "ADMIN_ACCOUNT_MANAGEMENT"]);
-const DISABLED_MENU_PATHS = new Set(["/admin/common", "/admin/account-management"]);
+const DISABLED_MENU_CODES = new Set([
+  "ADMIN_COMMON",
+  "ADMIN_ACCOUNT_MANAGEMENT",
+  "BOARD",
+  "BOARD_NOTICE",
+  "BOARD_WORK",
+  "BOARD_FREE",
+]);
+const DISABLED_MENU_PATHS = new Set([
+  "/admin/common",
+  "/admin/account-management",
+  "/board",
+  "/board/notices",
+  "/board/work",
+  "/board/free",
+]);
 
 const normalizeYn = (value: unknown): "Y" | "N" | undefined => {
   if (value == null) {
@@ -721,6 +735,14 @@ const ensureAdminPermissionMenus = async (
 ) => {
   try {
     let visibleMenus = currentMenus;
+    const currentVisiblePathMap = buildMenuByNormalizedPath(visibleMenus);
+    const alreadyVisible = REQUIRED_ADMIN_MENU_DEFINITIONS.every((definition) =>
+      currentVisiblePathMap.has(definition.path)
+    );
+    if (alreadyVisible) {
+      return visibleMenus;
+    }
+
     let allMenus = await fetchAllMenusWithToken(baseUrl, accessToken);
     let allPathMap = buildMenuByNormalizedPath(allMenus);
     let mutated = false;

@@ -21,11 +21,16 @@ const redirectToLogin = () => {
   window.location.replace(`/login?next=${encodeURIComponent(nextPath)}`);
 };
 
-const getInitialAuthStatus = (): AuthStatus => {
-  if (typeof window === "undefined") return "checking";
-  const token = getAccessToken();
-  if (!token) return "checking";
-  return getSessionUser() ? "ready" : "checking";
+const getInitialAuthStatus = (pathname: string | null): AuthStatus => {
+  // IMPORTANT (Next.js hydration):
+  // Never branch initial render on `window` / storage in a way that differs between SSR and the first client render.
+  // Otherwise `authStatus` can be "checking" on server but "ready" on client -> hydration mismatch.
+  const currentPath = pathname || "/";
+  if (currentPath.startsWith("/login")) {
+    return "ready";
+  }
+
+  return "checking";
 };
 
 export default function MainLayout({
@@ -38,7 +43,9 @@ export default function MainLayout({
   const pathname = usePathname();
   const NAV_H = { xs: 64, md: 76 };
   const SIDEBAR_W = 240;
-  const [authStatus, setAuthStatus] = React.useState<AuthStatus>(getInitialAuthStatus);
+  const [authStatus, setAuthStatus] = React.useState<AuthStatus>(() =>
+    getInitialAuthStatus(pathname)
+  );
   const menus = useMenus();
   const setMenus = useSetMenus();
 
@@ -46,6 +53,11 @@ export default function MainLayout({
     let mounted = true;
 
     const bootstrap = async () => {
+      // Keep SSR + client navigations aligned: initial UI should not depend on browser-only state.
+      if (mounted) {
+        setAuthStatus(getInitialAuthStatus(pathname));
+      }
+
       const currentPath = pathname || "/";
       if (currentPath.startsWith("/login")) {
         if (mounted) setAuthStatus("ready");
@@ -61,7 +73,9 @@ export default function MainLayout({
       }
 
       const user = getSessionUser();
-      if (!user || !user.authRole) {
+      if (user?.authRole) {
+        if (mounted) setAuthStatus("ready");
+      } else {
         if (mounted) setAuthStatus("checking");
         try {
           const me = await getMeApi();

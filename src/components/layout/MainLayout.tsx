@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { Box, CircularProgress } from "@mui/material";
@@ -21,6 +21,15 @@ const redirectToLogin = () => {
   window.location.replace(`/login?next=${encodeURIComponent(nextPath)}`);
 };
 
+const getInitialAuthStatus = (pathname: string | null): AuthStatus => {
+  const currentPath = pathname || "/";
+  if (currentPath.startsWith("/login")) {
+    return "ready";
+  }
+
+  return "checking";
+};
+
 export default function MainLayout({
   children,
   showSidebar = true,
@@ -31,7 +40,9 @@ export default function MainLayout({
   const pathname = usePathname();
   const NAV_H = { xs: 64, md: 76 };
   const SIDEBAR_W = 240;
-  const [authStatus, setAuthStatus] = React.useState<AuthStatus>("checking");
+  const [authStatus, setAuthStatus] = React.useState<AuthStatus>(() =>
+    getInitialAuthStatus(pathname)
+  );
   const menus = useMenus();
   const setMenus = useSetMenus();
 
@@ -39,6 +50,10 @@ export default function MainLayout({
     let mounted = true;
 
     const bootstrap = async () => {
+      if (mounted) {
+        setAuthStatus(getInitialAuthStatus(pathname));
+      }
+
       const currentPath = pathname || "/";
       if (currentPath.startsWith("/login")) {
         if (mounted) setAuthStatus("ready");

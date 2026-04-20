@@ -264,7 +264,7 @@ export function TreatmentResultListSection() {
                 variant="outlined"
               />
               <Chip
-                label={`진행 중 ${inProgressCount}건`}
+                label={`진행중 ${inProgressCount}건`}
                 size="small"
                 color="info"
                 variant="outlined"

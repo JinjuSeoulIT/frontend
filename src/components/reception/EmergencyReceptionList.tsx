@@ -41,7 +41,7 @@ const statusLabel = (value?: string | null) => {
     case "WAITING":
       return "대기";
     case "CALLED":
-      return "호출";
+      return "대기";
     case "TRIAGE":
       return "중증도분류";
     case "IN_PROGRESS":
@@ -73,7 +73,7 @@ const normalizeEmergencyStatus = (value?: string | null) => {
   const map: Record<string, string> = {
     REGISTERED: "REGISTERED",
     WAITING: "WAITING",
-    CALLED: "CALLED",
+    CALLED: "WAITING",
     TRIAGE: "TRIAGE",
     IN_PROGRESS: "IN_PROGRESS",
     COMPLETED: "COMPLETED",
@@ -87,7 +87,7 @@ const normalizeEmergencyStatus = (value?: string | null) => {
     "접수완료": "REGISTERED",
     "접수 완료": "REGISTERED",
     "대기": "WAITING",
-    "호출": "CALLED",
+    "호출": "WAITING",
     "중증도분류": "TRIAGE",
     "진행중": "IN_PROGRESS",
     "완료": "COMPLETED",

@@ -67,7 +67,15 @@ const STAFF_SHORTCUT_MENUS: Omit<MenuNode, "id">[] = [
   },
 ];
 
-const HIDDEN_MENU_CODES = new Set(["STAFF_ROOT", "STAFF_DIRECTORY", "STAFF_PERMISSION_MANAGE"]);
+const HIDDEN_MENU_CODES = new Set([
+  "STAFF_ROOT",
+  "STAFF_DIRECTORY",
+  "STAFF_PERMISSION_MANAGE",
+  "BOARD",
+  "BOARD_NOTICE",
+  "BOARD_WORK",
+  "BOARD_FREE",
+]);
 const MAX_MENU_DEPTH = 12;
 
 const stripHiddenMenus = (

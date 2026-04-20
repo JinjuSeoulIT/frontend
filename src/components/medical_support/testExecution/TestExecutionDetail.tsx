@@ -167,6 +167,7 @@ export default function TestExecutionDetail() {
         patientName: item.patientName ?? null,
         departmentName: item.departmentName ?? null,
         performerId: item.performerId ?? null,
+        performerName: item.performerName ?? null,
       });
 
       alert(`검사 수행이 ${actionLabel}되었습니다.`);
@@ -336,16 +337,26 @@ export default function TestExecutionDetail() {
                 수행 정보
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                검사 시작, 완료, 재시도, 수행자 정보를 확인합니다.
+                검사 시작·완료·재시도와 검사실 접수 담당자 정보를 확인합니다. 접수 담당은
+                진료 의사와 자동 연결되지 않을 수 있습니다.
               </Typography>
 
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem label="재시도횟수" value={safeValue(item.retryNo)} />
                 </Grid>
-                {/* <Grid size={{ xs: 12, md: 6 }}>
-                  <DetailItem label="수행자 ID" value={safeValue(item.performerId)} />
-                </Grid> */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <DetailItem
+                    label="검사접수담당자 ID"
+                    value={safeValue(item.performerId)}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <DetailItem
+                    label="검사접수담당자"
+                    value={safeValue(item.performerName)}
+                  />
+                </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <DetailItem label="시작일시" value={formatDateTime(item.startedAt)} />
                 </Grid>

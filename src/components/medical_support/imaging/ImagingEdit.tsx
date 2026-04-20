@@ -18,6 +18,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { ImagingActions } from "@/features/medical_support/imaging/imagingSlice";
 import type { RootState } from "@/store/rootReducer";
 import type { AppDispatch } from "@/store/store";
+import {
+  EXAM_PROGRESS_STATUS_MENU_OPTIONS,
+  isExamProgressDropdownLocked,
+  isExamProgressTerminalMenuItemDisabled,
+} from "@/lib/medical_support/examProgressStatus";
 
 type ImagingEditForm = {
   imagingExamId: string;
@@ -33,11 +38,6 @@ type ImagingEditForm = {
   createdAt: string;
   updatedAt: string;
 };
-
-const IMAGING_PROGRESS_STATUS_OPTIONS = [
-  { value: "WAITING", label: "대기중" },
-  { value: "IN_PROGRESS", label: "검사중" },
-];
 
 const ACTIVE_STATUS_OPTIONS = [
   { value: "ACTIVE", label: "활성" },
@@ -76,7 +76,8 @@ export default function ImagingEdit() {
   }, [params]);
 
   const [draftForm, setDraftForm] = useState<ImagingEditForm | null>(null);
-  const lastRequestedProgressStatusRef = useRef<string | null>(null);
+  const pendingSuccessMessageRef = useRef<string | null>(null);
+  const pendingRedirectPathRef = useRef<string | null>(null);
 
   const { selected, loading, error, updateSuccess } = useSelector(
     (state: RootState) => state.imagings
@@ -126,17 +127,17 @@ export default function ImagingEdit() {
     if (!updateSuccess) {
       return;
     }
+    const nextPath = pendingRedirectPathRef.current;
+    const message =
+      pendingSuccessMessageRef.current ?? "영상 검사가 처리되었습니다.";
+    pendingSuccessMessageRef.current = null;
+    pendingRedirectPathRef.current = null;
 
-    const nextPath =
-      lastRequestedProgressStatusRef.current === "COMPLETED"
-        ? "/medical_support/testResult/list?resultType=IMAGING"
-        : "/medical_support/imaging/list";
-
-    lastRequestedProgressStatusRef.current = null;
-
-    alert("영상 검사가 완료되었습니다.");
+    alert(message);
     dispatch(ImagingActions.resetUpdateSuccess());
-    router.push(nextPath);
+    if (nextPath) {
+      router.push(nextPath);
+    }
   }, [dispatch, router, updateSuccess]);
 
   useEffect(() => {
@@ -152,7 +153,14 @@ export default function ImagingEdit() {
       return;
     }
 
-    lastRequestedProgressStatusRef.current = nextProgressStatus;
+    const normalizedProgressStatus = nextProgressStatus.trim().toUpperCase();
+    const isCompleted = normalizedProgressStatus === "COMPLETED";
+    pendingSuccessMessageRef.current = isCompleted
+      ? "영상 검사가 완료되었습니다."
+      : "영상 검사가 취소되었습니다.";
+    pendingRedirectPathRef.current = isCompleted
+      ? "/medical_support/testResult/list?resultType=IMAGING"
+      : "/medical_support/imaging/list";
 
     dispatch(
       ImagingActions.updateImagingRequest({
@@ -167,6 +175,36 @@ export default function ImagingEdit() {
           performerName: form.performerName,
           progressStatus: nextProgressStatus,
           status: form.status,
+          createdAt: form.createdAt,
+          updatedAt: form.updatedAt,
+        },
+      })
+    );
+  };
+
+  const handleToggleActiveStatus = () => {
+    if (!imagingExamId) {
+      return;
+    }
+
+    const nextStatus = form.status?.trim().toUpperCase() === "INACTIVE" ? "ACTIVE" : "INACTIVE";
+    const actionLabel = nextStatus === "INACTIVE" ? "비활성화" : "활성화";
+    pendingSuccessMessageRef.current = `영상 검사가 ${actionLabel}되었습니다.`;
+    pendingRedirectPathRef.current = null;
+
+    dispatch(
+      ImagingActions.updateImagingRequest({
+        imagingExamId,
+        form: {
+          testExecutionId: form.testExecutionId,
+          detailCode: form.detailCode,
+          patientId: form.patientId.trim() ? Number(form.patientId) : null,
+          patientName: form.patientName,
+          departmentName: form.departmentName,
+          performerId: form.performerId,
+          performerName: form.performerName,
+          progressStatus: form.progressStatus,
+          status: nextStatus,
           createdAt: form.createdAt,
           updatedAt: form.updatedAt,
         },
@@ -197,12 +235,22 @@ export default function ImagingEdit() {
             </Typography>
           </Box>
 
-          <Button
-            variant="outlined"
-            onClick={() => router.push("/medical_support/testResult/list")}
-          >
-            목록으로
-          </Button>
+          <Stack direction="row" spacing={1} justifyContent="flex-end">
+            <Button
+              variant="outlined"
+              color={form.status?.trim().toUpperCase() === "INACTIVE" ? "success" : "warning"}
+              onClick={handleToggleActiveStatus}
+              disabled={loading}
+            >
+              {form.status?.trim().toUpperCase() === "INACTIVE" ? "활성화" : "비활성화"}
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => router.push("/medical_support/testResult/list")}
+            >
+              목록으로
+            </Button>
+          </Stack>
         </Stack>
 
         {error ? (
@@ -322,12 +370,7 @@ export default function ImagingEdit() {
                 select
                 label="진행상태"
                 size="small"
-                value={
-                  form.progressStatus === "COMPLETED" ||
-                  form.progressStatus === "CANCELLED"
-                    ? ""
-                    : form.progressStatus
-                }
+                value={form.progressStatus}
                 onChange={(event) =>
                   setDraftForm({
                     ...form,
@@ -335,10 +378,15 @@ export default function ImagingEdit() {
                   })
                 }
                 fullWidth
+                disabled={loading || isExamProgressDropdownLocked(form.progressStatus)}
                 helperText="대기중 또는 검사중만 직접 선택합니다."
               >
-                {IMAGING_PROGRESS_STATUS_OPTIONS.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
+                {EXAM_PROGRESS_STATUS_MENU_OPTIONS.map((option) => (
+                  <MenuItem
+                    key={option.value}
+                    value={option.value}
+                    disabled={isExamProgressTerminalMenuItemDisabled(form.progressStatus, option.value)}
+                  >
                     {option.label}
                   </MenuItem>
                 ))}

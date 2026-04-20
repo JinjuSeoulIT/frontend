@@ -22,7 +22,7 @@ const statusLabel = (value?: ReceptionStatus | string | null) => {
     case "WAITING":
       return "대기";
     case "CALLED":
-      return "호출";
+      return "대기";
     case "TRIAGE":
       return "트리아지 진행";
     case "IN_PROGRESS":

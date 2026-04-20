@@ -9,6 +9,7 @@ type RouteAccessDecision =
 
 const PUBLIC_ROUTE_PREFIXES = ["/login"];
 const ALWAYS_ALLOWED_ROUTES = new Set(["/", "/mypage"]);
+const PREFIX_ALLOWED_ROUTE_PREFIXES = ["/medical_support"];
 const ACTION_SEGMENTS = new Set([
   "create",
   "new",
@@ -195,6 +196,22 @@ export const evaluateMenuRouteAccess = (
 
   const normalizedPath = normalizeMenuPath(pathname);
   if (normalizedPath) {
+    for (const prefix of PREFIX_ALLOWED_ROUTE_PREFIXES) {
+      if (!normalizedPath.startsWith(`${prefix}/`)) {
+        continue;
+      }
+
+      for (const allowedPath of allowedPaths) {
+        if (allowedPath === prefix || allowedPath.startsWith(`${prefix}/`)) {
+          return {
+            kind: "allowed",
+            matchedPath: allowedPath,
+            candidates,
+          };
+        }
+      }
+    }
+
     let bestAncestorMatch: string | null = null;
 
     for (const allowedPath of allowedPaths) {

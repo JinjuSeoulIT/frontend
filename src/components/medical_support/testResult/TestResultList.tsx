@@ -113,12 +113,15 @@ const formatProgressStatus = (value?: string | null) => {
 const getProgressStatusColor = (value?: string | null) =>
   normalizeValue(value) === "COMPLETED" ? "success" : "warning";
 
+const isRevisedResult = (value?: boolean | null) => value === true;
+
 const formatDateTime = (value?: string | null) => {
   if (!value) {
     return "-";
   }
 
-  const date = new Date(value);
+  const normalized = value.replace(" ", "T");
+  const date = new Date(normalized);
   if (Number.isNaN(date.getTime())) {
     return value;
   }
@@ -638,12 +641,29 @@ export default function TestResultList() {
                             {formatDateTime(row.resultAt)}
                           </TableCell>
                           <TableCell align="center">
-                            <Chip
-                              label={formatProgressStatus(row.progressStatus)}
-                              color={getProgressStatusColor(row.progressStatus)}
-                              size="small"
-                              variant="outlined"
-                            />
+                            <Stack
+                              direction="row"
+                              spacing={0.75}
+                              useFlexGap
+                              flexWrap="wrap"
+                              justifyContent="center"
+                              sx={{ whiteSpace: "normal" }}
+                            >
+                              <Chip
+                                label={formatProgressStatus(row.progressStatus)}
+                                color={getProgressStatusColor(row.progressStatus)}
+                                size="small"
+                                variant="outlined"
+                              />
+                              {isRevisedResult(row.isRevised) ? (
+                                <Chip
+                                  label="수정됨"
+                                  color="info"
+                                  size="small"
+                                  variant="outlined"
+                                />
+                              ) : null}
+                            </Stack>
                           </TableCell>
                         </TableRow>
                       );

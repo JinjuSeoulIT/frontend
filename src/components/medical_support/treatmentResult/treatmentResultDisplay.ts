@@ -1,11 +1,11 @@
 import {
   formatActiveStatus,
-  formatProgressStatus,
   getActiveStatusColor,
   getActiveStatusSx,
   getProgressStatusColor,
   normalizeActiveStatus,
   normalizeProgressStatus,
+  safeValue,
 } from "@/components/medical_support/common/ExamDisplay";
 
 const progressStatusSx = {
@@ -15,8 +15,14 @@ const progressStatusSx = {
 export const normalizeTreatmentResultProgressStatus = (value?: string | null) =>
   normalizeProgressStatus(value);
 
-export const formatTreatmentResultProgressStatus = (value?: string | null) =>
-  formatProgressStatus(value);
+export const formatTreatmentResultProgressStatus = (value?: string | null) => {
+  const normalized = normalizeProgressStatus(value);
+  if (normalized === "WAITING" || normalized === "REQUESTED") return "요청";
+  if (normalized === "IN_PROGRESS") return "진행중";
+  if (normalized === "COMPLETED") return "완료";
+  if (normalized === "CANCELLED") return "취소";
+  return safeValue(value);
+};
 
 export const getTreatmentResultProgressStatusColor = (value?: string | null) =>
   getProgressStatusColor(value);
@@ -37,7 +43,7 @@ export const getTreatmentResultActiveStatusSx = (value?: string | null) =>
 
 export const TREATMENT_RESULT_PROGRESS_STATUS_OPTIONS = [
   { value: "REQUESTED", label: "요청" },
-  { value: "IN_PROGRESS", label: "진행 중" },
+  { value: "IN_PROGRESS", label: "진행중" },
   { value: "COMPLETED", label: "완료" },
 ] as const;
 

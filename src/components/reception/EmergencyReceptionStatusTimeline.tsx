@@ -10,7 +10,7 @@ import {
 const STATUS_LABEL: Record<string, string> = {
   REGISTERED: "접수 완료",
   WAITING: "대기",
-  CALLED: "호출",
+  CALLED: "대기",
   TRIAGE: "트리아지 진행",
   IN_PROGRESS: "진료중",
   OBSERVATION: "관찰중",

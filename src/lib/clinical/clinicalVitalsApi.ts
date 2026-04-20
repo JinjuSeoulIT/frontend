@@ -35,7 +35,6 @@ export type ClinicalVitalAssessApiRes = {
   respiration?: number | null;
   temperature?: number | string | null;
   spo2?: number | null;
-  observation?: string | null;
   painScore?: number | null;
   consciousnessLevel?: string | null;
   heightCm?: string | null;
@@ -47,7 +46,6 @@ export type ClinicalVitalAssessApiRes = {
   familyHistory?: string | null;
   allergy?: string | null;
   currentMedication?: string | null;
-  initialAssessment?: string | null;
   status?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -63,7 +61,6 @@ export type VitalAssessSavePayload = {
   respiration?: number | null;
   temperature?: number | null;
   spo2?: number | null;
-  observation?: string | null;
   painScore?: number | null;
   consciousnessLevel?: string | null;
   heightCm?: string | null;
@@ -75,7 +72,6 @@ export type VitalAssessSavePayload = {
   familyHistory?: string | null;
   allergy?: string | null;
   currentMedication?: string | null;
-  initialAssessment?: string | null;
   status?: string | null;
 };
 

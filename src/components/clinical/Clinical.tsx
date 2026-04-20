@@ -14,7 +14,10 @@ import {
   type VitalSignsRes,
   type AssessmentRes,
 } from "@/lib/clinical/clinicalVitalsApi";
-import { fetchVitalsAndAssessmentWithMedicalSupport } from "@/lib/clinical/medicalSupportRecordBridge";
+import {
+  fetchVitalsAndAssessmentWithMedicalSupport,
+  type VitalAssessmentAuditLine,
+} from "@/lib/clinical/medicalSupportRecordBridge";
 import {
   fetchPastHistoryApi,
   type PastHistoryItem,
@@ -80,6 +83,7 @@ export default function ClinicalPage() {
 
   const [vitals, setVitals] = React.useState<VitalSignsRes | null>(null);
   const [assessment, setAssessment] = React.useState<AssessmentRes | null>(null);
+  const [vitalAuditLines, setVitalAuditLines] = React.useState<VitalAssessmentAuditLine[]>([]);
   const [vitalsLoading, setVitalsLoading] = React.useState(false);
   const [assessmentLoading, setAssessmentLoading] = React.useState(false);
   const [vitalAssessmentDialogOpen, setVitalAssessmentDialogOpen] = React.useState(false);
@@ -182,15 +186,15 @@ export default function ClinicalPage() {
       setVitalsLoading(true);
       setAssessmentLoading(true);
       try {
-        const { vitals: v, assessment: a } = await fetchVitalsAndAssessmentWithMedicalSupport(
-          visitId,
-          receptionId
-        );
+        const { vitals: v, assessment: a, auditLines } =
+          await fetchVitalsAndAssessmentWithMedicalSupport(visitId, receptionId);
         setVitals(v);
         setAssessment(a);
+        setVitalAuditLines(auditLines);
       } catch {
         setVitals(null);
         setAssessment(null);
+        setVitalAuditLines([]);
       } finally {
         setVitalsLoading(false);
         setAssessmentLoading(false);
@@ -789,6 +793,7 @@ export default function ClinicalPage() {
             }
             vitals={vitals}
             assessment={assessment}
+            vitalAuditLines={vitalAuditLines}
             vitalsLoading={vitalsLoading}
             assessmentLoading={assessmentLoading}
             onOpenVitalDialog={openVitalDialog}
@@ -885,6 +890,11 @@ export default function ClinicalPage() {
         variant={orderDialogVariant}
         onClose={() => setOrderDialogOpen(false)}
         visitId={currentClinicalId}
+        contextDoctorId={
+          selectedReception?.doctorId != null && String(selectedReception.doctorId).trim() !== ""
+            ? String(selectedReception.doctorId).trim()
+            : null
+        }
         contextPatientName={
           selectedReception?.patientName?.trim() ?? selectedPatient?.name?.trim() ?? null
         }

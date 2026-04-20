@@ -95,6 +95,46 @@ function supportRecordInstant(record: RecordFormType): string {
   return firstNonEmpty(record.recordedAt, record.createdAt, record.updatedAt);
 }
 
+export type VitalAssessmentAuditLine = {
+  label: string;
+  at: string | null;
+};
+
+function sameParsedInstant(a: string | null, b: string | null): boolean {
+  if (!a || !b) return false;
+  const pa = Date.parse(a);
+  const pb = Date.parse(b);
+  if (!Number.isFinite(pa) || !Number.isFinite(pb)) return a.trim() === b.trim();
+  return pa === pb;
+}
+
+export function buildVitalAssessmentAuditLines(
+  clinicalVitals: VitalSignsRes | null,
+  supportRec: RecordFormType | null
+): VitalAssessmentAuditLine[] {
+  const lines: VitalAssessmentAuditLine[] = [];
+  if (supportRec) {
+    const t = strTrim(supportRecordInstant(supportRec));
+    if (t) lines.push({ label: "진료지원 · 계측·문진", at: t });
+  }
+  if (clinicalVitals) {
+    const meas = clinicalVitals.measuredAt ?? null;
+    const upd = clinicalVitals.updatedAt ?? null;
+    if (meas) lines.push({ label: "진료 · 관측(기록) 시각", at: meas });
+    if (upd && !sameParsedInstant(upd, meas)) {
+      lines.push({ label: "진료 · 차트 저장", at: upd });
+    } else if (!meas && upd) {
+      lines.push({ label: "진료 · 차트 저장", at: upd });
+    }
+  }
+  lines.sort((a, b) => {
+    const pa = a.at ? Date.parse(a.at) : 0;
+    const pb = b.at ? Date.parse(b.at) : 0;
+    return (Number.isFinite(pa) ? pa : 0) - (Number.isFinite(pb) ? pb : 0);
+  });
+  return lines;
+}
+
 async function fetchSupportRecordSearch(receptionId: number): Promise<RecordFormType[] | null> {
   try {
     const u = new URL(`${MEDICAL_SUPPORT_RECORD_BASE}/api/record/search`);
@@ -345,20 +385,26 @@ function mergeAssessments(
 export async function fetchVitalsAndAssessmentWithMedicalSupport(
   clinicalVisitId: number,
   receptionId: number | null
-): Promise<{ vitals: VitalSignsRes | null; assessment: AssessmentRes | null }> {
+): Promise<{
+  vitals: VitalSignsRes | null;
+  assessment: AssessmentRes | null;
+  auditLines: VitalAssessmentAuditLine[];
+}> {
   const [clinicalPair, supportRec] = await Promise.all([
     fetchVitalsAndAssessmentFromClinical(clinicalVisitId),
     fetchLatestSupportRecord(clinicalVisitId, receptionId),
   ]);
   const clinicalV = clinicalPair.vitals;
   const clinicalA = clinicalPair.assessment;
+  const auditLines = buildVitalAssessmentAuditLines(clinicalV, supportRec);
   if (!supportRec) {
-    return { vitals: clinicalV, assessment: clinicalA };
+    return { vitals: clinicalV, assessment: clinicalA, auditLines };
   }
   const sv = supportRecordToVitals(supportRec, clinicalVisitId);
   const sa = supportRecordToAssessment(supportRec, clinicalVisitId);
   return {
     vitals: mergeVitals(clinicalV, sv),
     assessment: mergeAssessments(clinicalA, sa),
+    auditLines,
   };
 }

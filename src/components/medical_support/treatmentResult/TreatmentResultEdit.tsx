@@ -68,6 +68,24 @@ const toNullableString = (value: string) => {
   return trimmed ? trimmed : null;
 };
 
+const ALLOWED_PROGRESS_STATUSES = [
+  "REQUESTED",
+  "IN_PROGRESS",
+  "COMPLETED",
+] as const;
+
+const normalizeProgressStatus = (value?: string | null) => {
+  const normalized = (value ?? "").trim().toUpperCase();
+  if (
+    ALLOWED_PROGRESS_STATUSES.includes(
+      normalized as (typeof ALLOWED_PROGRESS_STATUSES)[number]
+    )
+  ) {
+    return normalized;
+  }
+  return "REQUESTED";
+};
+
 const parseTreatmentAt = (value: string): Dayjs | null => {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -154,6 +172,21 @@ export default function TreatmentResultEdit() {
     return <CircularProgress sx={{ m: 3 }} />;
   }
 
+  const isCompleted = normalizeProgressStatus(form.progressStatus) === "COMPLETED";
+
+  const buildUpdatePayload = (nextProgressStatus: string) => ({
+    progressStatus: normalizeProgressStatus(nextProgressStatus),
+    status: toNullableString(form.status),
+    treatmentAt: toNullableString(form.treatmentAt),
+    nursingId: toNullableString(form.nursingId),
+    nurseName: toNullableString(form.nurseName),
+    detail: toNullableString(form.detail),
+    patientId: form.patientId.trim() ? Number(form.patientId) : null,
+    patientName: toNullableString(form.patientName),
+    departmentName: toNullableString(form.departmentName),
+    procedureResultId: toNullableString(form.procedureResultId),
+  });
+
   return (
     <main style={{ padding: 24 }}>
       <Box sx={{ maxWidth: 1120, mx: "auto", pb: 2 }}>
@@ -175,6 +208,33 @@ export default function TreatmentResultEdit() {
             {error}
           </Alert>
         ) : null}
+
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1.5 }}>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              onClick={() => router.push("/medical_support/medicationTreatment")}
+            >
+              목록
+            </Button>
+            <Button
+              variant="contained"
+              color="info"
+              onClick={() => {
+                if (!treatmentResultId) return;
+                dispatch(
+                  TreatmentResultActions.updateTreatmentResultRequest({
+                    treatmentResultId,
+                    form: buildUpdatePayload("IN_PROGRESS"),
+                  })
+                );
+              }}
+              disabled={loading || detailLoading || isCompleted}
+            >
+              진행시작
+            </Button>
+          </Stack>
+        </Box>
 
         <Card
           elevation={0}
@@ -276,10 +336,11 @@ export default function TreatmentResultEdit() {
                   select
                   label="진행상태"
                   size="small"
-                  value={form.progressStatus}
+                  value={normalizeProgressStatus(form.progressStatus)}
                   onChange={(e) =>
                     setDraftForm({ ...form, progressStatus: e.target.value })
                   }
+                  disabled={isCompleted}
                   fullWidth
                 >
                   {TREATMENT_RESULT_PROGRESS_STATUS_OPTIONS.map((option) => (
@@ -535,24 +596,14 @@ export default function TreatmentResultEdit() {
               >
                 <Box sx={{ minWidth: 0 }}>
                   <Typography variant="subtitle2" fontWeight={700}>
-                    변경 사항 확인
+                    저장 완료
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    진행상태, 활성여부, 처치일시, 간호사 정보와 처치 내용을 확인한 뒤
-                    저장하세요.
+                    저장완료를 누르면 진행상태가 완료로 저장되고 이후 수정이 제한됩니다.
                   </Typography>
                 </Box>
 
                 <Stack direction="row" spacing={1} justifyContent="flex-end">
-                  <Button
-                    variant="outlined"
-                    onClick={() =>
-                      router.push("/medical_support/medicationTreatment")
-                    }
-                  >
-                    취소
-                  </Button>
-
                   <Button
                     variant="contained"
                     onClick={() => {
@@ -561,28 +612,13 @@ export default function TreatmentResultEdit() {
                       dispatch(
                         TreatmentResultActions.updateTreatmentResultRequest({
                           treatmentResultId,
-                          form: {
-                            progressStatus: toNullableString(form.progressStatus),
-                            status: toNullableString(form.status),
-                            treatmentAt: toNullableString(form.treatmentAt),
-                            nursingId: toNullableString(form.nursingId),
-                            nurseName: toNullableString(form.nurseName),
-                            detail: toNullableString(form.detail),
-                            patientId: form.patientId.trim()
-                              ? Number(form.patientId)
-                              : null,
-                            patientName: toNullableString(form.patientName),
-                            departmentName: toNullableString(form.departmentName),
-                            procedureResultId: toNullableString(
-                              form.procedureResultId
-                            ),
-                          },
+                          form: buildUpdatePayload("COMPLETED"),
                         })
                       );
                     }}
-                    disabled={loading || detailLoading}
+                    disabled={loading || detailLoading || isCompleted}
                   >
-                    저장
+                    저장완료
                   </Button>
                 </Stack>
               </Stack>

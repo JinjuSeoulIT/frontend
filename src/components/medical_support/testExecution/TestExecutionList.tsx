@@ -63,6 +63,23 @@ const safeValue = (value?: string | number | null) => {
   return text ? text : "-";
 };
 
+const formatReceptionPerformer = (item: {
+  performerName?: string | null;
+  performerId?: string | number | null;
+}) => {
+  const name = item.performerName?.trim();
+  const idRaw = item.performerId;
+  const id =
+    idRaw === null || idRaw === undefined || String(idRaw).trim() === ""
+      ? ""
+      : String(idRaw).trim();
+
+  if (name && id) return `${name} (${id})`;
+  if (name) return name;
+  if (id) return id;
+  return "-";
+};
+
 const normalizeStatus = (value?: string | null) =>
   value?.trim().toUpperCase() ?? "";
 
@@ -125,6 +142,7 @@ const TABLE_HEADERS = [
   "검사코드",
   "환자명",
   "진료과",
+  "검사접수담당자",
   "검사수행 ID",
   "생성일시",
   "진행상태",
@@ -402,7 +420,7 @@ export default function TestExecutionList() {
               }}
             >
               <TableContainer>
-                <Table size="small" stickyHeader sx={{ minWidth: 1080 }}>
+                <Table size="small" stickyHeader sx={{ minWidth: 1200 }}>
                   <TableHead>
                     <TableRow>
                       {TABLE_HEADERS.map((label) => (
@@ -474,6 +492,9 @@ export default function TestExecutionList() {
                           </TableCell>
                           <TableCell align="center">
                             {safeValue(item.departmentName)}
+                          </TableCell>
+                          <TableCell align="center">
+                            {formatReceptionPerformer(item)}
                           </TableCell>
                           <TableCell align="center">
                             {safeValue(item.testExecutionId)}

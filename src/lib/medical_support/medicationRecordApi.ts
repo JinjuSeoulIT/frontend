@@ -12,6 +12,24 @@ const api = axios.create({
     process.env.NEXT_PUBLIC_NURSING_API_BASE_URL ?? "http://192.168.1.66:8181",
 });
 
+const ALLOWED_PROGRESS_STATUSES = [
+  "REQUESTED",
+  "IN_PROGRESS",
+  "COMPLETED",
+] as const;
+
+const normalizeProgressStatusForUpdate = (value?: string | null) => {
+  const normalized = (value ?? "").trim().toUpperCase();
+  if (
+    ALLOWED_PROGRESS_STATUSES.includes(
+      normalized as (typeof ALLOWED_PROGRESS_STATUSES)[number]
+    )
+  ) {
+    return normalized;
+  }
+  return "REQUESTED";
+};
+
 const cleanSearchParams = (params: MedicationRecordSearchParams) => {
   const cleaned: Record<string, string> = {};
 
@@ -121,9 +139,13 @@ export const updateMedicationRecordApi = async (
   medicationRecordId: string | number,
   payload: MedicationRecordUpdatePayload
 ): Promise<MedicationRecord> => {
+  const normalizedPayload: MedicationRecordUpdatePayload = {
+    ...payload,
+    progressStatus: normalizeProgressStatusForUpdate(payload.progressStatus),
+  };
   const res = await api.put<ApiResponse<MedicationRecordApiRaw>>(
     `/api/medicationRecord/${medicationRecordId}`,
-    payload
+    normalizedPayload
   );
 
   if (!res.data.success) {

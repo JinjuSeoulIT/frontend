@@ -72,6 +72,24 @@ const toNullableString = (value: string) => {
   return trimmed ? trimmed : null;
 };
 
+const ALLOWED_PROGRESS_STATUSES = [
+  "REQUESTED",
+  "IN_PROGRESS",
+  "COMPLETED",
+] as const;
+
+const normalizeProgressStatus = (value?: string | null) => {
+  const normalized = (value ?? "").trim().toUpperCase();
+  if (
+    ALLOWED_PROGRESS_STATUSES.includes(
+      normalized as (typeof ALLOWED_PROGRESS_STATUSES)[number]
+    )
+  ) {
+    return normalized;
+  }
+  return "REQUESTED";
+};
+
 const parseAdministeredAt = (value: string): Dayjs | null => {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -161,6 +179,23 @@ export default function MedicationRecordEdit() {
     return <CircularProgress sx={{ m: 3 }} />;
   }
 
+  const isCompleted = normalizeProgressStatus(form.progressStatus) === "COMPLETED";
+
+  const buildUpdatePayload = (nextProgressStatus: string) => ({
+    medicationId: toNullableString(form.medicationId),
+    administeredAt: toNullableString(form.administeredAt),
+    doseNumber: form.doseNumber.trim() ? Number(form.doseNumber) : null,
+    doseUnit: toNullableString(form.doseUnit),
+    doseKind: toNullableString(form.doseKind),
+    nursingId: toNullableString(form.nursingId),
+    nurseName: toNullableString(form.nurseName),
+    progressStatus: normalizeProgressStatus(nextProgressStatus),
+    status: toNullableString(form.status),
+    patientId: form.patientId.trim() ? Number(form.patientId) : null,
+    patientName: toNullableString(form.patientName),
+    departmentName: toNullableString(form.departmentName),
+  });
+
   return (
     <main style={{ padding: 24 }}>
       <Box sx={{ maxWidth: 1120, mx: "auto", pb: 2 }}>
@@ -182,6 +217,33 @@ export default function MedicationRecordEdit() {
             {error}
           </Alert>
         ) : null}
+
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1.5 }}>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              onClick={() => router.push("/medical_support/medicationTreatment")}
+            >
+              목록
+            </Button>
+            <Button
+              variant="contained"
+              color="info"
+              onClick={() => {
+                if (!medicationRecordId) return;
+                dispatch(
+                  MedicationRecordActions.updateMedicationRecordRequest({
+                    medicationRecordId,
+                    form: buildUpdatePayload("IN_PROGRESS"),
+                  })
+                );
+              }}
+              disabled={loading || detailLoading || isCompleted}
+            >
+              진행시작
+            </Button>
+          </Stack>
+        </Box>
 
         <Card
           elevation={0}
@@ -283,10 +345,11 @@ export default function MedicationRecordEdit() {
                   select
                   label="진행상태"
                   size="small"
-                  value={form.progressStatus}
+                  value={normalizeProgressStatus(form.progressStatus)}
                   onChange={(e) =>
                     setDraftForm({ ...form, progressStatus: e.target.value })
                   }
+                  disabled={isCompleted}
                   fullWidth
                 >
                   {MEDICATION_RECORD_PROGRESS_STATUS_OPTIONS.map((option) => (
@@ -575,23 +638,14 @@ export default function MedicationRecordEdit() {
               >
                 <Box sx={{ minWidth: 0 }}>
                   <Typography variant="subtitle2" fontWeight={700}>
-                    변경 사항 저장
+                    저장 완료
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    진행상태, 활성여부, 투약 정보를 확인한 뒤 저장하세요.
+                    저장완료를 누르면 진행상태가 완료로 저장되고 이후 수정이 제한됩니다.
                   </Typography>
                 </Box>
 
                 <Stack direction="row" spacing={1} justifyContent="flex-end">
-                  <Button
-                    variant="outlined"
-                    onClick={() =>
-                      router.push("/medical_support/medicationTreatment")
-                    }
-                  >
-                    취소
-                  </Button>
-
                   <Button
                     variant="contained"
                     onClick={() => {
@@ -600,30 +654,13 @@ export default function MedicationRecordEdit() {
                       dispatch(
                         MedicationRecordActions.updateMedicationRecordRequest({
                           medicationRecordId,
-                          form: {
-                            medicationId: toNullableString(form.medicationId),
-                            administeredAt: toNullableString(form.administeredAt),
-                            doseNumber: form.doseNumber.trim()
-                              ? Number(form.doseNumber)
-                              : null,
-                            doseUnit: toNullableString(form.doseUnit),
-                            doseKind: toNullableString(form.doseKind),
-                            nursingId: toNullableString(form.nursingId),
-                            nurseName: toNullableString(form.nurseName),
-                            progressStatus: toNullableString(form.progressStatus),
-                            status: toNullableString(form.status),
-                            patientId: form.patientId.trim()
-                              ? Number(form.patientId)
-                              : null,
-                            patientName: toNullableString(form.patientName),
-                            departmentName: toNullableString(form.departmentName),
-                          },
+                          form: buildUpdatePayload("COMPLETED"),
                         })
                       );
                     }}
-                    disabled={loading || detailLoading}
+                    disabled={loading || detailLoading || isCompleted}
                   >
-                    저장
+                    저장완료
                   </Button>
                 </Stack>
               </Stack>

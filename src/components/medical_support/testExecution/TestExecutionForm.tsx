@@ -1,6 +1,7 @@
 "use client";
 
 import type { ChangeEvent } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -20,6 +21,17 @@ import {
   isExamProgressDropdownLocked,
   normalizeExamProgressStatus,
 } from "@/lib/medical_support/examProgressStatus";
+import { StaffIdNameSelectFields } from "@/components/medical_support/common/StaffIdNameSelectFields";
+import type { StaffOption } from "@/lib/medical_support/staffLookupApi";
+import { fetchStaffOptionsApi } from "@/lib/medical_support/staffLookupApi";
+
+const EXAM_PERFORMER_EXAM_TYPES = new Set([
+  "IMAGING",
+  "PATHOLOGY",
+  "ENDOSCOPY",
+  "PHYSIOLOGICAL",
+  "SPECIMEN",
+]);
 
 type TestExecutionFormData = {
   testExecutionId: string;
@@ -228,6 +240,45 @@ export default function TestExecutionForm({
   const showDepartmentField = isEditMode || Boolean(form.departmentName);
   const showDetailCodeField = isEditMode || Boolean(form.detailCode);
   const showHistorySection = isEditMode;
+
+  const [performerStaffOptions, setPerformerStaffOptions] = useState<
+    StaffOption[]
+  >([]);
+
+  useEffect(() => {
+    if (!isEditMode) {
+      setPerformerStaffOptions([]);
+      return;
+    }
+
+    const executionKey = form.executionType.trim().toUpperCase();
+    if (!executionKey) {
+      setPerformerStaffOptions([]);
+      return;
+    }
+
+    let cancelled = false;
+    const load = async () => {
+      const fetchParams = EXAM_PERFORMER_EXAM_TYPES.has(executionKey)
+        ? {
+            role: "EXAM_PERFORMER",
+            examType: executionKey,
+          }
+        : {
+            role: "EXAM_RECEPTION_MANAGER",
+          };
+
+      const opts = await fetchStaffOptionsApi(fetchParams);
+      if (!cancelled) {
+        setPerformerStaffOptions(opts);
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [isEditMode, form.executionType]);
 
   return (
     <Box sx={{ maxWidth: 1040, mx: "auto", px: { xs: 2, md: 3 }, py: 3, pb: 2 }}>
@@ -531,29 +582,25 @@ export default function TestExecutionForm({
             />
 
             {isEditMode ? (
-              <TextField
-                label="검사접수담당자 ID"
-                value={form.performerId}
-                onChange={handleChange("performerId")}
-                size="small"
-                fullWidth
-                placeholder="접수 후 입력"
-                helperText="진료 의사 ID가 아닙니다. 검사실에서 접수를 처리한 직원의 사용자 ID입니다."
-              />
-            ) : null}
-
-            {isEditMode ? (
-              <Box sx={{ gridColumn: { md: "1 / -1" } }}>
-                <TextField
-                  label="검사접수담당자"
-                  value={form.performerName}
-                  onChange={handleChange("performerName")}
-                  size="small"
-                  fullWidth
-                  placeholder="접수 후 입력"
-                  helperText="비어 있으면 접수 담당이 아직 확정되지 않은 상태로 볼 수 있습니다."
+              <>
+                <StaffIdNameSelectFields
+                  staffOptions={performerStaffOptions}
+                  staffId={form.performerId}
+                  fullName={form.performerName}
+                  onChange={(next) =>
+                    onChange({
+                      ...form,
+                      performerId: next.staffId,
+                      performerName: next.fullName,
+                    })
+                  }
+                  idLabel="검사접수담당자 ID"
+                  nameLabel="검사접수담당자"
+                  disabled={loading}
+                  idHelperText="진료 의사 ID가 아닙니다. 검사실에서 접수를 처리한 직원의 사용자 ID입니다."
+                  nameHelperText="비어 있으면 접수 담당이 아직 확정되지 않은 상태로 볼 수 있습니다."
                 />
-              </Box>
+              </>
             ) : null}
           </Box>
         </CardContent>

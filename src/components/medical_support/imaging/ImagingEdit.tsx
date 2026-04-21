@@ -18,6 +18,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { ImagingActions } from "@/features/medical_support/imaging/imagingSlice";
 import type { RootState } from "@/store/rootReducer";
 import type { AppDispatch } from "@/store/store";
+import { StaffIdNameSelectFields } from "@/components/medical_support/common/StaffIdNameSelectFields";
+import type { StaffOption } from "@/lib/medical_support/staffLookupApi";
+import { fetchStaffOptionsApi } from "@/lib/medical_support/staffLookupApi";
 import {
   EXAM_PROGRESS_STATUS_MENU_OPTIONS,
   isExamProgressDropdownLocked,
@@ -76,6 +79,9 @@ export default function ImagingEdit() {
   }, [params]);
 
   const [draftForm, setDraftForm] = useState<ImagingEditForm | null>(null);
+  const [performerStaffOptions, setPerformerStaffOptions] = useState<
+    StaffOption[]
+  >([]);
   const pendingSuccessMessageRef = useRef<string | null>(null);
   const pendingRedirectPathRef = useRef<string | null>(null);
 
@@ -122,6 +128,23 @@ export default function ImagingEdit() {
       updatedAt: selected.updatedAt ?? "",
     });
   }, [draftForm, imagingExamId, selected]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const opts = await fetchStaffOptionsApi({
+        role: "EXAM_PERFORMER",
+        examType: "IMAGING",
+      });
+      if (!cancelled) {
+        setPerformerStaffOptions(opts);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!updateSuccess) {
@@ -412,30 +435,20 @@ export default function ImagingEdit() {
                 ))}
               </TextField>
 
-              <TextField
-                label="검사수행자 ID"
-                size="small"
-                value={form.performerId}
-                onChange={(event) =>
+              <StaffIdNameSelectFields
+                staffOptions={performerStaffOptions}
+                staffId={form.performerId}
+                fullName={form.performerName}
+                onChange={(next) =>
                   setDraftForm({
                     ...form,
-                    performerId: event.target.value,
+                    performerId: next.staffId,
+                    performerName: next.fullName,
                   })
                 }
-                fullWidth
-              />
-
-              <TextField
-                label="검사수행자명"
-                size="small"
-                value={form.performerName}
-                onChange={(event) =>
-                  setDraftForm({
-                    ...form,
-                    performerName: event.target.value,
-                  })
-                }
-                fullWidth
+                idLabel="검사수행자 ID"
+                nameLabel="검사수행자명"
+                disabled={loading}
               />
             </Box>
           </CardContent>

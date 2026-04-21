@@ -18,6 +18,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { PhysiologicalActions } from "@/features/medical_support/physiological/physiologicalSlice";
 import type { RootState } from "@/store/rootReducer";
 import type { AppDispatch } from "@/store/store";
+import { StaffIdNameSelectFields } from "@/components/medical_support/common/StaffIdNameSelectFields";
+import type { StaffOption } from "@/lib/medical_support/staffLookupApi";
+import { fetchStaffOptionsApi } from "@/lib/medical_support/staffLookupApi";
 import {
   EXAM_PROGRESS_STATUS_MENU_OPTIONS,
   isExamProgressDropdownLocked,
@@ -81,6 +84,9 @@ export default function PhysiologicalEdit() {
   const [draftForm, setDraftForm] = useState<PhysiologicalEditForm | null>(
     null
   );
+  const [performerStaffOptions, setPerformerStaffOptions] = useState<
+    StaffOption[]
+  >([]);
   const pendingSuccessMessageRef = useRef<string | null>(null);
   const pendingRedirectPathRef = useRef<string | null>(null);
 
@@ -125,6 +131,23 @@ export default function PhysiologicalEdit() {
       updatedAt: selected.updatedAt ?? "",
     });
   }, [draftForm, selected, physiologicalExamId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const opts = await fetchStaffOptionsApi({
+        role: "EXAM_PERFORMER",
+        examType: "PHYSIOLOGICAL",
+      });
+      if (!cancelled) {
+        setPerformerStaffOptions(opts);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!updateSuccess) return;
@@ -494,30 +517,20 @@ export default function PhysiologicalEdit() {
                 ))}
               </TextField>
 
-              <TextField
-                label="검사수행자 ID"
-                size="small"
-                value={form.performerId}
-                onChange={(e) =>
+              <StaffIdNameSelectFields
+                staffOptions={performerStaffOptions}
+                staffId={form.performerId}
+                fullName={form.performerName}
+                onChange={(next) =>
                   setDraftForm({
                     ...form,
-                    performerId: e.target.value,
+                    performerId: next.staffId,
+                    performerName: next.fullName,
                   })
                 }
-                fullWidth
-              />
-
-              <TextField
-                label="검사수행자명"
-                size="small"
-                value={form.performerName}
-                onChange={(e) =>
-                  setDraftForm({
-                    ...form,
-                    performerName: e.target.value,
-                  })
-                }
-                fullWidth
+                idLabel="검사수행자 ID"
+                nameLabel="검사수행자명"
+                disabled={loading}
               />
             </Box>
           </CardContent>

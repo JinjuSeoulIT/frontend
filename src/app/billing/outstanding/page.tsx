@@ -45,6 +45,7 @@ import {
   getBillingStatusLabel,
   getBillingStatusColor,
 } from "@/lib/billing/billingStatus";
+import { BILLING_API_BASE_URL } from "@/lib/common/env";
 
 declare global {
   interface Window {
@@ -151,9 +152,7 @@ export default function OutstandingBillingPage() {
   };
 
   const getBaseUrl = () => {
-    return typeof window !== "undefined" && window.location.hostname !== "localhost"
-      ? `http://${window.location.hostname}:8081`
-      : "http://192.168.1.68:8081";
+    return BILLING_API_BASE_URL.replace(/\/+$/, "");
   };
 
   const refreshOutstanding = () => {

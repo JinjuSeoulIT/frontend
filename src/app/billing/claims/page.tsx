@@ -54,6 +54,7 @@ export default function BillingClaimsPage() {
   const [eventId, setEventId] = useState("");
   const [occurredAt, setOccurredAt] = useState(getDefaultOccurredAt());
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [items, setItems] = useState<ClaimItemForm[]>([createEmptyClaimItem()]);
 
   useEffect(() => {
@@ -72,8 +73,15 @@ export default function BillingClaimsPage() {
     if (!submitAttempted) return;
     if (!billingClaimResult?.billId) return;
 
+    setIsSubmitting(false);
     router.push(`/billing/${billingClaimResult.billId}`);
   }, [billingClaimResult, submitAttempted, router]);
+
+  useEffect(() => {
+    if (!error) return;
+    if (!submitAttempted) return;
+    setIsSubmitting(false);
+  }, [error, submitAttempted]);
 
   const validationMessage = useMemo(() => {
     if (!visitId.trim()) return "진료 ID를 입력해주세요.";
@@ -87,6 +95,14 @@ export default function BillingClaimsPage() {
     const patientIdNumber = Number(patientId);
     if (Number.isNaN(patientIdNumber) || patientIdNumber <= 0) {
       return "환자 ID는 0보다 큰 숫자여야 합니다.";
+    }
+
+    if (!occurredAt.trim()) {
+      return "발생 일시를 입력해주세요.";
+    }
+
+    if (Number.isNaN(new Date(occurredAt).getTime())) {
+      return "발생 일시 형식이 올바르지 않습니다.";
     }
 
     if (items.length === 0) {
@@ -116,7 +132,7 @@ export default function BillingClaimsPage() {
     }
 
     return "";
-  }, [visitId, patientId, items]);
+  }, [visitId, patientId, occurredAt, items]);
 
   const handleChangeItem = (
     index: number,
@@ -150,14 +166,18 @@ export default function BillingClaimsPage() {
   };
 
   const handleSubmit = () => {
+    if (isSubmitting || loading) return;
     if (validationMessage) return;
 
     const autoEventId = createAutoEventId();
-    const autoOccurredAt = new Date().toISOString();
+    const occurredAtIso = occurredAt
+      ? new Date(occurredAt).toISOString()
+      : new Date().toISOString();
 
     setEventId(autoEventId);
-    setOccurredAt(toDatetimeLocal(autoOccurredAt));
+    setOccurredAt(toDatetimeLocal(occurredAtIso));
     setSubmitAttempted(true);
+    setIsSubmitting(true);
 
     const requestItems: BillingClaimItemRequest[] = items.map((item) => ({
       itemName: item.itemName.trim(),
@@ -173,7 +193,7 @@ export default function BillingClaimsPage() {
         visitId: Number(visitId),
         patientId: Number(patientId),
         status: "COMPLETED",
-        occurredAt: autoOccurredAt,
+        occurredAt: occurredAtIso,
         items: requestItems,
       })
     );
@@ -343,10 +363,12 @@ export default function BillingClaimsPage() {
                   <TextField
                     label="발생 일시"
                     value={occurredAt}
+                    onChange={(e) => setOccurredAt(e.target.value)}
                     fullWidth
                     size="small"
-                    InputProps={{ readOnly: true }}
-                    helperText="제출 시 현재 시각 기준으로 자동 반영됩니다."
+                    InputLabelProps={{ shrink: true }}
+                    type="datetime-local"
+                    helperText="기본값은 현재 시각이며, 필요 시 수동으로 조정할 수 있습니다."
                   />
 
                   <Divider />
@@ -370,7 +392,7 @@ export default function BillingClaimsPage() {
                       variant="outlined"
                       startIcon={<AddCircleOutlineIcon />}
                       onClick={handleAddItem}
-                      disabled={loading}
+                      disabled={loading || isSubmitting}
                       sx={{ borderRadius: 2, textTransform: "none" }}
                     >
                       항목 추가
@@ -398,7 +420,7 @@ export default function BillingClaimsPage() {
                               <IconButton
                                 aria-label={`항목 ${index + 1} 삭제`}
                                 onClick={() => handleRemoveItem(index)}
-                                disabled={loading}
+                                disabled={loading || isSubmitting}
                                 size="small"
                               >
                                 <DeleteOutlineIcon fontSize="small" />
@@ -490,7 +512,7 @@ export default function BillingClaimsPage() {
                     <Button
                       variant="outlined"
                       onClick={() => router.push("/billing")}
-                      disabled={loading}
+                      disabled={loading || isSubmitting}
                       sx={{ borderRadius: 2, textTransform: "none" }}
                     >
                       대시보드로 돌아가기
@@ -500,7 +522,7 @@ export default function BillingClaimsPage() {
                       variant="outlined"
                       color="secondary"
                       onClick={handleReset}
-                      disabled={loading}
+                      disabled={loading || isSubmitting}
                       sx={{ borderRadius: 2, textTransform: "none" }}
                     >
                       입력 초기화
@@ -509,7 +531,7 @@ export default function BillingClaimsPage() {
                     <Button
                       variant="contained"
                       onClick={handleSubmit}
-                      disabled={loading || !!validationMessage}
+                      disabled={loading || isSubmitting || !!validationMessage}
                       sx={{
                         borderRadius: 2,
                         textTransform: "none",
@@ -517,7 +539,9 @@ export default function BillingClaimsPage() {
                         boxShadow: "none",
                       }}
                     >
-                      {loading ? "청구 요청 처리 중..." : "청구 요청 보내기"}
+                      {loading || isSubmitting
+                        ? "청구 요청 처리 중..."
+                        : "청구 요청 보내기"}
                     </Button>
                   </Stack>
                 </Stack>

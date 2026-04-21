@@ -67,8 +67,8 @@ export default function ReservationDetailPage() {
         return "완료";
       case "CANCELED":
         return "취소";
-      case "INACTIVE":
-        return "비활성";
+//      case "INACTIVE":
+//        return "비활성";
       default:
         return value ?? "-";
     }

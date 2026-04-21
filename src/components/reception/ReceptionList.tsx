@@ -71,26 +71,22 @@ type ReceptionStatusChangedEvent = {
 type StatusFilterKey =
   | "ALL"
   | "WAITING"
-  | "CALLED"
   | "IN_PROGRESS"
   | "TREATMENT_COMPLETED"
-  | "PAYMENT_COMPLETED";
+  //| "PAYMENT_COMPLETED";
 
 const STATUS_FILTER_ITEMS: Array<{ key: StatusFilterKey; label: string }> = [
   { key: "ALL", label: "전체" },
   { key: "WAITING", label: "대기" },
-  { key: "CALLED", label: "호출" },
   { key: "IN_PROGRESS", label: "진료중" },
   { key: "TREATMENT_COMPLETED", label: "진료완료" },
-  { key: "PAYMENT_COMPLETED", label: "수납완료" },
+  //{ key: "PAYMENT_COMPLETED", label: "수납완료" },
 ];
 
 const statusLabel = (value?: string | null) => {
   switch (normalizeStatus(value)) {
     case "WAITING":
       return "대기";
-    case "CALLED":
-      return "호출";
     case "IN_PROGRESS":
       return "진료중";
     case "TREATMENT_COMPLETED":
@@ -103,13 +99,13 @@ const statusLabel = (value?: string | null) => {
       return "수납완료";
     case "PAYMENT_WAIT":
       return "수납중";
-    case "ON_HOLD":
-      return "보류";
+    //case "ON_HOLD":
+    //  return "보류";
     case "CANCELED":
     case "CANCELLED":
       return "취소";
-    case "INACTIVE":
-      return "비활성";
+   // case "INACTIVE":
+   //   return "비활성";
     default:
       return value ?? "-";
   }
@@ -122,7 +118,8 @@ const normalizeStatus = (value?: string | null) => {
     case "대기":
       return "WAITING";
     case "호출":
-      return "CALLED";
+    case "CALLED":
+      return "WAITING";
     case "진료중":
       return "IN_PROGRESS";
     case "진료완료":
@@ -139,13 +136,13 @@ const normalizeStatus = (value?: string | null) => {
       return "COMPLETED";
     case "완료":
       return "COMPLETED";
-    case "보류":
-      return "ON_HOLD";
+    //case "보류":
+    //  return "ON_HOLD";
     case "취소":
     case "CANCELLED":
       return "CANCELED";
-    case "비활성":
-      return "INACTIVE";
+    //case "비활성":
+    //  return "INACTIVE";
     default:
       return trimmed;
   }
@@ -160,7 +157,6 @@ const matchesStatusFilter = (
   if (filter === "ALL") {
     return (
       normalized === "WAITING" ||
-      normalized === "CALLED" ||
       normalized === "IN_PROGRESS" ||
       normalized === "TREATMENT_COMPLETED" ||
       normalized === "COMPLETED"
@@ -169,9 +165,9 @@ const matchesStatusFilter = (
   if (filter === "TREATMENT_COMPLETED") {
     return normalized === "TREATMENT_COMPLETED";
   }
-  if (filter === "PAYMENT_COMPLETED") {
-    return normalized === "COMPLETED";
-  }
+  //if (filter === "PAYMENT_COMPLETED") {
+  //  return normalized === "COMPLETED";
+  //}
   return normalized === filter;
 };
 
@@ -187,11 +183,6 @@ const statusChipSx = (value?: string | null) => {
         color: "#ffffff",
         bgcolor: "#2e7d32",
       };
-    case "CALLED":
-      return {
-        color: "#ffffff",
-        bgcolor: "#8e24aa",
-      };
     case "COMPLETED":
       return {
         color: "#ffffff",
@@ -202,21 +193,21 @@ const statusChipSx = (value?: string | null) => {
         color: "#ffffff",
         bgcolor: "#ef6c00",
       };
-    case "ON_HOLD":
-      return {
-        color: "#ffffff",
-        bgcolor: "#6d4c41",
-      };
+    //case "ON_HOLD":
+    //  return {
+    //    color: "#ffffff",
+    //    bgcolor: "#6d4c41",
+    //  };
     case "CANCELED":
       return {
         color: "#ffffff",
         bgcolor: "#c62828",
       };
-    case "INACTIVE":
-      return {
-        color: "#ffffff",
-        bgcolor: "#607d8b",
-      };
+   // case "INACTIVE":
+   //   return {
+   //     color: "#ffffff",
+   //     bgcolor: "#607d8b",
+   //   };
     default:
       return {
         color: "#ffffff",
@@ -423,10 +414,9 @@ export default function ReceptionList({
       {
         ALL: 0,
         WAITING: 0,
-        CALLED: 0,
         IN_PROGRESS: 0,
         TREATMENT_COMPLETED: 0,
-        PAYMENT_COMPLETED: 0,
+       // PAYMENT_COMPLETED: 0,
       }
     );
   }, [todayList]);

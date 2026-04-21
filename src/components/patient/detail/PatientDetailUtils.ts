@@ -59,11 +59,19 @@ export function buildFlags(
   if (p.isVip) chips.push({ key: "vip", label: "VIP", color: "warning" });
   for (const r of restrictions) {
     if (!r.activeYn) continue;
-    chips.push({ key: `restriction-${r.restrictionId}`, label: restrictionLabel(r.restrictionType, restrictionOptions), color: "default" });
+    chips.push({
+      key: `restriction-${r.restrictionId}`,
+      label: restrictionLabel(r.restrictionType, restrictionOptions),
+      color: "default",
+    });
   }
   for (const f of flags) {
     if (!f.activeYn) continue;
-    chips.push({ key: `flag-${f.flagId}`, label: flagLabel(f.flagType, flagOptions), color: flagColor(f.flagType) });
+    chips.push({
+      key: `flag-${f.flagId}`,
+      label: flagLabel(f.flagType, flagOptions),
+      color: flagColor(f.flagType),
+    });
   }
   return chips;
 }
@@ -113,7 +121,6 @@ export function resolveErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-export type Department = { id: number; name: string; doctor: string; doctorId: number };
 export type ReceptionForm = {
   deptCode: string;
   doctorId: string;
@@ -121,16 +128,10 @@ export type ReceptionForm = {
   arrivedAt: string;
   note: string;
 };
+
 export type ReservationForm = {
   deptCode: string;
   doctorId: string;
   scheduledAt: string;
   note: string;
 };
-export const departments: Department[] = [
-  { id: 1, name: "내과", doctor: "송태민", doctorId: 1 },
-  { id: 2, name: "외과", doctor: "이현석", doctorId: 2 },
-  { id: 3, name: "정형외과", doctor: "성숙희", doctorId: 3 },
-  { id: 4, name: "신경외과", doctor: "최효정", doctorId: 4 },
-];
-export const defaultDepartment = departments[0];

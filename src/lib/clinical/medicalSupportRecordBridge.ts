@@ -95,6 +95,94 @@ function supportRecordInstant(record: RecordFormType): string {
   return firstNonEmpty(record.recordedAt, record.createdAt, record.updatedAt);
 }
 
+function supportMeasurementAt(supportRec: RecordFormType | null): string | null {
+  if (!supportRec) return null;
+  const t = strTrim(supportRecordInstant(supportRec));
+  return t.length > 0 ? t : null;
+}
+
+export type VitalAssessmentAuditLine = {
+  label: string;
+  at: string | null;
+};
+
+function sameParsedInstant(a: string | null, b: string | null): boolean {
+  if (!a || !b) return false;
+  const pa = Date.parse(a);
+  const pb = Date.parse(b);
+  if (!Number.isFinite(pa) || !Number.isFinite(pb)) return a.trim() === b.trim();
+  return pa === pb;
+}
+
+function normalizeChartHistoryAt(raw: unknown): string {
+  if (raw == null) return "";
+  if (typeof raw === "string") return strTrim(raw);
+  if (Array.isArray(raw) && raw.length >= 3) {
+    const y = Number(raw[0]);
+    const mo = Number(raw[1]);
+    const d = Number(raw[2]);
+    const h = raw.length > 3 ? Number(raw[3]) : 0;
+    const mi = raw.length > 4 ? Number(raw[4]) : 0;
+    const s = raw.length > 5 ? Number(raw[5]) : 0;
+    if (![y, mo, d, h, mi, s].every((n) => Number.isFinite(n))) return "";
+    return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}T${String(h).padStart(2, "0")}:${String(mi).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  if (typeof raw === "object" && raw !== null && "at" in (raw as object)) {
+    return normalizeChartHistoryAt((raw as { at?: unknown }).at);
+  }
+  return strTrim(raw);
+}
+
+function apiChartHistoryToAuditLines(
+  chartSaveHistory: { label?: string | null; at?: string | null }[] | null | undefined
+): VitalAssessmentAuditLine[] {
+  if (!chartSaveHistory?.length) return [];
+  const out: VitalAssessmentAuditLine[] = [];
+  for (const row of chartSaveHistory) {
+    const r = row as { label?: string | null; at?: unknown; occurredAt?: unknown };
+    const at = normalizeChartHistoryAt(r.at ?? r.occurredAt);
+    if (!at) continue;
+    const label = strTrim(row.label ?? "") || "진료 · 차트 저장";
+    out.push({ label, at });
+  }
+  return out;
+}
+
+export function buildVitalAssessmentAuditLines(
+  clinicalVitals: VitalSignsRes | null,
+  supportRec: RecordFormType | null,
+  chartSaveHistory?: { label?: string | null; at?: string | null }[] | null
+): VitalAssessmentAuditLine[] {
+  let supportLine: VitalAssessmentAuditLine | null = null;
+  let chartLine: VitalAssessmentAuditLine | null = null;
+
+  if (supportRec) {
+    const t = strTrim(supportRecordInstant(supportRec));
+    if (t) supportLine = { label: "진료지원 · 계측·문진", at: t };
+  }
+  const fromApi = apiChartHistoryToAuditLines(chartSaveHistory);
+  if (fromApi.length > 0) {
+    const lines: VitalAssessmentAuditLine[] = [];
+    if (supportLine) lines.push(supportLine);
+    lines.push(...fromApi);
+    return lines;
+  }
+  if (clinicalVitals) {
+    const meas = clinicalVitals.measuredAt ?? null;
+    const upd = clinicalVitals.updatedAt ?? null;
+    if (upd && !sameParsedInstant(upd, meas)) {
+      chartLine = { label: "진료 · 차트 저장", at: upd };
+    } else if (!meas && upd) {
+      chartLine = { label: "진료 · 차트 저장", at: upd };
+    }
+  }
+
+  const lines: VitalAssessmentAuditLine[] = [];
+  if (supportLine) lines.push(supportLine);
+  if (chartLine) lines.push(chartLine);
+  return lines;
+}
+
 async function fetchSupportRecordSearch(receptionId: number): Promise<RecordFormType[] | null> {
   try {
     const u = new URL(`${MEDICAL_SUPPORT_RECORD_BASE}/api/record/search`);
@@ -218,7 +306,7 @@ function supportRecordToVitals(
   if (!hasCore && !hasExt) return null;
 
   const measuredRaw = supportRecordInstant(record);
-  const measuredAt = measuredRaw || null;
+  const measuredAt = strTrim(measuredRaw) || null;
   return {
     vitalSignsId: 0,
     clinicalId: clinicalVisitId,
@@ -293,7 +381,7 @@ function mergeVitals(
     bpSystolic: clinical.bpSystolic ?? support.bpSystolic,
     bpDiastolic: clinical.bpDiastolic ?? support.bpDiastolic,
     respiratoryRate: clinical.respiratoryRate ?? support.respiratoryRate,
-    measuredAt: clinical.measuredAt ?? support.measuredAt,
+    measuredAt: support.measuredAt ?? clinical.measuredAt,
     createdAt: clinical.createdAt ?? support.createdAt,
     updatedAt: clinical.updatedAt ?? support.updatedAt,
     heightCm: trimPresent(clinical.heightCm) ? clinical.heightCm! : support.heightCm,
@@ -345,20 +433,37 @@ function mergeAssessments(
 export async function fetchVitalsAndAssessmentWithMedicalSupport(
   clinicalVisitId: number,
   receptionId: number | null
-): Promise<{ vitals: VitalSignsRes | null; assessment: AssessmentRes | null }> {
+): Promise<{
+  vitals: VitalSignsRes | null;
+  assessment: AssessmentRes | null;
+  auditLines: VitalAssessmentAuditLine[];
+  supportMeasurementAt: string | null;
+}> {
   const [clinicalPair, supportRec] = await Promise.all([
     fetchVitalsAndAssessmentFromClinical(clinicalVisitId),
     fetchLatestSupportRecord(clinicalVisitId, receptionId),
   ]);
   const clinicalV = clinicalPair.vitals;
   const clinicalA = clinicalPair.assessment;
+  const auditLines = buildVitalAssessmentAuditLines(
+    clinicalV,
+    supportRec,
+    clinicalPair.chartSaveHistory
+  );
+  const supportAt = supportMeasurementAt(supportRec);
   if (!supportRec) {
-    return { vitals: clinicalV, assessment: clinicalA };
+    return { vitals: clinicalV, assessment: clinicalA, auditLines, supportMeasurementAt: supportAt };
   }
   const sv = supportRecordToVitals(supportRec, clinicalVisitId);
   const sa = supportRecordToAssessment(supportRec, clinicalVisitId);
+  let mergedVitals = mergeVitals(clinicalV, sv);
+  if (supportAt != null && supportAt.length > 0 && mergedVitals != null) {
+    mergedVitals = { ...mergedVitals, measuredAt: supportAt };
+  }
   return {
-    vitals: mergeVitals(clinicalV, sv),
+    vitals: mergedVitals,
     assessment: mergeAssessments(clinicalA, sa),
+    auditLines,
+    supportMeasurementAt: supportAt,
   };
 }

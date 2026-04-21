@@ -49,7 +49,6 @@ type InpatientReceptionFormProps = {
 
 const statusOptions = [
   { value: "WAITING", label: "대기" },
-  { value: "CALLED", label: "호출" },
   { value: "IN_PROGRESS", label: "진행중" },
   { value: "COMPLETED", label: "완료" },
   { value: "PAYMENT_WAIT", label: "수납대기" },

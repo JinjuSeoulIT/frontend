@@ -1,7 +1,6 @@
 export type ReceptionStatus =
   | "REGISTERED"
   | "WAITING"
-  | "CALLED"
   | "TRIAGE"
   | "IN_PROGRESS"
   | "COMPLETED"

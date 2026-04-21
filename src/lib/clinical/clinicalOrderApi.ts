@@ -24,6 +24,7 @@ export type ClinicalOrderCreatePayload = {
   orderType: LabOrderType;
   orderCode?: string | null;
   orderName: string;
+  doctorId?: string | null;
 };
 
 function deriveItemCode(orderCode: string | null | undefined, orderName: string): string {
@@ -138,10 +139,14 @@ export async function createClinicalOrderApi(
         const itemCode = deriveItemCode(payload.orderCode ?? null, orderName);
         return { itemCode, itemDetailCode: itemDetailCode || itemCode };
       })();
-  const body = {
+  const doctorId = (payload.doctorId ?? "").trim();
+  const body: Record<string, unknown> = {
     orderType: payload.orderType,
     items: [itemRow],
   };
+  if (doctorId.length > 0) {
+    body.doctorId = doctorId;
+  }
   const res = await fetch(
     `${CLINICAL_API_BASE}/api/visits/${clinicalId}/orders`,
     {

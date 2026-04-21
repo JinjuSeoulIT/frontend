@@ -1,15 +1,29 @@
 "use client";
 
 import * as React from "react";
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField } from "@mui/material";
-import type { Department, ReservationForm } from "./PatientDetailUtils";
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  MenuItem,
+  Stack,
+  TextField,
+} from "@mui/material";
+import type {
+  DepartmentOption,
+  DoctorOption,
+} from "@/features/Reservations/ReservationTypes";
+import type { ReservationForm } from "./PatientDetailUtils";
 
 type Props = {
   open: boolean;
   onClose: () => void;
   form: ReservationForm;
   onFormChange: (next: ReservationForm | ((prev: ReservationForm) => ReservationForm)) => void;
-  departments: Department[];
+  departments: DepartmentOption[];
+  doctors: DoctorOption[];
   saving: boolean;
   onSave: () => void;
 };
@@ -20,9 +34,36 @@ export default function PatientReservationDialog({
   form,
   onFormChange,
   departments,
+  doctors,
   saving,
   onSave,
 }: Props) {
+  const filteredDoctors = form.deptCode
+    ? doctors.filter((doctor) => doctor.departmentId === form.deptCode)
+    : doctors;
+
+  const handleDeptChange = (nextDepartmentId: string) => {
+    const nextDoctors = doctors.filter((doctor) => doctor.departmentId === nextDepartmentId);
+    onFormChange((prev) => ({
+      ...prev,
+      deptCode: nextDepartmentId,
+      doctorId: nextDoctors.some((doctor) => doctor.doctorId === prev.doctorId)
+        ? prev.doctorId
+        : (nextDoctors[0]?.doctorId ?? ""),
+    }));
+  };
+
+  const handleDoctorChange = (nextDoctorId: string) => {
+    const nextDoctor = doctors.find((doctor) => doctor.doctorId === nextDoctorId);
+    onFormChange((prev) => ({
+      ...prev,
+      doctorId: nextDoctorId,
+      deptCode: nextDoctor?.departmentId ?? prev.deptCode,
+    }));
+  };
+
+  const submitDisabled = saving || departments.length === 0 || filteredDoctors.length === 0;
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 4 } }}>
       <DialogTitle>예약 등록</DialogTitle>
@@ -32,44 +73,38 @@ export default function PatientReservationDialog({
             select
             label="진료과"
             value={form.deptCode}
-            onChange={(e) => {
-              const nextDeptName = e.target.value;
-              const nextDept = departments.find((d) => d.name === nextDeptName);
-              onFormChange((prev) => ({
-                ...prev,
-                deptCode: nextDeptName,
-                doctorId: nextDept ? String(nextDept.doctorId) : prev.doctorId,
-              }));
-            }}
+            onChange={(e) => handleDeptChange(e.target.value)}
             fullWidth
+            disabled={saving || departments.length === 0}
           >
-            {departments.map((dept) => (
-              <MenuItem key={dept.id} value={dept.name}>
-                {dept.name}
-              </MenuItem>
-            ))}
+            {departments.length === 0 ? (
+              <MenuItem value="">선택 가능한 진료과가 없습니다.</MenuItem>
+            ) : (
+              departments.map((department) => (
+                <MenuItem key={department.departmentId} value={department.departmentId}>
+                  {department.departmentName}
+                </MenuItem>
+              ))
+            )}
           </TextField>
 
           <TextField
             select
-            label="담당의"
+            label="담당 의사"
             value={form.doctorId}
-            onChange={(e) => {
-              const nextDoctorId = e.target.value;
-              const nextDept = departments.find((d) => String(d.doctorId) === nextDoctorId);
-              onFormChange((prev) => ({
-                ...prev,
-                doctorId: nextDoctorId,
-                deptCode: nextDept?.name ?? prev.deptCode,
-              }));
-            }}
+            onChange={(e) => handleDoctorChange(e.target.value)}
             fullWidth
+            disabled={saving || filteredDoctors.length === 0}
           >
-            {departments.map((dept) => (
-              <MenuItem key={dept.doctorId} value={String(dept.doctorId)}>
-                {dept.doctor}
-              </MenuItem>
-            ))}
+            {filteredDoctors.length === 0 ? (
+              <MenuItem value="">선택 가능한 의사가 없습니다.</MenuItem>
+            ) : (
+              filteredDoctors.map((doctor) => (
+                <MenuItem key={doctor.doctorId} value={doctor.doctorId}>
+                  {doctor.doctorName}
+                </MenuItem>
+              ))
+            )}
           </TextField>
 
           <TextField
@@ -91,7 +126,7 @@ export default function PatientReservationDialog({
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>취소</Button>
-        <Button variant="contained" onClick={onSave} disabled={saving}>
+        <Button variant="contained" onClick={onSave} disabled={submitDisabled}>
           저장
         </Button>
       </DialogActions>

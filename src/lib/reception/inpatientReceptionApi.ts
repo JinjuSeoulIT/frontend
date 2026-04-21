@@ -12,11 +12,24 @@ const api = axios.create({
 
 const normalizeDepartmentId = (value: unknown) => String(value ?? "").trim();
 
+const normalizeReceptionStatus = (value?: string | null): InpatientReception["status"] => {
+  const normalized = value?.trim().toUpperCase();
+  if (normalized === "CALLED") return "WAITING";
+  if (normalized === "IN_PROGRESS") return "IN_PROGRESS";
+  if (normalized === "COMPLETED") return "COMPLETED";
+  if (normalized === "PAYMENT_WAIT") return "PAYMENT_WAIT";
+  if (normalized === "ON_HOLD") return "ON_HOLD";
+  if (normalized === "CANCELED" || normalized === "CANCELLED") return "CANCELED";
+  if (normalized === "INACTIVE") return "INACTIVE";
+  return "WAITING";
+};
+
 const normalizeInpatientReception = (item: InpatientReception): InpatientReception => ({
   ...item,
   departmentId: normalizeDepartmentId(
     (item as InpatientReception & { departmentId?: unknown }).departmentId
   ),
+  status: normalizeReceptionStatus(item.status),
 });
 
 export const fetchInpatientReceptionsApi = async (): Promise<InpatientReception[]> => {

@@ -209,7 +209,7 @@ export default function BillingStatementPage() {
                 onClick={() => router.push(detailHref)}
                 variant="outlined"
               >
-                청구 상세로 돌아가기
+                청구 상세 보기
               </Button>
 
               <Button

@@ -17,6 +17,7 @@ import {
   Typography,
 } from "@mui/material";
 import type { VitalSignsRes, AssessmentRes } from "@/lib/clinical/clinicalVitalsApi";
+import type { VitalAssessmentAuditLine } from "@/lib/clinical/medicalSupportRecordBridge";
 import type { Patient } from "@/features/patients/patientTypes";
 import { formatDateTime } from "../clinicalDocumentation";
 
@@ -64,6 +65,8 @@ type Props = {
   selectedPatient: Patient | null;
   vitals: VitalSignsRes | null;
   assessment: AssessmentRes | null;
+  vitalAuditLines?: VitalAssessmentAuditLine[];
+  supportVitalMeasurementAt?: string | null;
   vitalsLoading: boolean;
   assessmentLoading: boolean;
   visitId: number | null;
@@ -75,6 +78,8 @@ export function ClinicalVitalsCard({
   selectedPatient,
   vitals,
   assessment,
+  vitalAuditLines = [],
+  supportVitalMeasurementAt = null,
   vitalsLoading,
   assessmentLoading,
   visitId,
@@ -109,10 +114,15 @@ export function ClinicalVitalsCard({
             <>
               {showVitals && vitals ? (
                 <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 1 }}>
+                  {embedded && vitalAuditLines.length > 0 ? (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", px: 1, pt: 1 }}>
+                      시각 순 이력은 위쪽「기록 이력」에서 펼쳐 볼 수 있습니다.
+                    </Typography>
+                  ) : null}
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>날짜</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>측정 시각</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>혈압(수축)</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>혈압(이완)</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>체온</TableCell>
@@ -122,7 +132,11 @@ export function ClinicalVitalsCard({
                     </TableHead>
                     <TableBody>
                       <TableRow>
-                        <TableCell>{formatDateTime(vitals.measuredAt ?? null)}</TableCell>
+                        <TableCell>
+                          {formatDateTime(
+                            supportVitalMeasurementAt ?? vitals.measuredAt ?? vitals.updatedAt ?? null
+                          )}
+                        </TableCell>
                         <TableCell>{vitals.bpSystolic ?? "-"}</TableCell>
                         <TableCell>{vitals.bpDiastolic ?? "-"}</TableCell>
                         <TableCell>{vitals.temperature ?? "-"}℃</TableCell>
@@ -163,9 +177,9 @@ export function ClinicalVitalsCard({
                   <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 0.75 }}>
                     문진·사정 (요약)
                   </Typography>
-                  {assessment.assessedAt ? (
+                  {assessment.updatedAt || assessment.assessedAt ? (
                     <Typography sx={{ fontSize: 11, color: "var(--muted)", mb: 0.75 }}>
-                      {formatDateTime(assessment.assessedAt)}
+                      {formatDateTime(assessment.updatedAt ?? assessment.assessedAt ?? null)}
                     </Typography>
                   ) : null}
                   <Stack spacing={0.75} sx={{ maxHeight: 160, overflow: "auto" }}>

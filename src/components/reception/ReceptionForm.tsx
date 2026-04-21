@@ -45,8 +45,7 @@ type ReceptionFormProps = {
 
 const statusOptions = [
   { value: "WAITING", label: "대기" },
-  { value: "CALLED", label: "호출" },
-  { value: "ON_HOLD", label: "보류" },
+ // { value: "ON_HOLD", label: "보류" },
   { value: "CANCELED", label: "취소" },
 ];
 

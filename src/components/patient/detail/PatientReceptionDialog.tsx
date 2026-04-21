@@ -12,20 +12,25 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import type { Department, ReceptionForm } from "./PatientDetailUtils";
+import type {
+  DepartmentOption,
+  DoctorOption,
+} from "@/features/Reservations/ReservationTypes";
+import type { ReceptionForm } from "./PatientDetailUtils";
 
 type Props = {
   open: boolean;
   onClose: () => void;
   form: ReceptionForm;
   onFormChange: (next: ReceptionForm | ((prev: ReceptionForm) => ReceptionForm)) => void;
-  departments: Department[];
+  departments: DepartmentOption[];
+  doctors: DoctorOption[];
   saving: boolean;
   onSave: () => void;
 };
 
 export default function PatientReceptionDialog(props: Props) {
-  const { open, onClose, form, onFormChange, departments, saving, onSave } = props;
+  const { open, onClose, form, onFormChange, departments, doctors, saving, onSave } = props;
   const todayDateLabel = React.useMemo(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -34,22 +39,31 @@ export default function PatientReceptionDialog(props: Props) {
     return `${year}-${month}-${day}`;
   }, []);
 
-  const handleDeptChange = (nextDeptName: string) => {
-    const nextDept = departments.find((d) => d.name === nextDeptName);
+  const filteredDoctors = form.deptCode
+    ? doctors.filter((doctor) => doctor.departmentId === form.deptCode)
+    : doctors;
+
+  const handleDeptChange = (nextDepartmentId: string) => {
+    const nextDoctors = doctors.filter((doctor) => doctor.departmentId === nextDepartmentId);
     onFormChange((prev) => ({
       ...prev,
-      deptCode: nextDeptName,
-      doctorId: nextDept ? String(nextDept.doctorId) : prev.doctorId,
+      deptCode: nextDepartmentId,
+      doctorId: nextDoctors.some((doctor) => doctor.doctorId === prev.doctorId)
+        ? prev.doctorId
+        : (nextDoctors[0]?.doctorId ?? ""),
     }));
   };
+
   const handleDoctorChange = (nextDoctorId: string) => {
-    const nextDept = departments.find((d) => String(d.doctorId) === nextDoctorId);
+    const nextDoctor = doctors.find((doctor) => doctor.doctorId === nextDoctorId);
     onFormChange((prev) => ({
       ...prev,
       doctorId: nextDoctorId,
-      deptCode: nextDept?.name ?? prev.deptCode,
+      deptCode: nextDoctor?.departmentId ?? prev.deptCode,
     }));
   };
+
+  const submitDisabled = saving || departments.length === 0 || filteredDoctors.length === 0;
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 4 } }}>
@@ -62,29 +76,39 @@ export default function PatientReceptionDialog(props: Props) {
             value={form.deptCode}
             onChange={(e) => handleDeptChange(e.target.value)}
             fullWidth
+            disabled={saving || departments.length === 0}
           >
-            {departments.map((dept) => (
-              <MenuItem key={dept.id} value={dept.name}>
-                {dept.name}
-              </MenuItem>
-            ))}
+            {departments.length === 0 ? (
+              <MenuItem value="">선택 가능한 진료과가 없습니다.</MenuItem>
+            ) : (
+              departments.map((department) => (
+                <MenuItem key={department.departmentId} value={department.departmentId}>
+                  {department.departmentName}
+                </MenuItem>
+              ))
+            )}
           </TextField>
           <TextField
             select
-            label="담당의"
+            label="담당 의사"
             value={form.doctorId}
             onChange={(e) => handleDoctorChange(e.target.value)}
             fullWidth
+            disabled={saving || filteredDoctors.length === 0}
           >
-            {departments.map((dept) => (
-              <MenuItem key={dept.doctorId} value={String(dept.doctorId)}>
-                {dept.doctor}
-              </MenuItem>
-            ))}
+            {filteredDoctors.length === 0 ? (
+              <MenuItem value="">선택 가능한 의사가 없습니다.</MenuItem>
+            ) : (
+              filteredDoctors.map((doctor) => (
+                <MenuItem key={doctor.doctorId} value={doctor.doctorId}>
+                  {doctor.doctorName}
+                </MenuItem>
+              ))
+            )}
           </TextField>
           <TextField
             InputProps={{ readOnly: true }}
-            label="내원유형"
+            label="내원 유형"
             value="외래"
             fullWidth
             helperText="접수 등록은 외래 접수만 지원합니다."
@@ -111,7 +135,7 @@ export default function PatientReceptionDialog(props: Props) {
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>취소</Button>
-        <Button variant="contained" onClick={onSave} disabled={saving}>
+        <Button variant="contained" onClick={onSave} disabled={submitDisabled}>
           저장
         </Button>
       </DialogActions>

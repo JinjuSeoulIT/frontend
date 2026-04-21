@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import Script from "next/script";
 import toast from "react-hot-toast";
+import { getSessionUser } from "@/lib/auth/session";
 
 import MainLayout from "@/components/layout/MainLayout";
 import Link from "next/link";
@@ -57,6 +58,7 @@ interface TossOutstandingPaymentContext {
   patientId: number;
   requestedAmount: number;
   orderId: string;
+  staffId: string;
   returnTo: string;
   returnLabel: string;
 }
@@ -156,6 +158,19 @@ export default function OutstandingBillingPage() {
       : "http://192.168.1.68:8081";
   };
 
+  const resolveStaffId = () => {
+    if (typeof window === "undefined") return "";
+
+    return (
+      sessionStorage.getItem("staffId") ||
+      localStorage.getItem("staffId") ||
+      sessionStorage.getItem("STAFF_ID") ||
+      localStorage.getItem("STAFF_ID") ||
+      getSessionUser()?.userId ||
+      ""
+    ).trim();
+  };
+
   const refreshOutstanding = () => {
     dispatch(fetchOutstandingBillsRequest());
     dispatch(fetchBillingStatsRequest());
@@ -175,6 +190,13 @@ export default function OutstandingBillingPage() {
       return;
     }
 
+    const staffId = resolveStaffId();
+
+    if (!staffId) {
+      toast.error("직원 ID를 확인할 수 없습니다.");
+      return;
+    }
+
     const orderId = createOrderId(bill.billId);
 
     const context: TossOutstandingPaymentContext = {
@@ -182,6 +204,7 @@ export default function OutstandingBillingPage() {
       patientId: bill.patientId,
       requestedAmount: amount,
       orderId,
+      staffId,
       returnTo: "/billing/outstanding",
       returnLabel: "미수금 목록",
     };
@@ -225,6 +248,17 @@ export default function OutstandingBillingPage() {
     return true;
   };
 
+  const parseAmountInput = (value: string) => {
+    const sanitized = value.replace(/[^\d]/g, "");
+    if (sanitized === "") return 0;
+    return Number(sanitized);
+  };
+
+  const isPartialAmountValid = (bill: BillSummary) => {
+    const amount = parseAmountInput(amountByBillId[bill.billId] ?? "");
+    return amount > 0 && amount <= bill.remainingAmount;
+  };
+
   const handleDirectSettlement = async (
     bill: BillSummary,
     amount: number,
@@ -250,7 +284,18 @@ export default function OutstandingBillingPage() {
         return;
       }
 
+<<<<<<< HEAD
+      const staffId = resolveStaffId();
+
+      if (!staffId) {
+        toast.error("직원 ID를 확인할 수 없습니다.");
+        return;
+      }
+
+      await createPaymentApi(bill.billId, amount, method, staffId);
+=======
       await createPaymentApi(bill.billId, amount, method, sessionUser.userId);
+>>>>>>> develop
       toast.success("미수금 정산이 완료되었습니다.");
       refreshOutstanding();
     } catch (err: any) {
@@ -266,7 +311,7 @@ export default function OutstandingBillingPage() {
   };
 
   const handlePartialSettlement = async (bill: BillSummary) => {
-    const amount = Number(amountByBillId[bill.billId] ?? "0");
+    const amount = parseAmountInput(amountByBillId[bill.billId] ?? "0");
     const method = methodByBillId[bill.billId] ?? "CASH";
     await handleDirectSettlement(bill, amount, method);
   };
@@ -318,7 +363,7 @@ export default function OutstandingBillingPage() {
           <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
             미수금 목록에서 바로 전액 정산 또는 부분 정산을 진행할 수 있습니다.
             카드 결제는 토스 결제창으로 연결되며, 현금/계좌이체는 즉시 정산됩니다.
-            상세 확인이 필요한 경우 청구번호 링크 또는 우측 상세 이동 버튼을 사용하세요.
+            상세 확인이 필요한 경우 청구번호 링크 또는 우측 상세 보기 버튼을 사용하세요.
           </Typography>
         </Paper>
 
@@ -406,9 +451,15 @@ export default function OutstandingBillingPage() {
                           onChange={(e) => {
                             setAmountByBillId((prev) => ({
                               ...prev,
-                              [bill.billId]: e.target.value,
+                              [bill.billId]: e.target.value.replace(/[^\d]/g, ""),
                             }));
                           }}
+                          inputProps={{ inputMode: "numeric" }}
+                          helperText={`최대 ${bill.remainingAmount.toLocaleString()}원`}
+                          error={
+                            (amountByBillId[bill.billId] ?? "").trim() !== "" &&
+                            !isPartialAmountValid(bill)
+                          }
                           sx={{ minWidth: 130 }}
                         />
 
@@ -435,7 +486,9 @@ export default function OutstandingBillingPage() {
                         <Button
                           variant="outlined"
                           size="small"
-                          disabled={isRowProcessing(bill.billId)}
+                          disabled={
+                            isRowProcessing(bill.billId) || !isPartialAmountValid(bill)
+                          }
                           onClick={() => handlePartialSettlement(bill)}
                         >
                           부분 정산
@@ -445,7 +498,9 @@ export default function OutstandingBillingPage() {
                           variant="contained"
                           size="small"
                           color="success"
-                          disabled={isRowProcessing(bill.billId)}
+                          disabled={
+                            isRowProcessing(bill.billId) || bill.remainingAmount <= 0
+                          }
                           onClick={() => handleFullSettlement(bill)}
                         >
                           전액 정산
@@ -461,7 +516,7 @@ export default function OutstandingBillingPage() {
                         size="small"
                         sx={{ px: 0.5 }}
                       >
-                        상세 이동
+                        상세 보기
                       </Button>
                     </Box>
                   </TableCell>

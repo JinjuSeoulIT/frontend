@@ -51,6 +51,12 @@ const COMPLETED_STATUSES = ["COMPLETED"];
 const isInactiveRecord = (item: Pick<MedicationRecord, "status">) =>
   normalizeMedicationRecordActiveStatus(item.status) === "INACTIVE";
 
+const getCreatedAtTime = (value?: string | null) => {
+  if (!value) return Number.NEGATIVE_INFINITY;
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp;
+};
+
 const toMedicationRecordSearchParams = (
   criteria: MedicationSearchCriteria
 ): MedicationRecordSearchParams => {
@@ -90,6 +96,16 @@ export function MedicationRecordListSection() {
 
   const visibleRows = baseRows;
 
+  const sortedVisibleRows = React.useMemo(
+    () =>
+      [...visibleRows].sort(
+        (a, b) =>
+          getCreatedAtTime(b.createdAt) - getCreatedAtTime(a.createdAt) ||
+          Number(b.medicationRecordId ?? 0) - Number(a.medicationRecordId ?? 0)
+      ),
+    [visibleRows]
+  );
+
   const requestedCount = React.useMemo(
     () =>
       visibleRows.filter((item) =>
@@ -125,16 +141,19 @@ export function MedicationRecordListSection() {
     [visibleRows]
   );
 
-  const maxPage = Math.max(0, Math.ceil(visibleRows.length / rowsPerPage) - 1);
+  const maxPage = Math.max(
+    0,
+    Math.ceil(sortedVisibleRows.length / rowsPerPage) - 1
+  );
   const currentPage = Math.min(page, maxPage);
 
   const paginatedRows = React.useMemo(
     () =>
-      visibleRows.slice(
+      sortedVisibleRows.slice(
         currentPage * rowsPerPage,
         currentPage * rowsPerPage + rowsPerPage
       ),
-    [currentPage, rowsPerPage, visibleRows]
+    [currentPage, rowsPerPage, sortedVisibleRows]
   );
 
   const detailItem = React.useMemo(() => {

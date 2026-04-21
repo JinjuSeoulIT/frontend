@@ -59,6 +59,12 @@ const summarizeDetail = (value?: string | null) => {
 const isInactiveResult = (item: Pick<TreatmentResult, "status">) =>
   normalizeTreatmentResultActiveStatus(item.status) === "INACTIVE";
 
+const getCreatedAtTime = (value?: string | null) => {
+  if (!value) return Number.NEGATIVE_INFINITY;
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp;
+};
+
 const toTreatmentResultSearchParams = (
   criteria: TreatmentResultSearchCriteria
 ): TreatmentResultSearchParams => {
@@ -98,6 +104,16 @@ export function TreatmentResultListSection() {
 
   const visibleRows = baseRows;
 
+  const sortedVisibleRows = React.useMemo(
+    () =>
+      [...visibleRows].sort(
+        (a, b) =>
+          getCreatedAtTime(b.createdAt) - getCreatedAtTime(a.createdAt) ||
+          Number(b.treatmentResultId ?? 0) - Number(a.treatmentResultId ?? 0)
+      ),
+    [visibleRows]
+  );
+
   const requestedCount = React.useMemo(
     () =>
       visibleRows.filter((item) =>
@@ -133,16 +149,19 @@ export function TreatmentResultListSection() {
     [visibleRows]
   );
 
-  const maxPage = Math.max(0, Math.ceil(visibleRows.length / rowsPerPage) - 1);
+  const maxPage = Math.max(
+    0,
+    Math.ceil(sortedVisibleRows.length / rowsPerPage) - 1
+  );
   const currentPage = Math.min(page, maxPage);
 
   const paginatedRows = React.useMemo(
     () =>
-      visibleRows.slice(
+      sortedVisibleRows.slice(
         currentPage * rowsPerPage,
         currentPage * rowsPerPage + rowsPerPage
       ),
-    [currentPage, rowsPerPage, visibleRows]
+    [currentPage, rowsPerPage, sortedVisibleRows]
   );
 
   const detailItem = React.useMemo(() => {

@@ -181,6 +181,12 @@ const getDateOnlyValue = (value?: string | null) => {
   return `${year}-${month}-${day}`;
 };
 
+const getCreatedAtTime = (value?: string | null) => {
+  if (!value) return Number.NEGATIVE_INFINITY;
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp;
+};
+
 export default function TestExecutionList() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
@@ -257,6 +263,16 @@ export default function TestExecutionList() {
     });
   }, [includeInactive, items, searchCriteria]);
 
+  const sortedItems = useMemo(
+    () =>
+      [...filteredItems].sort(
+        (a, b) =>
+          getCreatedAtTime(b.createdAt) - getCreatedAtTime(a.createdAt) ||
+          Number(b.testExecutionId ?? 0) - Number(a.testExecutionId ?? 0)
+      ),
+    [filteredItems]
+  );
+
   const waitingCount = useMemo(
     () =>
       filteredItems.filter(
@@ -278,16 +294,16 @@ export default function TestExecutionList() {
     [filteredItems]
   );
 
-  const maxPage = Math.max(0, Math.ceil(filteredItems.length / rowsPerPage) - 1);
+  const maxPage = Math.max(0, Math.ceil(sortedItems.length / rowsPerPage) - 1);
   const currentPage = Math.min(page, maxPage);
 
   const paginatedItems = useMemo(
     () =>
-      filteredItems.slice(
+      sortedItems.slice(
         currentPage * rowsPerPage,
         currentPage * rowsPerPage + rowsPerPage
       ),
-    [currentPage, filteredItems, rowsPerPage]
+    [currentPage, rowsPerPage, sortedItems]
   );
 
   const handleChangePage = (_event: unknown, newPage: number) => {

@@ -70,6 +70,12 @@ const normalizeRecordStatus = (status?: string | null) => {
 const isInactiveRecord = (record: Pick<RecordFormType, "status">) =>
   normalizeRecordStatus(record.status) === "INACTIVE";
 
+const getCreatedAtTime = (value?: string | null) => {
+  if (!value) return Number.NEGATIVE_INFINITY;
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp;
+};
+
 const getStatusLabel = (status?: string | null) => {
   return normalizeRecordStatus(status) === "INACTIVE" ? "비활성" : "활성";
 };
@@ -219,20 +225,33 @@ export default function RecordList() {
     [includeInactive, list]
   );
 
+  const sortedVisibleRecords = useMemo(
+    () =>
+      [...visibleRecords].sort(
+        (a, b) =>
+          getCreatedAtTime(b.createdAt) - getCreatedAtTime(a.createdAt) ||
+          Number(b.recordId ?? 0) - Number(a.recordId ?? 0)
+      ),
+    [visibleRecords]
+  );
+
   const inactiveCount = useMemo(
     () => visibleRecords.filter((item) => isInactiveRecord(item)).length,
     [visibleRecords]
   );
 
-  const maxPage = Math.max(0, Math.ceil(visibleRecords.length / rowsPerPage) - 1);
+  const maxPage = Math.max(
+    0,
+    Math.ceil(sortedVisibleRecords.length / rowsPerPage) - 1
+  );
   const currentPage = Math.min(page, maxPage);
   const paginatedList = useMemo(
     () =>
-      visibleRecords.slice(
+      sortedVisibleRecords.slice(
         currentPage * rowsPerPage,
         currentPage * rowsPerPage + rowsPerPage
       ),
-    [currentPage, rowsPerPage, visibleRecords]
+    [currentPage, rowsPerPage, sortedVisibleRecords]
   );
 
   const receptionList = receptions;

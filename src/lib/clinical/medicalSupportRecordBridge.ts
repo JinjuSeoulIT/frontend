@@ -104,6 +104,7 @@ function supportMeasurementAt(supportRec: RecordFormType | null): string | null 
 export type VitalAssessmentAuditLine = {
   label: string;
   at: string | null;
+  detail?: string | null;
 };
 
 function sameParsedInstant(a: string | null, b: string | null): boolean {
@@ -134,18 +135,52 @@ function normalizeChartHistoryAt(raw: unknown): string {
 }
 
 function apiChartHistoryToAuditLines(
-  chartSaveHistory: { label?: string | null; at?: string | null }[] | null | undefined
+  chartSaveHistory:
+    | { label?: string | null; at?: string | null; detail?: string | null }[]
+    | null
+    | undefined
 ): VitalAssessmentAuditLine[] {
   if (!chartSaveHistory?.length) return [];
   const out: VitalAssessmentAuditLine[] = [];
   for (const row of chartSaveHistory) {
-    const r = row as { label?: string | null; at?: unknown; occurredAt?: unknown };
+    const r = row as {
+      label?: string | null;
+      at?: unknown;
+      occurredAt?: unknown;
+      detail?: string | null;
+    };
     const at = normalizeChartHistoryAt(r.at ?? r.occurredAt);
     if (!at) continue;
     const label = strTrim(row.label ?? "") || "진료 · 차트 저장";
-    out.push({ label, at });
+    const detail = strTrim(r.detail ?? "");
+    out.push({ label, at, detail: detail.length > 0 ? detail : null });
   }
   return out;
+}
+
+function supportRecordDetailText(rec: RecordFormType): string {
+  const lines: string[] = [];
+  const push = (lab: string, v: unknown) => {
+    const s = strTrim(v);
+    if (!s) return;
+    lines.push(`${lab}: ${s}`);
+  };
+  push("혈압(수축)", rec.systolicBp);
+  push("혈압(이완)", rec.diastolicBp);
+  push("맥박", rec.pulse);
+  push("호흡", rec.respiration);
+  push("체온", rec.temperature);
+  push("산소포화도", rec.spo2);
+  push("통증", rec.painScore);
+  push("의식", rec.consciousnessLevel);
+  push("키(cm)", rec.heightCm);
+  push("체중(kg)", rec.weightKg);
+  push("관찰", rec.observation);
+  push("초기평가", rec.initialAssessment);
+  push("과거병력", rec.pastMedicalHistory);
+  push("기록상태", rec.status);
+  if (lines.length === 0) return "진료지원 기록에 입력된 항목이 없습니다.";
+  return ["진료지원에 저장된 계측·문진 요약입니다.", ...lines].join("\n");
 }
 
 export function buildVitalAssessmentAuditLines(
@@ -158,7 +193,7 @@ export function buildVitalAssessmentAuditLines(
 
   if (supportRec) {
     const t = strTrim(supportRecordInstant(supportRec));
-    if (t) supportLine = { label: "진료지원 · 계측·문진", at: t };
+    if (t) supportLine = { label: "진료지원 · 계측·문진", at: t, detail: supportRecordDetailText(supportRec) };
   }
   const fromApi = apiChartHistoryToAuditLines(chartSaveHistory);
   if (fromApi.length > 0) {

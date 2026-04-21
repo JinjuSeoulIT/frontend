@@ -40,7 +40,7 @@ import { ClinicalSoapCard } from "./ClinicalSoapCard";
 import type { RecordFormType } from "@/features/medical_support/record/recordTypes";
 import type { VitalAssessmentAuditLine } from "@/lib/clinical/medicalSupportRecordBridge";
 import { formatDateTime } from "../clinicalDocumentation";
-import TestResultList from "@/components/medical_support/testResult/TestResultList";
+import { ClinicalTestResultsPanel } from "@/components/clinical/chart/ClinicalTestResultsPanel";
 
 type RecordVitalsLineFields = Pick<
   RecordFormType,
@@ -440,6 +440,9 @@ export function ClinicalChartCenter(p: Props) {
   const [testResultsOpen, setTestResultsOpen] = React.useState(false);
   const [vitalHistoryPoints, setVitalHistoryPoints] = React.useState<{ v: VitalSignsRes }[]>([]);
   const [vitalHistoryLoading, setVitalHistoryLoading] = React.useState(false);
+  const [auditDetailOpen, setAuditDetailOpen] = React.useState(false);
+  const [auditDetailTitle, setAuditDetailTitle] = React.useState("");
+  const [auditDetailBody, setAuditDetailBody] = React.useState("");
 
   React.useEffect(() => {
     const tick = p.reopenVitalsSoapTick ?? 0;
@@ -645,7 +648,13 @@ export function ClinicalChartCenter(p: Props) {
                 <Button size="small" variant="outlined" onClick={() => setPastVisitsOpen(true)} sx={{ textTransform: "none", fontWeight: 600 }}>
                   과거 진료기록
                 </Button>
-                <Button size="small" variant="outlined" onClick={() => setTestResultsOpen(true)} sx={{ textTransform: "none", fontWeight: 600 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={pat == null}
+                  onClick={() => setTestResultsOpen(true)}
+                  sx={{ textTransform: "none", fontWeight: 600 }}
+                >
                   검사결과
                 </Button>
               </Stack>
@@ -743,27 +752,47 @@ export function ClinicalChartCenter(p: Props) {
                         <Stack
                           key={`${row.label}-${row.at ?? ""}-${idx}`}
                           direction="row"
-                          spacing={1.25}
-                          alignItems="baseline"
+                          spacing={1}
+                          alignItems="center"
+                          justifyContent="space-between"
                         >
-                          <Typography
-                            variant="caption"
-                            color="text.disabled"
-                            sx={{
-                              minWidth: "1.75rem",
-                              fontWeight: 700,
-                              fontVariantNumeric: "tabular-nums",
-                              flexShrink: 0,
+                          <Stack direction="row" spacing={1.25} alignItems="baseline" sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography
+                              variant="caption"
+                              color="text.disabled"
+                              sx={{
+                                minWidth: "1.75rem",
+                                fontWeight: 700,
+                                fontVariantNumeric: "tabular-nums",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {idx + 1}.
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ flex: 1, minWidth: 0 }}>
+                              <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
+                                {row.label}
+                              </Box>{" "}
+                              {formatDateTime(row.at)}
+                            </Typography>
+                          </Stack>
+                          <Button
+                            size="small"
+                            variant="text"
+                            sx={{ flexShrink: 0, fontWeight: 600, textTransform: "none" }}
+                            onClick={() => {
+                              setAuditDetailTitle(`${row.label} · ${formatDateTime(row.at)}`);
+                              const d = row.detail?.trim();
+                              setAuditDetailBody(
+                                d && d.length > 0
+                                  ? d
+                                  : "이 시점에 저장된 변경 요약이 없습니다. 이전에 저장된 이력이거나, 차트 저장 이후 요약 기능이 추가되기 전 기록일 수 있습니다."
+                              );
+                              setAuditDetailOpen(true);
                             }}
                           >
-                            {idx + 1}.
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ flex: 1, minWidth: 0 }}>
-                            <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
-                              {row.label}
-                            </Box>{" "}
-                            {formatDateTime(row.at)}
-                          </Typography>
+                            상세
+                          </Button>
                         </Stack>
                       ))}
                     </Stack>
@@ -946,11 +975,27 @@ export function ClinicalChartCenter(p: Props) {
         fullWidth
         scroll="paper"
       >
-        <ModalTitleBar title="" onClose={() => setTestResultsOpen(false)} />
+        <ModalTitleBar
+          title={pat == null ? "검사 결과" : `검사 결과 · ${pat.name}`}
+          onClose={() => setTestResultsOpen(false)}
+        />
         <DialogContent dividers sx={{ pt: 2 }}>
-          <TestResultList
-          />
+          <ClinicalTestResultsPanel open={testResultsOpen} patient={p.selectedPatient} />
         </DialogContent>
+      </Dialog>
+
+      <Dialog open={auditDetailOpen} onClose={() => setAuditDetailOpen(false)} maxWidth="sm" fullWidth scroll="paper">
+        <ModalTitleBar title={auditDetailTitle} onClose={() => setAuditDetailOpen(false)} />
+        <DialogContent dividers sx={{ pt: 2 }}>
+          <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+            {auditDetailBody}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, py: 1.5 }}>
+          <Button onClick={() => setAuditDetailOpen(false)} sx={{ textTransform: "none", fontWeight: 600 }}>
+            닫기
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

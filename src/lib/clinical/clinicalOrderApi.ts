@@ -111,7 +111,7 @@ export async function fetchClinicalOrdersApi(
   clinicalId: number
 ): Promise<ClinicalOrder[]> {
   const res = await fetch(
-    `${CLINICAL_API_BASE}/api/visits/${clinicalId}/orders`,
+    `${CLINICAL_API_BASE}/api/visits/${clinicalId}/orders?syncFromSupport=true`,
     { cache: "no-store" }
   );
   if (!res.ok) {

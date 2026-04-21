@@ -49,8 +49,8 @@ export type ClinicalVitalAssessApiRes = {
   status?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
-  chartSaveHistory?: { label?: string | null; at?: string | null }[] | null;
-  chart_save_history?: { label?: string | null; at?: string | null }[] | null;
+  chartSaveHistory?: { label?: string | null; at?: string | null; detail?: string | null }[] | null;
+  chart_save_history?: { label?: string | null; at?: string | null; detail?: string | null }[] | null;
 };
 
 export type VitalAssessSavePayload = {
@@ -132,7 +132,7 @@ function mapRowToVitals(r: ClinicalVitalAssessApiRes): VitalSignsRes {
 
 function pickChartSaveHistoryRow(
   row: ClinicalVitalAssessApiRes
-): { label?: string | null; at?: string | null }[] | null {
+): { label?: string | null; at?: string | null; detail?: string | null }[] | null {
   const a = row.chartSaveHistory;
   if (Array.isArray(a) && a.length > 0) return a;
   const b = row.chart_save_history;
@@ -171,7 +171,7 @@ async function fetchVitalAssessRow(visitId: number): Promise<ClinicalVitalAssess
 export async function fetchVitalsAndAssessmentFromClinical(visitId: number): Promise<{
   vitals: VitalSignsRes | null;
   assessment: AssessmentRes | null;
-  chartSaveHistory: { label?: string | null; at?: string | null }[] | null;
+  chartSaveHistory: { label?: string | null; at?: string | null; detail?: string | null }[] | null;
 }> {
   const row = await fetchVitalAssessRow(visitId);
   if (!row) {

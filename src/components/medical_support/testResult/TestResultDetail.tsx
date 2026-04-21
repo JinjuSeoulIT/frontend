@@ -417,6 +417,7 @@ export default function TestResultDetail() {
   const searchParams = useSearchParams();
   const resultId = getRouteParam(params?.resultId).trim();
   const resultType = (searchParams.get("resultType") ?? "").trim().toUpperCase();
+  const viewOnly = searchParams.get("viewOnly") === "1";
   const listHref = "/medical_support/testResult/list";
   const editHref = `/medical_support/testResult/edit/${encodeURIComponent(
     resultId
@@ -449,6 +450,9 @@ export default function TestResultDetail() {
   }, [dispatch, resultId, resultType]);
 
   useEffect(() => {
+    if (viewOnly) {
+      return;
+    }
     if (!updateSuccess) {
       return;
     }
@@ -461,16 +465,19 @@ export default function TestResultDetail() {
     pendingSuccessMessageRef.current = null;
     dispatch(TestResultActions.resetUpdateSuccess());
     router.push(listHref);
-  }, [dispatch, listHref, router, updateSuccess]);
+  }, [dispatch, listHref, router, updateSuccess, viewOnly]);
 
   useEffect(() => {
+    if (viewOnly) {
+      return;
+    }
     if (!updateError) {
       return;
     }
 
     pendingSuccessMessageRef.current = null;
     alert(updateError);
-  }, [updateError]);
+  }, [updateError, viewOnly]);
 
   if (!resultId || !resultType) {
     return (
@@ -478,15 +485,21 @@ export default function TestResultDetail() {
         <Alert severity="error">
           검사 결과 상세 조회에 필요한 정보가 없습니다.
         </Alert>
-        <Button
-          component={Link}
-          href="/medical_support/testResult/list"
-          variant="outlined"
-          size="small"
-          sx={{ mt: 2 }}
-        >
-          목록으로
-        </Button>
+        {viewOnly ? (
+          <Button variant="outlined" size="small" sx={{ mt: 2 }} onClick={() => router.back()}>
+            돌아가기
+          </Button>
+        ) : (
+          <Button
+            component={Link}
+            href="/medical_support/testResult/list"
+            variant="outlined"
+            size="small"
+            sx={{ mt: 2 }}
+          >
+            목록으로
+          </Button>
+        )}
       </Box>
     );
   }
@@ -503,15 +516,21 @@ export default function TestResultDetail() {
     return (
       <Box sx={{ px: 3, py: 3, maxWidth: 1100, mx: "auto" }}>
         <Alert severity="error">{detailError}</Alert>
-        <Button
-          component={Link}
-          href={listHref}
-          variant="outlined"
-          size="small"
-          sx={{ mt: 2 }}
-        >
-          목록으로
-        </Button>
+        {viewOnly ? (
+          <Button variant="outlined" size="small" sx={{ mt: 2 }} onClick={() => router.back()}>
+            돌아가기
+          </Button>
+        ) : (
+          <Button
+            component={Link}
+            href={listHref}
+            variant="outlined"
+            size="small"
+            sx={{ mt: 2 }}
+          >
+            목록으로
+          </Button>
+        )}
       </Box>
     );
   }
@@ -520,15 +539,21 @@ export default function TestResultDetail() {
     return (
       <Box sx={{ px: 3, py: 3, maxWidth: 1100, mx: "auto" }}>
         <Alert severity="info">검사 결과 상세 데이터를 찾을 수 없습니다.</Alert>
-        <Button
-          component={Link}
-          href={listHref}
-          variant="outlined"
-          size="small"
-          sx={{ mt: 2 }}
-        >
-          목록으로
-        </Button>
+        {viewOnly ? (
+          <Button variant="outlined" size="small" sx={{ mt: 2 }} onClick={() => router.back()}>
+            돌아가기
+          </Button>
+        ) : (
+          <Button
+            component={Link}
+            href={listHref}
+            variant="outlined"
+            size="small"
+            sx={{ mt: 2 }}
+          >
+            목록으로
+          </Button>
+        )}
       </Box>
     );
   }
@@ -603,27 +628,31 @@ export default function TestResultDetail() {
                 검사 결과 상세
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                통합 검사 결과의 공통 정보와 도메인별 상세 정보를 확인합니다.
+                {viewOnly
+                  ? "조회 전용입니다. 진료지원에서 등록·수정할 수 있습니다."
+                  : "통합 검사 결과의 공통 정보와 도메인별 상세 정보를 확인합니다."}
               </Typography>
             </Box>
 
-            <Stack direction="row" spacing={1}>
-              <Button
-                variant="outlined"
-                size="small"
-                color={isInactive ? "success" : "warning"}
-                onClick={handleToggleActiveStatus}
-                disabled={updateLoading}
-              >
-                {isInactive ? "활성화" : "비활성화"}
-              </Button>
-              <Button component={Link} href={editHref} variant="contained" size="small">
-                수정
-              </Button>
-              <Button component={Link} href={listHref} variant="outlined" size="small">
-                목록으로
-              </Button>
-            </Stack>
+            {viewOnly ? null : (
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  color={isInactive ? "success" : "warning"}
+                  onClick={handleToggleActiveStatus}
+                  disabled={updateLoading}
+                >
+                  {isInactive ? "활성화" : "비활성화"}
+                </Button>
+                <Button component={Link} href={editHref} variant="contained" size="small">
+                  수정
+                </Button>
+                <Button component={Link} href={listHref} variant="outlined" size="small">
+                  목록으로
+                </Button>
+              </Stack>
+            )}
           </Stack>
         </Box>
 
@@ -1043,29 +1072,33 @@ export default function TestResultDetail() {
             </Stack>
           )}
         </Box>
-        <Divider />
-        <Box sx={{ p: 2.5 }}>
-          <Stack spacing={1}>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ textAlign: "right" }}
-            >
-              완료 처리 후 검사수행 화면에 반영될 때까지 잠시 지연될 수 있습니다.
-            </Typography>
-            <Stack direction="row" spacing={1} justifyContent="flex-end">
-            <Button
-              variant="contained"
-              color="success"
-              size="small"
-              onClick={handleCompleteWriting}
-              disabled={updateLoading || isCompleted}
-            >
-              작성완료
-            </Button>
-            </Stack>
-          </Stack>
-        </Box>
+        {viewOnly ? null : (
+          <>
+            <Divider />
+            <Box sx={{ p: 2.5 }}>
+              <Stack spacing={1}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ textAlign: "right" }}
+                >
+                  완료 처리 후 검사수행 화면에 반영될 때까지 잠시 지연될 수 있습니다.
+                </Typography>
+                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                  <Button
+                    variant="contained"
+                    color="success"
+                    size="small"
+                    onClick={handleCompleteWriting}
+                    disabled={updateLoading || isCompleted}
+                  >
+                    작성완료
+                  </Button>
+                </Stack>
+              </Stack>
+            </Box>
+          </>
+        )}
       </Paper>
     </Box>
   );

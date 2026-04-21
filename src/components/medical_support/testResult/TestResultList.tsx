@@ -137,6 +137,14 @@ const formatDateTime = (value?: string | null) => {
   }).format(date);
 };
 
+const getCreatedAtTime = (value?: string | null) => {
+  if (!value) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp;
+};
+
 const getResultTypeLabel = (item: TestResult) => {
   const displayName = item.resultTypeName?.trim();
   if (displayName) {
@@ -257,16 +265,26 @@ export default function TestResultList() {
   );
   const includeInactiveChecked = includeInactive;
 
-  const maxPage = Math.max(0, Math.ceil(rows.length / rowsPerPage) - 1);
+  const sortedRows = React.useMemo(
+    () =>
+      [...rows].sort(
+        (a, b) =>
+          getCreatedAtTime(b.createdAt) - getCreatedAtTime(a.createdAt) ||
+          Number(b.resultId ?? 0) - Number(a.resultId ?? 0)
+      ),
+    [rows]
+  );
+
+  const maxPage = Math.max(0, Math.ceil(sortedRows.length / rowsPerPage) - 1);
   const currentPage = Math.min(page, maxPage);
 
   const paginatedRows = React.useMemo(
     () =>
-      rows.slice(
+      sortedRows.slice(
         currentPage * rowsPerPage,
         currentPage * rowsPerPage + rowsPerPage
       ),
-    [currentPage, rows, rowsPerPage]
+    [currentPage, rowsPerPage, sortedRows]
   );
 
   const searchFields = React.useMemo<ListSearchFieldConfig[]>(

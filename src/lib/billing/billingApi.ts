@@ -61,6 +61,7 @@ export interface BillSummary {
   totalAmount: number;
   status: string;
   remainingAmount: number;
+  linkedDepositRegisteredAmount?: number | null;
 }
 
 export const fetchBillsByPatientApi = async (
@@ -128,6 +129,12 @@ export interface BillDetail {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
+  /** 메모로 이 청구에 연결된 등록 선수금 합(서버에서 잔액·상태·확정 조건에 반영) */
+  linkedDepositRegisteredAmount?: number | null;
+  /** 선수금 반영 전 청구 엔티티 결제액 */
+  preDepositPaidAmount?: number | null;
+  /** 선수금 반영 전 청구 엔티티 잔액 */
+  preDepositRemainingAmount?: number | null;
   status: string;
   billItems: BillItem[];
 }

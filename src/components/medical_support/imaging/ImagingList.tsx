@@ -46,6 +46,12 @@ import type { RootState, AppDispatch } from "@/store/store";
 const getTrimmedValue = (value: unknown) =>
   typeof value === "string" ? value.trim() : "";
 
+const getCreatedAtTime = (value?: string | null) => {
+  if (!value) return Number.NEGATIVE_INFINITY;
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp;
+};
+
 export default function ImagingList() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
@@ -101,6 +107,16 @@ export default function ImagingList() {
     [includeInactive, nonCancelledItems]
   );
 
+  const sortedVisibleItems = React.useMemo(
+    () =>
+      [...visibleItems].sort(
+        (a, b) =>
+          getCreatedAtTime(b.createdAt) - getCreatedAtTime(a.createdAt) ||
+          Number(b.imagingExamId ?? 0) - Number(a.imagingExamId ?? 0)
+      ),
+    [visibleItems]
+  );
+
   const cancelledCount = React.useMemo(
     () =>
       items.filter(
@@ -141,16 +157,19 @@ export default function ImagingList() {
     [visibleItems]
   );
 
-  const maxPage = Math.max(0, Math.ceil(visibleItems.length / rowsPerPage) - 1);
+  const maxPage = Math.max(
+    0,
+    Math.ceil(sortedVisibleItems.length / rowsPerPage) - 1
+  );
   const currentPage = Math.min(page, maxPage);
 
   const paginatedItems = React.useMemo(
     () =>
-      visibleItems.slice(
+      sortedVisibleItems.slice(
         currentPage * rowsPerPage,
         currentPage * rowsPerPage + rowsPerPage
       ),
-    [currentPage, visibleItems, rowsPerPage]
+    [currentPage, rowsPerPage, sortedVisibleItems]
   );
 
   const handleChangePage = (_event: unknown, newPage: number) => {

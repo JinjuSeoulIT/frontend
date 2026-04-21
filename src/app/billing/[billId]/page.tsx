@@ -386,6 +386,19 @@ export default function BillingDetailPage() {
     },
     [patientNameById]
   );
+
+  const linkedDepositRegistered = billingDetail?.linkedDepositRegisteredAmount ?? 0;
+  const preDepositPaidDisplay =
+    billingDetail != null
+      ? billingDetail.preDepositPaidAmount ??
+        Math.max(0, billingDetail.paidAmount - linkedDepositRegistered)
+      : 0;
+  const preDepositRemainingDisplay =
+    billingDetail != null
+      ? billingDetail.preDepositRemainingAmount ??
+        billingDetail.remainingAmount + linkedDepositRegistered
+      : 0;
+
   const applyInsurancePatientBurdenAmount = useCallback(() => {
     if (!billingDetail || !insuranceSummary) return;
 
@@ -405,7 +418,6 @@ export default function BillingDetailPage() {
       billingDetail.remainingAmount > 0
     );
   }, [billingDetail, insuranceSummary]);
-
 
   const tossClientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
 
@@ -884,6 +896,12 @@ export default function BillingDetailPage() {
                   >
                     {billingDetail.paidAmount.toLocaleString()} 원
                   </Typography>
+                  {linkedDepositRegistered > 0 && (
+                    <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.5 }}>
+                      실결제 {preDepositPaidDisplay.toLocaleString()}원 + 연결 선수금{" "}
+                      {linkedDepositRegistered.toLocaleString()}원
+                    </Typography>
+                  )}
                 </Box>
 
                 <Box>
@@ -891,10 +909,26 @@ export default function BillingDetailPage() {
                     남은 금액
                   </Typography>
                   <Typography
-                    sx={{ fontWeight: 800, fontSize: 24, color: "#d32f2f" }}
+                    sx={{
+                      fontWeight: 800,
+                      fontSize: 24,
+                      color:
+                        billingDetail.remainingAmount > 0 ? "#d32f2f" : "#2e7d32",
+                    }}
                   >
                     {billingDetail.remainingAmount.toLocaleString()} 원
                   </Typography>
+                  {linkedDepositRegistered > 0 && (
+                    <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.5 }}>
+                      선수금 반영 전 잔액 {preDepositRemainingDisplay.toLocaleString()}원 ·{" "}
+                      <Link
+                        href={`/billing/deposits?billId=${billId}`}
+                        style={{ color: "#1976d2" }}
+                      >
+                        선수금 등록
+                      </Link>
+                    </Typography>
+                  )}
                 </Box>
 
                 <Box>
@@ -971,6 +1005,12 @@ export default function BillingDetailPage() {
 
                   <Typography>
                     결제 금액: {billingDetail.paidAmount.toLocaleString()} 원
+                    {linkedDepositRegistered > 0 && (
+                      <span style={{ fontWeight: 400, fontSize: 13, marginLeft: 6 }}>
+                        (실결제 {preDepositPaidDisplay.toLocaleString()} + 선수금{" "}
+                        {linkedDepositRegistered.toLocaleString()})
+                      </span>
+                    )}
                   </Typography>
 
                   <Typography>
@@ -978,15 +1018,25 @@ export default function BillingDetailPage() {
                     <span
                       style={{
                         color:
-                          billingDetail.remainingAmount > 0
-                            ? "#d32f2f"
-                            : "#2e7d32",
+                          billingDetail.remainingAmount > 0 ? "#d32f2f" : "#2e7d32",
                         fontWeight: "bold",
                         marginLeft: "6px",
                       }}
                     >
                       {billingDetail.remainingAmount.toLocaleString()} 원
                     </span>
+                    {linkedDepositRegistered > 0 && (
+                      <span
+                        style={{
+                          fontWeight: 400,
+                          fontSize: 13,
+                          marginLeft: 8,
+                          color: "#666",
+                        }}
+                      >
+                        반영 전 {preDepositRemainingDisplay.toLocaleString()}원
+                      </span>
+                    )}
                   </Typography>
 
                   <Typography component="div">
@@ -1434,6 +1484,8 @@ export default function BillingDetailPage() {
                     sx={{ fontSize: 13, color: "text.secondary", mt: 0.5 }}
                   >
                     결제 금액 입력 후 전액 또는 부분 수납을 진행할 수 있습니다.
+                    {linkedDepositRegistered > 0 &&
+                      " 서버에 반영된 연결 선수금이 남은 금액에 포함되어 있습니다."}
                   </Typography>
 
                   {insuranceSummary && (
@@ -1574,11 +1626,16 @@ export default function BillingDetailPage() {
 
                   <Box>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      현재 잔액
+                      남은 금액
                     </Typography>
                     <Typography sx={{ fontWeight: 700, color: "#d32f2f" }}>
                       {billingDetail.remainingAmount.toLocaleString()}원
                     </Typography>
+                    {linkedDepositRegistered > 0 && (
+                      <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.25 }}>
+                        반영 전 {preDepositRemainingDisplay.toLocaleString()}원
+                      </Typography>
+                    )}
                   </Box>
 
                   <Box>

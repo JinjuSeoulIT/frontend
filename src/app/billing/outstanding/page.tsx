@@ -41,7 +41,6 @@ import {
   type PaymentMethod,
   PAYMENT_METHOD_OPTIONS,
 } from "@/lib/billing/billingApi";
-import { getSessionUser } from "@/lib/auth/session";
 import {
   getBillingStatusLabel,
   getBillingStatusColor,
@@ -67,7 +66,6 @@ interface TossOutstandingPaymentContext {
 export default function OutstandingBillingPage() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const sessionUser = useMemo(() => getSessionUser(), []);
 
   const { billingList, loading, error } = useSelector(
     (state: RootState) => state.billing
@@ -270,11 +268,6 @@ export default function OutstandingBillingPage() {
       return;
     }
 
-    if (!sessionUser?.userId) {
-      toast.error("결제 처리 계정 정보를 확인할 수 없습니다.");
-      return;
-    }
-
     setProcessingBillId(bill.billId);
 
     try {
@@ -283,7 +276,6 @@ export default function OutstandingBillingPage() {
         return;
       }
 
-<<<<<<< HEAD
       const staffId = resolveStaffId();
 
       if (!staffId) {
@@ -292,9 +284,6 @@ export default function OutstandingBillingPage() {
       }
 
       await createPaymentApi(bill.billId, amount, method, staffId);
-=======
-      await createPaymentApi(bill.billId, amount, method, sessionUser.userId);
->>>>>>> develop
       toast.success("미수금 정산이 완료되었습니다.");
       refreshOutstanding();
     } catch (err: any) {

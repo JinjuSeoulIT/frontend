@@ -286,7 +286,9 @@ export default function ClinicalPage() {
   const listForLeft = React.useMemo(() => {
     let filtered = receptions.filter((r) => r.status !== "CANCELLED");
     if (department) {
-      filtered = filtered.filter((r) => (r.departmentName ?? "").includes(department));
+      filtered = filtered.filter(
+        (r) => (r.departmentName ?? "").trim() === department.trim()
+      );
     }
     const completedForReception = (receptionId: number) =>
       clinicals.some(

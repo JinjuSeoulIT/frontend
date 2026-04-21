@@ -104,10 +104,10 @@ export function ClinicalPatientList({
           <Select value={department} label="진료실" onChange={(e) => onDepartmentChange(e.target.value)}>
             <MenuItem value="">전체</MenuItem>
             <MenuItem value="내과">내과</MenuItem>
-            <MenuItem value="정형외과">정형외과</MenuItem>
-            <MenuItem value="소아과">소아과</MenuItem>
+            <MenuItem value="소화기내과">소화기내과</MenuItem>
+            <MenuItem value="신경과">신경과</MenuItem>
             <MenuItem value="이비인후과">이비인후과</MenuItem>
-            <MenuItem value="피부과">피부과</MenuItem>
+            <MenuItem value="정형외과">정형외과</MenuItem>
           </Select>
         </FormControl>
       </Box>

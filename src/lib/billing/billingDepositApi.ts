@@ -1,10 +1,8 @@
 import axios from "axios";
 import type { ApiResponse, PaymentMethod } from "@/lib/billing/billingApi";
+import { BILLING_API_BASE_URL } from "@/lib/common/env";
 
-const baseURL =
-  typeof window !== "undefined" && window.location.hostname !== "localhost"
-    ? `http://${window.location.hostname}:8081`
-    : "http://192.168.1.68:8081";
+const baseURL = BILLING_API_BASE_URL.replace(/\/+$/, "");
 
 const api = axios.create({ baseURL });
 

@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { getSessionUser } from "@/lib/auth/session";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -72,6 +73,9 @@ function TossSuccessPageContent() {
 
   const returnTo = paymentContext?.returnTo;
   const returnLabel = paymentContext?.returnLabel ?? "이전 화면";
+  const resolvedStaffId = useMemo(() => {
+    return (paymentContext?.staffId || getSessionUser()?.userId || "").trim();
+  }, [paymentContext?.staffId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -132,7 +136,7 @@ function TossSuccessPageContent() {
             orderId,
             amount: amountNumber,
             billId: resolvedBillId,
-            staffId: paymentContext?.staffId ?? "",
+            staffId: resolvedStaffId,
           }),
         });
 
@@ -164,7 +168,7 @@ function TossSuccessPageContent() {
     };
 
     approvePayment();
-  }, [isValid, paymentKey, orderId, amount, resolvedBillId]);
+  }, [isValid, paymentKey, orderId, amount, resolvedBillId, resolvedStaffId]);
 
   const moveToPreferredPage = () => {
     if (returnTo) {
@@ -330,7 +334,7 @@ function TossSuccessPageContent() {
               fontWeight: 600,
             }}
           >
-            수납 상세로 이동
+            수납 상세 보기
           </button>
         </div>
       </div>

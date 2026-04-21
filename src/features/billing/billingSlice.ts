@@ -105,7 +105,7 @@ const billingSlice = createSlice({
 
     confirmBillRequest(
       state,
-      action: PayloadAction<{ billId: number; staffId: string }>
+      action: PayloadAction<{ billId: number }>
     ) {
       state.loading = true;
       state.error = null;
@@ -113,7 +113,7 @@ const billingSlice = createSlice({
 
     unconfirmBillRequest(
       state,
-      action: PayloadAction<{ billId: number; staffId: string }>
+      action: PayloadAction<{ billId: number }>
     ) {
       state.loading = true;
       state.error = null;
@@ -121,7 +121,7 @@ const billingSlice = createSlice({
 
     cancelBillRequest(
       state,
-      action: PayloadAction<{ billId: number; staffId: string }>
+      action: PayloadAction<{ billId: number }>
     ) {
       state.loading = true;
       state.error = null;
@@ -129,7 +129,7 @@ const billingSlice = createSlice({
 
     restoreBillRequest(
       state,
-      action: PayloadAction<{ billId: number; staffId: string }>
+      action: PayloadAction<{ billId: number }>
     ) {
       state.loading = true;
       state.error = null;

@@ -36,6 +36,7 @@ export default function BillingDepositsPage() {
   const router = useRouter();
 
   const [patientId, setPatientId] = useState("");
+  const [listPatientIdFilter, setListPatientIdFilter] = useState("");
   const [depositAmount, setDepositAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
   const [depositMemo, setDepositMemo] = useState("");
@@ -49,12 +50,12 @@ export default function BillingDepositsPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const loadDeposits = useCallback(async () => {
+  const loadDeposits = useCallback(async (patientIdFilter?: number) => {
     setLoading(true);
     setError(null);
 
     try {
-      const data = await fetchBillingDepositsApi();
+      const data = await fetchBillingDepositsApi(patientIdFilter);
       setDeposits(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "선수금 목록 조회 실패");
@@ -106,6 +107,46 @@ export default function BillingDepositsPage() {
   const canSubmit = useMemo(() => {
     return Number(patientId) > 0 && Number(depositAmount) > 0;
   }, [patientId, depositAmount]);
+
+  const paymentMethodLabelByValue = useMemo(() => {
+    return PAYMENT_METHOD_OPTIONS.reduce<Record<PaymentMethod, string>>(
+      (acc, option) => {
+        acc[option.value] = option.label;
+        return acc;
+      },
+      {
+        CASH: "현금",
+        CARD: "카드",
+        TRANSFER: "계좌이체",
+      }
+    );
+  }, []);
+
+  const formatDateTime = useCallback((value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleString("ko-KR");
+  }, []);
+
+  const handleSearchDeposits = async () => {
+    const patientIdFilter = Number(listPatientIdFilter);
+
+    if (listPatientIdFilter.trim() !== "" && (!patientIdFilter || patientIdFilter <= 0)) {
+      setError("조회용 환자 ID는 0보다 큰 숫자여야 합니다.");
+      return;
+    }
+
+    setSuccessMessage(null);
+    await loadDeposits(listPatientIdFilter.trim() === "" ? undefined : patientIdFilter);
+  };
+
+  const handleResetDepositsFilter = async () => {
+    setListPatientIdFilter("");
+    setSuccessMessage(null);
+    await loadDeposits();
+  };
 
   const handleSubmit = async () => {
     if (!canSubmit) {
@@ -209,13 +250,11 @@ export default function BillingDepositsPage() {
                 onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
                 fullWidth
               >
-                {PAYMENT_METHOD_OPTIONS.filter((option) => option.value !== "CARD" ? true : true).map(
-                  (option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  )
-                )}
+                {PAYMENT_METHOD_OPTIONS.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
               </TextField>
 
               <TextField
@@ -245,6 +284,43 @@ export default function BillingDepositsPage() {
           </Stack>
         </Paper>
 
+        <Paper sx={{ p: 2.5, borderRadius: 3 }}>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={1.5}
+            alignItems={{ xs: "stretch", md: "center" }}
+            justifyContent="space-between"
+          >
+            <TextField
+              label="목록 조회용 환자 ID"
+              value={listPatientIdFilter}
+              onChange={(e) =>
+                setListPatientIdFilter(e.target.value.replace(/[^0-9]/g, ""))
+              }
+              placeholder="비우면 전체 조회"
+              size="small"
+              sx={{ minWidth: { md: 260 } }}
+            />
+
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="outlined"
+                onClick={handleSearchDeposits}
+                disabled={loading}
+              >
+                조회
+              </Button>
+              <Button
+                variant="text"
+                onClick={handleResetDepositsFilter}
+                disabled={loading}
+              >
+                필터 초기화
+              </Button>
+            </Stack>
+          </Stack>
+        </Paper>
+
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
@@ -266,7 +342,7 @@ export default function BillingDepositsPage() {
                   <TableCell>{resolvePatientName(deposit.patientId)}</TableCell>
                   <TableCell>{deposit.patientId}</TableCell>
                   <TableCell>{deposit.depositAmount.toLocaleString()} 원</TableCell>
-                  <TableCell>{deposit.paymentMethod}</TableCell>
+                  <TableCell>{paymentMethodLabelByValue[deposit.paymentMethod]}</TableCell>
                   <TableCell>
                     <Chip
                       label={deposit.depositStatus === "REGISTERED" ? "등록" : "취소"}
@@ -274,7 +350,7 @@ export default function BillingDepositsPage() {
                       size="small"
                     />
                   </TableCell>
-                  <TableCell>{deposit.receivedAt}</TableCell>
+                  <TableCell>{formatDateTime(deposit.receivedAt)}</TableCell>
                   <TableCell>{deposit.depositMemo || "-"}</TableCell>
                 </TableRow>
               ))}

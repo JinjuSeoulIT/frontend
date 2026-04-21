@@ -28,6 +28,9 @@ import {
 } from "@/components/medical_support/medicationRecord/medicationRecordDisplay";
 import type { RootState } from "@/store/rootReducer";
 import type { AppDispatch } from "@/store/store";
+import { StaffIdNameSelectFields } from "@/components/medical_support/common/StaffIdNameSelectFields";
+import type { StaffOption } from "@/lib/medical_support/staffLookupApi";
+import { fetchStaffOptionsApi } from "@/lib/medical_support/staffLookupApi";
 
 dayjs.extend(customParseFormat);
 
@@ -123,6 +126,7 @@ export default function MedicationRecordEdit() {
   const [draftForm, setDraftForm] = useState<MedicationRecordEditForm | null>(
     null
   );
+  const [nurseStaffOptions, setNurseStaffOptions] = useState<StaffOption[]>([]);
 
   const {
     selected,
@@ -169,6 +173,20 @@ export default function MedicationRecordEdit() {
       departmentName: selected.departmentName ?? "",
     });
   }, [draftForm, medicationRecordId, selected]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const opts = await fetchStaffOptionsApi({ role: "NURSE" });
+      if (!cancelled) {
+        setNurseStaffOptions(opts);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!updateSuccess) return;
@@ -547,24 +565,19 @@ export default function MedicationRecordEdit() {
                 },
               }}
             >
-              <TextField
-                label="간호사 ID"
-                size="small"
-                value={form.nursingId}
-                onChange={(e) =>
-                  setDraftForm({ ...form, nursingId: e.target.value })
+              <StaffIdNameSelectFields
+                staffOptions={nurseStaffOptions}
+                staffId={form.nursingId}
+                fullName={form.nurseName}
+                onChange={(next) =>
+                  setDraftForm({
+                    ...form,
+                    nursingId: next.staffId,
+                    nurseName: next.fullName,
+                  })
                 }
-                fullWidth
-              />
-
-              <TextField
-                label="간호사명"
-                size="small"
-                value={form.nurseName}
-                onChange={(e) =>
-                  setDraftForm({ ...form, nurseName: e.target.value })
-                }
-                fullWidth
+                idLabel="간호사 ID"
+                nameLabel="간호사명"
               />
             </Box>
           </CardContent>

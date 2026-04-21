@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "@/store/store";
 import toast from "react-hot-toast";
 import Script from "next/script";
+import { getSessionUser } from "@/lib/auth/session";
 import MainLayout from "@/components/layout/MainLayout";
 import { fetchPatientsApi } from "@/lib/patient/patientApi";
 import type { Patient } from "@/features/patients/patientTypes";
@@ -34,7 +35,11 @@ import {
   refundPaymentRequest,
 } from "@/features/billing/billingSlice";
 
-import type { PaymentMethod } from "@/lib/billing/billingApi";
+import {
+  fetchPaymentMethodsApi,
+  type PaymentMethod,
+  type PaymentMethodMaster,
+} from "@/lib/billing/billingApi";
 import {
   getDisplayBillingStatusLabel,
   getDisplayBillingStatusColor,
@@ -128,6 +133,38 @@ const getPaymentMethodLabel = (method: string) => {
   }
 };
 
+/* 청구 항목 분류 라벨 */
+const getBillItemCategoryLabel = (category?: string) => {
+  switch (category) {
+    case "CONSULTATION":
+      return "진찰료";
+    case "MEDICATION":
+      return "약제비";
+    case "TEST":
+      return "검사료";
+    case "PROCEDURE":
+      return "처치료";
+    default:
+      return "기타";
+  }
+};
+
+/* 청구 항목 분류 순서 */
+const getBillItemCategoryOrder = (category?: string) => {
+  switch (category) {
+    case "CONSULTATION":
+      return 1;
+    case "MEDICATION":
+      return 2;
+    case "TEST":
+      return 3;
+    case "PROCEDURE":
+      return 4;
+    default:
+      return 99;
+  }
+};
+
 /* 청구 이력 상태 색상 */
 const getBillHistoryColor = (historyType: string) => {
   switch (historyType) {
@@ -217,20 +254,6 @@ const methodBoxStyle: React.CSSProperties = {
   borderRadius: "8px",
 };
 
-const getStoredStaffId = () => {
-  if (typeof window === "undefined") {
-    return "";
-  }
-
-  return (
-    sessionStorage.getItem("staffId") ||
-    localStorage.getItem("staffId") ||
-    sessionStorage.getItem("STAFF_ID") ||
-    localStorage.getItem("STAFF_ID") ||
-    ""
-  ).trim();
-};
-
 type PaymentMethodFilter = "ALL" | PaymentMethod;
 
 export default function BillingDetailPage() {
@@ -257,6 +280,7 @@ export default function BillingDetailPage() {
 
   const [payAmount, setPayAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodMaster[]>([]);
   const [paymentMethodFilter, setPaymentMethodFilter] =
     useState<PaymentMethodFilter>("ALL");
   const [refundTargetId, setRefundTargetId] = useState<number | null>(null);
@@ -329,7 +353,27 @@ export default function BillingDetailPage() {
       }
     };
 
+    const loadPaymentMethods = async () => {
+      try {
+        const methods = await fetchPaymentMethodsApi();
+
+        if (!active) return;
+
+        setPaymentMethods(methods);
+
+        if (methods.length > 0) {
+          setPaymentMethod(methods[0].methodCode);
+        }
+      } catch (err) {
+        console.error("[billing/detail] failed to load payment methods", err);
+
+        if (!active) return;
+        setPaymentMethods([]);
+      }
+    };
+
     loadPatients();
+    loadPaymentMethods();
 
     return () => {
       active = false;
@@ -342,17 +386,6 @@ export default function BillingDetailPage() {
     },
     [patientNameById]
   );
-
-  const requireStaffId = useCallback(() => {
-    const storedStaffId = getStoredStaffId();
-
-    if (!storedStaffId) {
-      toast.error("직원 ID를 확인할 수 없습니다.");
-      return null;
-    }
-
-    return storedStaffId;
-  }, []);
   const applyInsurancePatientBurdenAmount = useCallback(() => {
     if (!billingDetail || !insuranceSummary) return;
 
@@ -380,11 +413,21 @@ export default function BillingDetailPage() {
     return `bill-${billId}-${Date.now()}`;
   };
 
+  const resolveStaffId = () => {
+    if (typeof window === "undefined") return "";
+
+    return (
+      sessionStorage.getItem("staffId") ||
+      localStorage.getItem("staffId") ||
+      sessionStorage.getItem("STAFF_ID") ||
+      localStorage.getItem("STAFF_ID") ||
+      getSessionUser()?.userId ||
+      ""
+    ).trim();
+  };
+
   const requestTossCardPayment = async (amount: number) => {
     if (!billingDetail) return;
-
-    const staffId = requireStaffId();
-    if (!staffId) return;
 
     if (!tossClientKey) {
       toast.error("토스 클라이언트 키가 없습니다.");
@@ -393,6 +436,12 @@ export default function BillingDetailPage() {
 
     if (!window.TossPayments) {
       toast.error("토스 SDK가 아직 로드되지 않았습니다.");
+      return;
+    }
+
+    const staffId = resolveStaffId();
+    if (!staffId) {
+      toast.error("직원 ID를 확인할 수 없습니다.");
       return;
     }
 
@@ -434,7 +483,13 @@ export default function BillingDetailPage() {
 
   useEffect(() => {
     setPayAmount(0);
-    setPaymentMethod("CASH");
+    setPaymentMethod((prev) => {
+      if (paymentMethods.some((method) => method.methodCode === prev)) {
+        return prev;
+      }
+
+      return paymentMethods.length > 0 ? paymentMethods[0].methodCode : "CASH";
+    });
     setPaymentMethodFilter("ALL");
     setRefundTargetId(null);
     setRefundAmountInput("");
@@ -446,7 +501,7 @@ export default function BillingDetailPage() {
     setOpenBillCancelDialog(false);
     setOpenBillUnconfirmDialog(false);
     setOpenBillRestoreDialog(false);
-  }, [billingDetail]);
+  }, [billingDetail, paymentMethods]);
 
   useEffect(() => {
     if (!cancelTargetPayment) {
@@ -477,9 +532,6 @@ export default function BillingDetailPage() {
   const handlePayment = () => {
     if (!billingDetail) return;
 
-    const staffId = requireStaffId();
-    if (!staffId) return;
-
     if (payAmount <= 0) {
       toast.error("결제 금액을 입력하세요.");
       return;
@@ -492,6 +544,12 @@ export default function BillingDetailPage() {
 
     if (paymentMethod === "CARD") {
       requestTossCardPayment(payAmount);
+      return;
+    }
+
+    const staffId = resolveStaffId();
+    if (!staffId) {
+      toast.error("직원 ID를 확인할 수 없습니다.");
       return;
     }
 
@@ -535,9 +593,6 @@ export default function BillingDetailPage() {
   const handleConfirmCancelPayment = () => {
     if (!billingDetail || !cancelTargetPayment) return;
 
-    const staffId = requireStaffId();
-    if (!staffId) return;
-
     if (cancelReasonInput.trim() === "") {
       toast.error("취소 사유를 입력하세요.");
       return;
@@ -555,6 +610,12 @@ export default function BillingDetailPage() {
 
     if (cancelCountdown > 0) {
       toast.error("잠시 후 다시 시도해주세요.");
+      return;
+    }
+
+    const staffId = resolveStaffId();
+    if (!staffId) {
+      toast.error("직원 ID를 확인할 수 없습니다.");
       return;
     }
 
@@ -577,9 +638,6 @@ export default function BillingDetailPage() {
   const handleFullPayment = () => {
     if (!billingDetail) return;
 
-    const staffId = requireStaffId();
-    if (!staffId) return;
-
     if (billingDetail.remainingAmount <= 0) {
       toast.error("이미 전액 수납 완료되었습니다.");
       return;
@@ -587,6 +645,12 @@ export default function BillingDetailPage() {
 
     if (paymentMethod === "CARD") {
       requestTossCardPayment(billingDetail.remainingAmount);
+      return;
+    }
+
+    const staffId = resolveStaffId();
+    if (!staffId) {
+      toast.error("직원 ID를 확인할 수 없습니다.");
       return;
     }
 
@@ -608,16 +672,7 @@ export default function BillingDetailPage() {
 
   const handleConfirmBillUnconfirm = () => {
     if (!billingDetail) return;
-
-    const staffId = requireStaffId();
-    if (!staffId) return;
-
-    dispatch(
-      unconfirmBillRequest({
-        billId: billingDetail.billId,
-        staffId,
-      })
-    );
+    dispatch(unconfirmBillRequest({ billId: billingDetail.billId }));
     setOpenBillUnconfirmDialog(false);
   };
 
@@ -629,15 +684,7 @@ export default function BillingDetailPage() {
   const handleConfirmBillCancel = () => {
     if (!billingDetail) return;
 
-    const staffId = requireStaffId();
-    if (!staffId) return;
-
-    dispatch(
-      cancelBillRequest({
-        billId: billingDetail.billId,
-        staffId,
-      })
-    );
+    dispatch(cancelBillRequest({ billId: billingDetail.billId }));
     setOpenBillCancelDialog(false);
   };
 
@@ -649,30 +696,8 @@ export default function BillingDetailPage() {
   const handleConfirmBillRestore = () => {
     if (!billingDetail) return;
 
-    const staffId = requireStaffId();
-    if (!staffId) return;
-
-    dispatch(
-      restoreBillRequest({
-        billId: billingDetail.billId,
-        staffId,
-      })
-    );
+    dispatch(restoreBillRequest({ billId: billingDetail.billId }));
     setOpenBillRestoreDialog(false);
-  };
-
-  const handleConfirmBill = () => {
-    if (!billingDetail) return;
-
-    const staffId = requireStaffId();
-    if (!staffId) return;
-
-    dispatch(
-      confirmBillRequest({
-        billId: billingDetail.billId,
-        staffId,
-      })
-    );
   };
 
   const formatDateTime = (isoString: string) => {
@@ -740,6 +765,43 @@ export default function BillingDetailPage() {
 
   const billItemsTotal =
     billingDetail?.billItems?.reduce((sum, item) => sum + item.amount, 0) ?? 0;
+
+  const groupedBillItems = useMemo(() => {
+    if (!billingDetail?.billItems?.length) {
+      return [];
+    }
+
+    const groupedMap = billingDetail.billItems.reduce<
+      Record<
+        string,
+        {
+          category: string;
+          items: typeof billingDetail.billItems;
+          totalAmount: number;
+        }
+      >
+    >((acc, item) => {
+      const category = item.itemCategory || "ETC";
+
+      if (!acc[category]) {
+        acc[category] = {
+          category,
+          items: [],
+          totalAmount: 0,
+        };
+      }
+
+      acc[category].items.push(item);
+      acc[category].totalAmount += item.amount;
+
+      return acc;
+    }, {});
+
+    return Object.values(groupedMap).sort(
+      (a, b) =>
+        getBillItemCategoryOrder(a.category) - getBillItemCategoryOrder(b.category)
+    );
+  }, [billingDetail]);
 
   const isCancelConfirmEnabled =
     !!cancelTargetPayment &&
@@ -1033,7 +1095,9 @@ export default function BillingDetailPage() {
                       <Button
                         variant="contained"
                         color="warning"
-                        onClick={handleConfirmBill}
+                        onClick={() =>
+                          dispatch(confirmBillRequest({ billId: billingDetail.billId }))
+                        }
                         disabled={loading || hasCalculatedMismatch}
                       >
                         {loading ? "처리 중..." : "청구 확정"}
@@ -1061,7 +1125,7 @@ export default function BillingDetailPage() {
                         variant="outlined"
                         color="primary"
                         onClick={handleOpenBillUnconfirmDialog}
-                        disabled={loading}
+                        disabled={loading || paymentMethods.length === 0}
                       >
                         {loading ? "처리 중..." : "확정 해제"}
                       </Button>
@@ -1142,40 +1206,92 @@ export default function BillingDetailPage() {
                     등록된 청구 항목이 없습니다.
                   </Typography>
                 ) : (
-                  <Stack spacing={1.5}>
-                    {billingDetail.billItems.map((item, index) => (
-                      <Box key={item.billItemId}>
-                        <Stack
-                          direction={{ xs: "column", md: "row" }}
-                          justifyContent="space-between"
-                          alignItems={{ xs: "flex-start", md: "center" }}
-                          spacing={1}
-                          sx={{ py: 1 }}
-                        >
-                          <Box>
-                            <Typography sx={{ fontWeight: 600 }}>
-                              {item.itemName}
-                            </Typography>
-                            <Typography
-                              sx={{
-                                fontSize: 12,
-                                color: "text.secondary",
-                                mt: 0.5,
-                              }}
-                            >
-                              항목 ID: {item.billItemId}
-                            </Typography>
-                          </Box>
+                  <Stack spacing={2}>
+                    {groupedBillItems.map((group) => (
+                      <Card
+                        key={group.category}
+                        variant="outlined"
+                        sx={{
+                          borderRadius: 2,
+                          borderColor: "#e5e7eb",
+                          backgroundColor: "#fafafa",
+                        }}
+                      >
+                        <CardContent sx={{ p: 2 }}>
+                          <Stack
+                            direction={{ xs: "column", md: "row" }}
+                            justifyContent="space-between"
+                            alignItems={{ xs: "flex-start", md: "center" }}
+                            spacing={1}
+                            sx={{ mb: 1.5 }}
+                          >
+                            <Box>
+                              <Typography sx={{ fontWeight: 700 }}>
+                                {getBillItemCategoryLabel(group.category)}
+                              </Typography>
+                              <Typography
+                                sx={{
+                                  fontSize: 12,
+                                  color: "text.secondary",
+                                  mt: 0.5,
+                                }}
+                              >
+                                분류별 청구 항목입니다.
+                              </Typography>
+                            </Box>
 
-                          <Typography sx={{ fontWeight: 700 }}>
-                            {item.amount.toLocaleString()} 원
-                          </Typography>
-                        </Stack>
+                            <Typography sx={{ fontWeight: 700, color: "#1976d2" }}>
+                              소계 {group.totalAmount.toLocaleString()} 원
+                            </Typography>
+                          </Stack>
 
-                        {index !== billingDetail.billItems.length - 1 && (
-                          <Divider />
-                        )}
-                      </Box>
+                          <Stack spacing={1.5}>
+                            {group.items.map((item, index) => (
+                              <Box key={item.billItemId}>
+                                <Stack
+                                  direction={{ xs: "column", md: "row" }}
+                                  justifyContent="space-between"
+                                  alignItems={{ xs: "flex-start", md: "center" }}
+                                  spacing={1}
+                                  sx={{ py: 1 }}
+                                >
+                                  <Box>
+                                    <Typography sx={{ fontWeight: 600 }}>
+                                      {item.itemName}
+                                    </Typography>
+
+                                    <Stack
+                                      direction={{ xs: "column", sm: "row" }}
+                                      spacing={{ xs: 0.5, sm: 1.5 }}
+                                      sx={{
+                                        mt: 0.5,
+                                        fontSize: 12,
+                                        color: "text.secondary",
+                                      }}
+                                    >
+                                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                                        항목 ID: {item.billItemId}
+                                      </Typography>
+                                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                                        수량: {item.quantity.toLocaleString()}
+                                      </Typography>
+                                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                                        단가: {item.unitPrice.toLocaleString()} 원
+                                      </Typography>
+                                    </Stack>
+                                  </Box>
+
+                                  <Typography sx={{ fontWeight: 700 }}>
+                                    {item.amount.toLocaleString()} 원
+                                  </Typography>
+                                </Stack>
+
+                                {index !== group.items.length - 1 && <Divider />}
+                              </Box>
+                            ))}
+                          </Stack>
+                        </CardContent>
+                      </Card>
                     ))}
                   </Stack>
                 )}
@@ -1279,7 +1395,9 @@ export default function BillingDetailPage() {
                                   mt: 0.5,
                                 }}
                               >
-                                처리 담당 직원: {history.changedBy}
+                                처리 담당 직원: {history.changedByName
+                                  ? `${history.changedByName} (${history.changedBy})`
+                                  : history.changedBy}
                               </Typography>
                             )}
                           </Box>
@@ -1369,38 +1487,24 @@ export default function BillingDetailPage() {
                 )}
 
                 <div style={methodBoxStyle}>
-                  <label>
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="CASH"
-                      checked={paymentMethod === "CASH"}
-                      onChange={() => setPaymentMethod("CASH")}
-                    />{" "}
-                    현금
-                  </label>
-
-                  <label>
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="CARD"
-                      checked={paymentMethod === "CARD"}
-                      onChange={() => setPaymentMethod("CARD")}
-                    />{" "}
-                    카드
-                  </label>
-
-                  <label>
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="TRANSFER"
-                      checked={paymentMethod === "TRANSFER"}
-                      onChange={() => setPaymentMethod("TRANSFER")}
-                    />{" "}
-                    계좌이체
-                  </label>
+                  {paymentMethods.length === 0 ? (
+                    <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
+                      사용 가능한 결제 수단이 없습니다.
+                    </Typography>
+                  ) : (
+                    paymentMethods.map((method) => (
+                      <label key={method.methodCode}>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value={method.methodCode}
+                          checked={paymentMethod === method.methodCode}
+                          onChange={() => setPaymentMethod(method.methodCode)}
+                        />{" "}
+                        {method.methodName}
+                      </label>
+                    ))
+                  )}
                 </div>
 
                 <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
@@ -1418,6 +1522,7 @@ export default function BillingDetailPage() {
                     onClick={handlePayment}
                     disabled={
                       loading ||
+                      paymentMethods.length === 0 ||
                       payAmount <= 0 ||
                       payAmount > billingDetail.remainingAmount
                     }
@@ -1687,19 +1792,25 @@ export default function BillingDetailPage() {
 
                     {p.status === "COMPLETED" && p.createdBy && (
                       <Typography variant="body2" color="text.secondary">
-                        결제 담당 직원: {p.createdBy}
+                        결제 담당 직원: {p.createdByName
+                          ? `${p.createdByName} (${p.createdBy})`
+                          : p.createdBy}
                       </Typography>
                     )}
 
                     {p.status === "REFUNDED" && p.createdBy && (
                       <Typography variant="body2" color="text.secondary">
-                        환불 처리 직원: {p.createdBy}
+                        환불 처리 직원: {p.createdByName
+                          ? `${p.createdByName} (${p.createdBy})`
+                          : p.createdBy}
                       </Typography>
                     )}
 
                     {p.status === "CANCELED" && p.canceledBy && (
                       <Typography variant="body2" color="text.secondary">
-                        취소 담당 직원: {p.canceledBy}
+                        취소 담당 직원: {p.canceledByName
+                          ? `${p.canceledByName} (${p.canceledBy})`
+                          : p.canceledBy}
                       </Typography>
                     )}
 
@@ -1820,8 +1931,9 @@ export default function BillingDetailPage() {
                                   return;
                                 }
 
-                                const staffId = requireStaffId();
+                                const staffId = resolveStaffId();
                                 if (!staffId) {
+                                  toast.error("직원 ID를 확인할 수 없습니다.");
                                   return;
                                 }
 

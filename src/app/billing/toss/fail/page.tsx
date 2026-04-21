@@ -200,7 +200,7 @@ function TossFailPageContent() {
               fontWeight: 600,
             }}
           >
-            수납 상세로 이동
+            수납 상세 보기
           </button>
         </div>
       </div>

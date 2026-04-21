@@ -96,6 +96,8 @@ export type StaffDepartmentSummaryItem = {
 };
 
 type StaffDepartmentSummaryItemRaw = Partial<{
+  id: number | string | null;
+  name: string | null;
   departmentId: number | string | null;
   deptId: number | string | null;
   departmentName: string | null;
@@ -244,8 +246,11 @@ const normalizeStaffSummaryPage = (
 const normalizeDepartmentSummaryItem = (
   raw: StaffDepartmentSummaryItemRaw
 ): StaffDepartmentSummaryItem => ({
-  departmentId: normalizeIdentifier(raw.departmentId ?? raw.deptId),
-  departmentName: toNullableString(raw.departmentName) ?? toNullableString(raw.deptName),
+  departmentId: normalizeIdentifier(raw.departmentId ?? raw.deptId ?? raw.id),
+  departmentName:
+    toNullableString(raw.departmentName) ??
+    toNullableString(raw.deptName) ??
+    toNullableString(raw.name),
   activeFlag: toNullableString(raw.activeFlag) ?? toNullableString(raw.status),
 });
 

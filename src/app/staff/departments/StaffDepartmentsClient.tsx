@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import {
@@ -41,7 +41,7 @@ export default function StaffDepartmentsClient({
     }
 
     return rows.filter((item) => {
-      const target = [item.departmentId, item.departmentName, item.activeFlag]
+      const target = [item.departmentId, item.departmentName]
         .map((value) => String(value ?? "").toLowerCase())
         .join(" ");
       return target.includes(normalized);
@@ -71,7 +71,7 @@ export default function StaffDepartmentsClient({
               <TextField
                 size="small"
                 label="부서 검색"
-                placeholder="부서명, 부서 ID, 활성 여부"
+                placeholder="부서명 또는 부서 ID"
                 value={keyword}
                 onChange={(event) => {
                   setKeyword(event.target.value);
@@ -91,7 +91,6 @@ export default function StaffDepartmentsClient({
                     <TableRow>
                       <TableCell>부서 ID</TableCell>
                       <TableCell>부서명</TableCell>
-                      <TableCell>활성 여부</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -99,7 +98,6 @@ export default function StaffDepartmentsClient({
                       <TableRow key={`${item.departmentId ?? "none"}-${item.departmentName ?? "unknown"}`}>
                         <TableCell>{item.departmentId ?? "-"}</TableCell>
                         <TableCell>{item.departmentName ?? "-"}</TableCell>
-                        <TableCell>{item.activeFlag ?? "-"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

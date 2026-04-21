@@ -18,6 +18,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { SpecimenActions } from "@/features/medical_support/specimen/specimenSlice";
 import type { RootState } from "@/store/rootReducer";
 import type { AppDispatch } from "@/store/store";
+import { StaffIdNameSelectFields } from "@/components/medical_support/common/StaffIdNameSelectFields";
+import type { StaffOption } from "@/lib/medical_support/staffLookupApi";
+import { fetchStaffOptionsApi } from "@/lib/medical_support/staffLookupApi";
 import {
   EXAM_PROGRESS_STATUS_MENU_OPTIONS,
   isExamProgressDropdownLocked,
@@ -100,7 +103,11 @@ export default function SpecimenEdit() {
   }, [params]);
 
   const [draftForm, setDraftForm] = useState<SpecimenEditForm | null>(null);
-  const lastRequestedProgressStatusRef = useRef<string | null>(null);
+  const [performerStaffOptions, setPerformerStaffOptions] = useState<
+    StaffOption[]
+  >([]);
+  const pendingSuccessMessageRef = useRef<string | null>(null);
+  const pendingRedirectPathRef = useRef<string | null>(null);
 
   const { selected, loading, error, updateSuccess } = useSelector(
     (state: RootState) => state.specimens
@@ -143,17 +150,36 @@ export default function SpecimenEdit() {
   }, [draftForm, selected, specimenExamId]);
 
   useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const opts = await fetchStaffOptionsApi({
+        role: "EXAM_PERFORMER",
+        examType: "SPECIMEN",
+      });
+      if (!cancelled) {
+        setPerformerStaffOptions(opts);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!updateSuccess) return;
 
-    const nextPath =
-      lastRequestedProgressStatusRef.current === "COMPLETED"
-        ? "/medical_support/testResult/list?resultType=SPECIMEN"
-        : "/medical_support/specimen/list";
-    lastRequestedProgressStatusRef.current = null;
+    const nextPath = pendingRedirectPathRef.current;
+    const message =
+      pendingSuccessMessageRef.current ?? "검체 검사가 처리되었습니다.";
+    pendingSuccessMessageRef.current = null;
+    pendingRedirectPathRef.current = null;
 
-    alert("검체 검사가 완료되었습니다.");
+    alert(message);
     dispatch(SpecimenActions.resetUpdateSuccess());
-    router.push(nextPath);
+    if (nextPath) {
+      router.push(nextPath);
+    }
   }, [dispatch, router, updateSuccess]);
 
   useEffect(() => {
@@ -164,7 +190,14 @@ export default function SpecimenEdit() {
   const handleUpdate = (nextProgressStatus: string) => {
     if (!specimenExamId) return;
 
-    lastRequestedProgressStatusRef.current = nextProgressStatus;
+    const normalizedProgressStatus = nextProgressStatus.trim().toUpperCase();
+    const isCompleted = normalizedProgressStatus === "COMPLETED";
+    pendingSuccessMessageRef.current = isCompleted
+      ? "검체 검사가 완료되었습니다."
+      : "검체 검사가 취소되었습니다.";
+    pendingRedirectPathRef.current = isCompleted
+      ? "/medical_support/testResult/list?resultType=SPECIMEN"
+      : "/medical_support/specimen/list";
 
     dispatch(
       SpecimenActions.updateSpecimenRequest({
@@ -184,6 +217,37 @@ export default function SpecimenEdit() {
           recollectionYn: form.recollectionYn,
           progressStatus: nextProgressStatus,
           status: form.status,
+        },
+      })
+    );
+  };
+
+  const handleToggleActiveStatus = () => {
+    if (!specimenExamId) return;
+
+    const nextStatus = form.status?.trim().toUpperCase() === "INACTIVE" ? "ACTIVE" : "INACTIVE";
+    const actionLabel = nextStatus === "INACTIVE" ? "비활성화" : "활성화";
+    pendingSuccessMessageRef.current = `검체 검사가 ${actionLabel}되었습니다.`;
+    pendingRedirectPathRef.current = null;
+
+    dispatch(
+      SpecimenActions.updateSpecimenRequest({
+        specimenExamId,
+        form: {
+          testExecutionId: form.testExecutionId,
+          detailCode: form.detailCode,
+          patientId: form.patientId.trim() ? Number(form.patientId) : null,
+          patientName: form.patientName,
+          departmentName: form.departmentName,
+          specimenType: form.specimenType,
+          specimenStatus: form.specimenStatus,
+          collectedAt: toNullableDateTime(form.collectedAt),
+          performerId: form.performerId,
+          performerName: form.performerName,
+          collectionSite: form.collectionSite,
+          recollectionYn: form.recollectionYn,
+          progressStatus: form.progressStatus,
+          status: nextStatus,
         },
       })
     );
@@ -212,12 +276,22 @@ export default function SpecimenEdit() {
             </Typography>
           </Box>
 
-          <Button
-            variant="outlined"
-            onClick={() => router.push("/medical_support/testResult/list")}
-          >
-            목록으로
-          </Button>
+          <Stack direction="row" spacing={1} justifyContent="flex-end">
+            <Button
+              variant="outlined"
+              color={form.status?.trim().toUpperCase() === "INACTIVE" ? "success" : "warning"}
+              onClick={handleToggleActiveStatus}
+              disabled={loading}
+            >
+              {form.status?.trim().toUpperCase() === "INACTIVE" ? "활성화" : "비활성화"}
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => router.push("/medical_support/testResult/list")}
+            >
+              목록으로
+            </Button>
+          </Stack>
         </Stack>
 
         {error ? (
@@ -377,30 +451,20 @@ export default function SpecimenEdit() {
                 ))}
               </TextField>
 
-              <TextField
-                label="검사수행자 ID"
-                size="small"
-                value={form.performerId}
-                onChange={(e) =>
+              <StaffIdNameSelectFields
+                staffOptions={performerStaffOptions}
+                staffId={form.performerId}
+                fullName={form.performerName}
+                onChange={(next) =>
                   setDraftForm({
                     ...form,
-                    performerId: e.target.value,
+                    performerId: next.staffId,
+                    performerName: next.fullName,
                   })
                 }
-                fullWidth
-              />
-
-              <TextField
-                label="검사수행자명"
-                size="small"
-                value={form.performerName}
-                onChange={(e) =>
-                  setDraftForm({
-                    ...form,
-                    performerName: e.target.value,
-                  })
-                }
-                fullWidth
+                idLabel="검사수행자 ID"
+                nameLabel="검사수행자명"
+                disabled={loading}
               />
             </Box>
           </CardContent>

@@ -19,6 +19,9 @@ import dayjs, { type Dayjs } from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import "dayjs/locale/ko";
 import { useEffect, useMemo, useState } from "react";
+import { StaffIdNameSelectFields } from "@/components/medical_support/common/StaffIdNameSelectFields";
+import type { StaffOption } from "@/lib/medical_support/staffLookupApi";
+import { fetchStaffOptionsApi } from "@/lib/medical_support/staffLookupApi";
 import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -86,6 +89,9 @@ const normalizeProgressStatus = (value?: string | null) => {
   return "REQUESTED";
 };
 
+const normalizeActiveStatus = (value?: string | null) =>
+  (value ?? "").trim().toUpperCase() === "INACTIVE" ? "INACTIVE" : "ACTIVE";
+
 const parseTreatmentAt = (value: string): Dayjs | null => {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -116,6 +122,7 @@ export default function TreatmentResultEdit() {
   const [draftForm, setDraftForm] = useState<TreatmentResultEditForm | null>(
     null
   );
+  const [nurseStaffOptions, setNurseStaffOptions] = useState<StaffOption[]>([]);
 
   const {
     selected,
@@ -161,6 +168,20 @@ export default function TreatmentResultEdit() {
   }, [draftForm, selected, treatmentResultId]);
 
   useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const opts = await fetchStaffOptionsApi({ role: "NURSE" });
+      if (!cancelled) {
+        setNurseStaffOptions(opts);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!updateSuccess) return;
 
     alert("처치 결과가 수정되었습니다.");
@@ -174,9 +195,12 @@ export default function TreatmentResultEdit() {
 
   const isCompleted = normalizeProgressStatus(form.progressStatus) === "COMPLETED";
 
-  const buildUpdatePayload = (nextProgressStatus: string) => ({
+  const buildUpdatePayload = (
+    nextProgressStatus: string,
+    nextStatus?: string
+  ) => ({
     progressStatus: normalizeProgressStatus(nextProgressStatus),
-    status: toNullableString(form.status),
+    status: toNullableString(nextStatus ?? form.status),
     treatmentAt: toNullableString(form.treatmentAt),
     nursingId: toNullableString(form.nursingId),
     nurseName: toNullableString(form.nurseName),
@@ -216,6 +240,32 @@ export default function TreatmentResultEdit() {
               onClick={() => router.push("/medical_support/medicationTreatment")}
             >
               목록
+            </Button>
+            <Button
+              variant="outlined"
+              color={
+                normalizeActiveStatus(form.status) === "INACTIVE"
+                  ? "success"
+                  : "warning"
+              }
+              onClick={() => {
+                if (!treatmentResultId) return;
+                const nextStatus =
+                  normalizeActiveStatus(form.status) === "INACTIVE"
+                    ? "ACTIVE"
+                    : "INACTIVE";
+                dispatch(
+                  TreatmentResultActions.updateTreatmentResultRequest({
+                    treatmentResultId,
+                    form: buildUpdatePayload(form.progressStatus, nextStatus),
+                  })
+                );
+              }}
+              disabled={loading || detailLoading}
+            >
+              {normalizeActiveStatus(form.status) === "INACTIVE"
+                ? "활성화"
+                : "비활성화"}
             </Button>
             <Button
               variant="contained"
@@ -433,24 +483,19 @@ export default function TreatmentResultEdit() {
                 },
               }}
             >
-              <TextField
-                label="간호사 ID"
-                size="small"
-                value={form.nursingId}
-                onChange={(e) =>
-                  setDraftForm({ ...form, nursingId: e.target.value })
+              <StaffIdNameSelectFields
+                staffOptions={nurseStaffOptions}
+                staffId={form.nursingId}
+                fullName={form.nurseName}
+                onChange={(next) =>
+                  setDraftForm({
+                    ...form,
+                    nursingId: next.staffId,
+                    nurseName: next.fullName,
+                  })
                 }
-                fullWidth
-              />
-
-              <TextField
-                label="간호사명"
-                size="small"
-                value={form.nurseName}
-                onChange={(e) =>
-                  setDraftForm({ ...form, nurseName: e.target.value })
-                }
-                fullWidth
+                idLabel="간호사 ID"
+                nameLabel="간호사명"
               />
             </Box>
           </CardContent>

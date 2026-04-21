@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BILLING_API_BASE_URL } from "@/lib/common/env";
+import { getSessionUser } from "@/lib/auth/session";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -73,6 +73,9 @@ function TossSuccessPageContent() {
 
   const returnTo = paymentContext?.returnTo;
   const returnLabel = paymentContext?.returnLabel ?? "이전 화면";
+  const resolvedStaffId = useMemo(() => {
+    return (paymentContext?.staffId || getSessionUser()?.userId || "").trim();
+  }, [paymentContext?.staffId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -117,7 +120,11 @@ function TossSuccessPageContent() {
           return;
         }
 
-        const baseUrl = BILLING_API_BASE_URL.replace(/\/+$/, "");
+        const baseUrl =
+          typeof window !== "undefined" &&
+          window.location.hostname !== "localhost"
+            ? `http://${window.location.hostname}:8081`
+            : "http://192.168.1.68:8081";
 
         const response = await fetch(`${baseUrl}/api/billing/toss/approve`, {
           method: "POST",
@@ -129,7 +136,7 @@ function TossSuccessPageContent() {
             orderId,
             amount: amountNumber,
             billId: resolvedBillId,
-            staffId: paymentContext?.staffId ?? "",
+            staffId: resolvedStaffId,
           }),
         });
 
@@ -161,7 +168,7 @@ function TossSuccessPageContent() {
     };
 
     approvePayment();
-  }, [isValid, paymentKey, orderId, amount, resolvedBillId]);
+  }, [isValid, paymentKey, orderId, amount, resolvedBillId, resolvedStaffId]);
 
   const moveToPreferredPage = () => {
     if (returnTo) {
@@ -327,7 +334,7 @@ function TossSuccessPageContent() {
               fontWeight: 600,
             }}
           >
-            수납 상세로 이동
+            수납 상세 보기
           </button>
         </div>
       </div>

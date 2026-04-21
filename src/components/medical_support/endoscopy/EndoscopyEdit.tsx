@@ -18,6 +18,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { EndoscopyActions } from "@/features/medical_support/endoscopy/endoscopySlice";
 import type { RootState } from "@/store/rootReducer";
 import type { AppDispatch } from "@/store/store";
+import { StaffIdNameSelectFields } from "@/components/medical_support/common/StaffIdNameSelectFields";
+import type { StaffOption } from "@/lib/medical_support/staffLookupApi";
+import { fetchStaffOptionsApi } from "@/lib/medical_support/staffLookupApi";
 import {
   EXAM_PROGRESS_STATUS_MENU_OPTIONS,
   isExamProgressDropdownLocked,
@@ -98,7 +101,11 @@ export default function EndoscopyEdit() {
   }, [params]);
 
   const [draftForm, setDraftForm] = useState<EndoscopyEditForm | null>(null);
-  const lastRequestedProgressStatusRef = useRef<string | null>(null);
+  const [performerStaffOptions, setPerformerStaffOptions] = useState<
+    StaffOption[]
+  >([]);
+  const pendingSuccessMessageRef = useRef<string | null>(null);
+  const pendingRedirectPathRef = useRef<string | null>(null);
 
   const { selected, loading, error, updateSuccess } = useSelector(
     (state: RootState) => state.endoscopies
@@ -140,17 +147,36 @@ export default function EndoscopyEdit() {
   }, [draftForm, selected, endoscopyExamId]);
 
   useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const opts = await fetchStaffOptionsApi({
+        role: "EXAM_PERFORMER",
+        examType: "ENDOSCOPY",
+      });
+      if (!cancelled) {
+        setPerformerStaffOptions(opts);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!updateSuccess) return;
 
-    const nextPath =
-      lastRequestedProgressStatusRef.current === "COMPLETED"
-        ? "/medical_support/testResult/list?resultType=ENDOSCOPY"
-        : "/medical_support/endoscopy/list";
-    lastRequestedProgressStatusRef.current = null;
+    const nextPath = pendingRedirectPathRef.current;
+    const message =
+      pendingSuccessMessageRef.current ?? "내시경 검사가 처리되었습니다.";
+    pendingSuccessMessageRef.current = null;
+    pendingRedirectPathRef.current = null;
 
-    alert("내시경 검사가 완료되었습니다.");
+    alert(message);
     dispatch(EndoscopyActions.resetUpdateSuccess());
-    router.push(nextPath);
+    if (nextPath) {
+      router.push(nextPath);
+    }
   }, [dispatch, router, updateSuccess]);
 
   useEffect(() => {
@@ -161,7 +187,14 @@ export default function EndoscopyEdit() {
   const handleUpdate = (nextProgressStatus: string) => {
     if (!endoscopyExamId) return;
 
-    lastRequestedProgressStatusRef.current = nextProgressStatus;
+    const normalizedProgressStatus = nextProgressStatus.trim().toUpperCase();
+    const isCompleted = normalizedProgressStatus === "COMPLETED";
+    pendingSuccessMessageRef.current = isCompleted
+      ? "내시경 검사가 완료되었습니다."
+      : "내시경 검사가 취소되었습니다.";
+    pendingRedirectPathRef.current = isCompleted
+      ? "/medical_support/testResult/list?resultType=ENDOSCOPY"
+      : "/medical_support/endoscopy/list";
 
     dispatch(
       EndoscopyActions.updateEndoscopyRequest({
@@ -180,6 +213,36 @@ export default function EndoscopyEdit() {
           procedureAt: toNullableDateTime(form.procedureAt),
           progressStatus: nextProgressStatus,
           status: form.status,
+        },
+      })
+    );
+  };
+
+  const handleToggleActiveStatus = () => {
+    if (!endoscopyExamId) return;
+
+    const nextStatus = form.status?.trim().toUpperCase() === "INACTIVE" ? "ACTIVE" : "INACTIVE";
+    const actionLabel = nextStatus === "INACTIVE" ? "비활성화" : "활성화";
+    pendingSuccessMessageRef.current = `내시경 검사가 ${actionLabel}되었습니다.`;
+    pendingRedirectPathRef.current = null;
+
+    dispatch(
+      EndoscopyActions.updateEndoscopyRequest({
+        endoscopyExamId,
+        form: {
+          testExecutionId: form.testExecutionId,
+          detailCode: form.detailCode,
+          patientId: form.patientId.trim() ? Number(form.patientId) : null,
+          patientName: form.patientName,
+          departmentName: form.departmentName,
+          procedureRoom: form.procedureRoom,
+          equipment: form.equipment,
+          sedationYn: form.sedationYn,
+          performerId: form.performerId,
+          performerName: form.performerName,
+          procedureAt: toNullableDateTime(form.procedureAt),
+          progressStatus: form.progressStatus,
+          status: nextStatus,
         },
       })
     );
@@ -208,12 +271,22 @@ export default function EndoscopyEdit() {
             </Typography>
           </Box>
 
-          <Button
-            variant="outlined"
-            onClick={() => router.push("/medical_support/testResult/list")}
-          >
-            목록으로
-          </Button>
+          <Stack direction="row" spacing={1} justifyContent="flex-end">
+            <Button
+              variant="outlined"
+              color={form.status?.trim().toUpperCase() === "INACTIVE" ? "success" : "warning"}
+              onClick={handleToggleActiveStatus}
+              disabled={loading}
+            >
+              {form.status?.trim().toUpperCase() === "INACTIVE" ? "활성화" : "비활성화"}
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => router.push("/medical_support/testResult/list")}
+            >
+              목록으로
+            </Button>
+          </Stack>
         </Stack>
 
         {error ? (
@@ -478,30 +551,20 @@ export default function EndoscopyEdit() {
                 ))}
               </TextField>
 
-              <TextField
-                label="검사수행자 ID"
-                size="small"
-                value={form.performerId}
-                onChange={(e) =>
+              <StaffIdNameSelectFields
+                staffOptions={performerStaffOptions}
+                staffId={form.performerId}
+                fullName={form.performerName}
+                onChange={(next) =>
                   setDraftForm({
                     ...form,
-                    performerId: e.target.value,
+                    performerId: next.staffId,
+                    performerName: next.fullName,
                   })
                 }
-                fullWidth
-              />
-
-              <TextField
-                label="검사수행자명"
-                size="small"
-                value={form.performerName}
-                onChange={(e) =>
-                  setDraftForm({
-                    ...form,
-                    performerName: e.target.value,
-                  })
-                }
-                fullWidth
+                idLabel="검사수행자 ID"
+                nameLabel="검사수행자명"
+                disabled={loading}
               />
             </Box>
           </CardContent>

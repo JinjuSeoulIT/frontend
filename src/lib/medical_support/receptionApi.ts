@@ -45,7 +45,7 @@ const normalizeReceptionStatus = (value?: string | null): ReceptionStatus => {
   const normalized = value?.trim().toUpperCase();
 
   switch (normalized) {
-    case "CALLED":
+    // case "CALLED":
     case "IN_PROGRESS":
     case "COMPLETED":
     case "PAYMENT_WAIT":

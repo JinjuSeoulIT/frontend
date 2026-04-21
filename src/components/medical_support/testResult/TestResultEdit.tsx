@@ -33,6 +33,12 @@ import {
   TEST_RESULT_TYPE_OPTIONS,
 } from "@/features/medical_support/testResult/testResultType";
 import type { AppDispatch, RootState } from "@/store/store";
+import {
+  StaffIdNameSelectFields,
+  type StaffIdNameSelection,
+} from "@/components/medical_support/common/StaffIdNameSelectFields";
+import type { StaffOption } from "@/lib/medical_support/staffLookupApi";
+import { fetchStaffOptionsApi } from "@/lib/medical_support/staffLookupApi";
 
 type FieldInputType = "text" | "textarea" | "datetime-local" | "biopsyYn";
 
@@ -347,6 +353,9 @@ export default function TestResultEdit() {
 
   const pendingSuccessMessageRef = useRef<string | null>(null);
   const [draftValues, setDraftValues] = useState<Record<string, string>>({});
+  const [resultManagerStaffOptions, setResultManagerStaffOptions] = useState<
+    StaffOption[]
+  >([]);
 
   const {
     detail,
@@ -368,6 +377,7 @@ export default function TestResultEdit() {
   const currentStatus = draftValues.status ?? initialValues.status ?? "ACTIVE";
   const currentProgressStatus =
     draftValues.progressStatus ?? initialValues.progressStatus ?? "IN_PROGRESS";
+  const isInactiveStatus = normalizeStatus(currentStatus) === "INACTIVE";
   const isImaging = resultType === "IMAGING";
   const isSpecimen = resultType === "SPECIMEN";
   const isPathology = resultType === "PATHOLOGY";
@@ -392,6 +402,22 @@ export default function TestResultEdit() {
       dispatch(TestResultActions.resetUpdateSuccess());
     };
   }, [dispatch, resultId, resultType]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const opts = await fetchStaffOptionsApi({
+        role: "STF_ONLY",
+      });
+      if (!cancelled) {
+        setResultManagerStaffOptions(opts);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     setDraftValues(initialValues);
@@ -424,6 +450,14 @@ export default function TestResultEdit() {
     setDraftValues((current) => ({
       ...current,
       [key]: value,
+    }));
+  };
+
+  const updateResultManagerPair = (next: StaffIdNameSelection) => {
+    setDraftValues((current) => ({
+      ...current,
+      resultManagerId: next.staffId,
+      resultManagerName: next.fullName,
     }));
   };
 
@@ -502,6 +536,27 @@ export default function TestResultEdit() {
         resultType,
         resultId,
         form,
+      })
+    );
+  };
+
+  const handleToggleActiveStatus = () => {
+    if (!detail || updateLoading || !resultId || !resultType) {
+      return;
+    }
+
+    const nextStatus = isInactiveStatus ? "ACTIVE" : "INACTIVE";
+    pendingSuccessMessageRef.current = isInactiveStatus
+      ? "검사 결과가 활성화되었습니다."
+      : "검사 결과가 비활성화되었습니다.";
+
+    dispatch(
+      TestResultActions.updateTestResultRequest({
+        resultType,
+        resultId,
+        form: {
+          status: nextStatus,
+        },
       })
     );
   };
@@ -673,6 +728,15 @@ export default function TestResultEdit() {
                 목록으로
               </Button>
               <Button
+                variant="outlined"
+                size="small"
+                color={isInactiveStatus ? "success" : "warning"}
+                onClick={handleToggleActiveStatus}
+                disabled={updateLoading}
+              >
+                {isInactiveStatus ? "활성화" : "비활성화"}
+              </Button>
+              <Button
                 variant="contained"
                 size="small"
                 onClick={handleSubmit}
@@ -746,24 +810,13 @@ export default function TestResultEdit() {
                         },
                       }}
                     >
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="관리자 ID"
-                        value={getValue("resultManagerId")}
-                        onChange={(event) =>
-                          updateDraftValue("resultManagerId", event.target.value)
-                        }
-                        disabled={updateLoading}
-                      />
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="관리자명"
-                        value={getValue("resultManagerName")}
-                        onChange={(event) =>
-                          updateDraftValue("resultManagerName", event.target.value)
-                        }
+                      <StaffIdNameSelectFields
+                        staffOptions={resultManagerStaffOptions}
+                        staffId={getValue("resultManagerId")}
+                        fullName={getValue("resultManagerName")}
+                        onChange={updateResultManagerPair}
+                        idLabel="관리자 ID"
+                        nameLabel="관리자명"
                         disabled={updateLoading}
                       />
                     </Box>
@@ -911,24 +964,13 @@ export default function TestResultEdit() {
                         },
                       }}
                     >
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="관리자 ID"
-                        value={getValue("resultManagerId")}
-                        onChange={(event) =>
-                          updateDraftValue("resultManagerId", event.target.value)
-                        }
-                        disabled={updateLoading}
-                      />
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="관리자명"
-                        value={getValue("resultManagerName")}
-                        onChange={(event) =>
-                          updateDraftValue("resultManagerName", event.target.value)
-                        }
+                      <StaffIdNameSelectFields
+                        staffOptions={resultManagerStaffOptions}
+                        staffId={getValue("resultManagerId")}
+                        fullName={getValue("resultManagerName")}
+                        onChange={updateResultManagerPair}
+                        idLabel="관리자 ID"
+                        nameLabel="관리자명"
                         disabled={updateLoading}
                       />
                     </Box>
@@ -1102,24 +1144,13 @@ export default function TestResultEdit() {
                         },
                       }}
                     >
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="관리자 ID"
-                        value={getValue("resultManagerId")}
-                        onChange={(event) =>
-                          updateDraftValue("resultManagerId", event.target.value)
-                        }
-                        disabled={updateLoading}
-                      />
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="관리자명"
-                        value={getValue("resultManagerName")}
-                        onChange={(event) =>
-                          updateDraftValue("resultManagerName", event.target.value)
-                        }
+                      <StaffIdNameSelectFields
+                        staffOptions={resultManagerStaffOptions}
+                        staffId={getValue("resultManagerId")}
+                        fullName={getValue("resultManagerName")}
+                        onChange={updateResultManagerPair}
+                        idLabel="관리자 ID"
+                        nameLabel="관리자명"
                         disabled={updateLoading}
                       />
                     </Box>
@@ -1275,24 +1306,13 @@ export default function TestResultEdit() {
                         },
                       }}
                     >
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="관리자 ID"
-                        value={getValue("resultManagerId")}
-                        onChange={(event) =>
-                          updateDraftValue("resultManagerId", event.target.value)
-                        }
-                        disabled={updateLoading}
-                      />
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="관리자명"
-                        value={getValue("resultManagerName")}
-                        onChange={(event) =>
-                          updateDraftValue("resultManagerName", event.target.value)
-                        }
+                      <StaffIdNameSelectFields
+                        staffOptions={resultManagerStaffOptions}
+                        staffId={getValue("resultManagerId")}
+                        fullName={getValue("resultManagerName")}
+                        onChange={updateResultManagerPair}
+                        idLabel="관리자 ID"
+                        nameLabel="관리자명"
                         disabled={updateLoading}
                       />
                     </Box>
@@ -1444,24 +1464,13 @@ export default function TestResultEdit() {
                         },
                       }}
                     >
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="관리자 ID"
-                        value={getValue("resultManagerId")}
-                        onChange={(event) =>
-                          updateDraftValue("resultManagerId", event.target.value)
-                        }
-                        disabled={updateLoading}
-                      />
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="관리자명"
-                        value={getValue("resultManagerName")}
-                        onChange={(event) =>
-                          updateDraftValue("resultManagerName", event.target.value)
-                        }
+                      <StaffIdNameSelectFields
+                        staffOptions={resultManagerStaffOptions}
+                        staffId={getValue("resultManagerId")}
+                        fullName={getValue("resultManagerName")}
+                        onChange={updateResultManagerPair}
+                        idLabel="관리자 ID"
+                        nameLabel="관리자명"
                         disabled={updateLoading}
                       />
                     </Box>
@@ -1649,24 +1658,13 @@ export default function TestResultEdit() {
                     }
                     disabled={updateLoading}
                   />
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="결과 관리자 ID"
-                    value={getValue("resultManagerId")}
-                    onChange={(event) =>
-                      updateDraftValue("resultManagerId", event.target.value)
-                    }
-                    disabled={updateLoading}
-                  />
-                  <TextField
-                    fullWidth
-                    size="small"
-                    label="결과 관리자명"
-                    value={getValue("resultManagerName")}
-                    onChange={(event) =>
-                      updateDraftValue("resultManagerName", event.target.value)
-                    }
+                  <StaffIdNameSelectFields
+                    staffOptions={resultManagerStaffOptions}
+                    staffId={getValue("resultManagerId")}
+                    fullName={getValue("resultManagerName")}
+                    onChange={updateResultManagerPair}
+                    idLabel="결과 관리자 ID"
+                    nameLabel="결과 관리자명"
                     disabled={updateLoading}
                   />
                   <Box sx={{ gridColumn: { md: "1 / -1" } }}>

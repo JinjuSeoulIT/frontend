@@ -14,7 +14,6 @@ export type DoctorNoteRes = {
   clinicalId: number;
   chiefComplaint?: string | null;
   presentIllness?: string | null;
-  assessment?: string | null;
   clinicalMemo?: string | null;
   mainDxCode?: string | null;
   mainDxName?: string | null;
@@ -25,7 +24,6 @@ export type DoctorNoteRes = {
 export type DoctorNoteUpdatePayload = {
   chiefComplaint?: string | null;
   presentIllness?: string | null;
-  assessment?: string | null;
   clinicalMemo?: string | null;
   mainDxCode?: string | null;
   mainDxName?: string | null;
@@ -41,7 +39,6 @@ function toNotePatchBody(payload: DoctorNoteUpdatePayload): Record<string, strin
   return {
     chiefComplaint: payload.chiefComplaint,
     presentIllness: payload.presentIllness,
-    assessment: payload.assessment,
     memo: payload.clinicalMemo,
   };
 }
@@ -52,7 +49,6 @@ function mapDoctorNote(raw: Partial<DoctorNoteRes> & { noteId?: number; visitId?
     clinicalId: Number(raw.clinicalId ?? raw.visitId ?? 0),
     chiefComplaint: raw.chiefComplaint ?? null,
     presentIllness: raw.presentIllness ?? null,
-    assessment: raw.assessment ?? null,
     clinicalMemo: raw.clinicalMemo ?? raw.memo ?? null,
     mainDxCode: raw.mainDxCode ?? null,
     mainDxName: raw.mainDxName ?? null,
@@ -188,6 +184,19 @@ type PrescriptionOrderRaw = {
   items?: PrescriptionOrderItemRaw[] | null;
 };
 
+function stripEncodedOrderItemSuffix(raw: string | null | undefined): string | null {
+  if (raw == null) return null;
+  if (raw === "") return "";
+  let cut = raw.length;
+  for (const sep of ["\u001e", "\u001f"]) {
+    const idx = raw.indexOf(sep);
+    if (idx >= 0 && idx < cut) cut = idx;
+  }
+  if (cut >= raw.length) return raw;
+  const head = raw.slice(0, cut).trim();
+  return head.length > 0 ? head : raw;
+}
+
 function flattenPrescriptionOrders(orders: PrescriptionOrderRaw[], fallbackVisitId: number): PrescriptionRes[] {
   const out: PrescriptionRes[] = [];
   for (const o of orders) {
@@ -197,7 +206,7 @@ function flattenPrescriptionOrders(orders: PrescriptionOrderRaw[], fallbackVisit
         orderId: Number(o.orderId ?? 0),
         orderItemId: Number(it.orderItemId ?? 0),
         clinicalId: visitId,
-        medicationName: it.itemName ?? null,
+        medicationName: stripEncodedOrderItemSuffix(it.itemName ?? null),
         dosage: it.dosage ?? null,
         frequency: it.frequency ?? null,
         days: it.duration ?? null,
@@ -216,7 +225,7 @@ function mapPrescriptionRowFromItem(
     orderId,
     orderItemId: Number(it.orderItemId ?? 0),
     clinicalId: visitId,
-    medicationName: it.itemName ?? null,
+    medicationName: stripEncodedOrderItemSuffix(it.itemName ?? null),
     dosage: it.dosage ?? null,
     frequency: it.frequency ?? null,
     days: it.duration ?? null,
@@ -250,7 +259,8 @@ export async function addPrescriptionApi(
       orderType: "PRESCRIPTION",
       items: [
         {
-          itemName: (payload.medicationName ?? "").trim(),
+          itemName:
+            stripEncodedOrderItemSuffix((payload.medicationName ?? "").trim()) ?? "",
           dosage: payload.dosage ?? null,
           frequency: payload.frequency ?? null,
           duration: payload.days ?? null,
@@ -284,7 +294,10 @@ export async function updatePrescriptionApi(
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        itemName: payload.medicationName ?? undefined,
+        itemName:
+          payload.medicationName != null && payload.medicationName !== ""
+            ? stripEncodedOrderItemSuffix(payload.medicationName.trim()) ?? undefined
+            : undefined,
         dosage: payload.dosage ?? undefined,
         frequency: payload.frequency ?? undefined,
         duration: payload.days ?? undefined,

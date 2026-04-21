@@ -96,6 +96,7 @@ type Props = {
   onCreated: () => void | Promise<void>;
   contextPatientName?: string | null;
   contextDepartmentName?: string | null;
+  contextDoctorId?: string | null;
 };
 
 export function ClinicalOrderDialog({
@@ -106,6 +107,7 @@ export function ClinicalOrderDialog({
   onCreated,
   contextPatientName,
   contextDepartmentName,
+  contextDoctorId,
 }: Props) {
   const [newOrderType, setNewOrderType] = React.useState<LabOrderType>(() => defaultOrderType(variant));
   const [newOrderName, setNewOrderName] = React.useState("");
@@ -386,6 +388,7 @@ export function ClinicalOrderDialog({
                 orderCode:
                   variant === "treatment" ? treatmentPick?.key ?? null : examPick?.code ?? null,
                 orderName: newOrderName.trim(),
+                doctorId: contextDoctorId?.trim() || null,
               });
               if (variant === "treatment") {
                 try {

@@ -26,14 +26,17 @@ import { changePatientStatusApi } from "@/lib/reception/patientApi";
 import { fetchCodesApi } from "@/lib/admin/codeApi";
 import { createReservationApi } from "@/lib/reception/reservationAdminApi";
 import { createReceptionApi } from "@/lib/reception/receptionApi";
+import { fetchDepartmentsApi, fetchDoctorsApi } from "@/lib/masterDataApi";
+import type {
+  DepartmentOption,
+  DoctorOption,
+} from "@/features/Reservations/ReservationTypes";
 
 import {
   toApiDateTime,
   toLocalDateTime,
   toTodayDateTime,
   resolveErrorMessage,
-  departments,
-  defaultDepartment,
   type Option,
   type ReceptionForm,
   type ReservationForm,
@@ -52,6 +55,79 @@ import PatientRestrictContent from "@/components/patient/detail/PatientRestrictC
 import PatientFlagContent from "@/components/patient/detail/PatientFlagContent";
 import PatientInfoHistoryContent from "@/components/patient/detail/PatientInfoHistoryContent";
 import PatientStatusHistoryContent from "@/components/patient/detail/PatientStatusHistoryContent";
+
+function buildPatientReceptionForm(
+  departments: DepartmentOption[],
+  doctors: DoctorOption[]
+): ReceptionForm {
+  const defaultDepartmentId =
+    departments.find((department) =>
+      doctors.some((doctor) => doctor.departmentId === department.departmentId)
+    )?.departmentId ?? departments[0]?.departmentId ?? "";
+  const doctorId =
+    doctors.find((doctor) => doctor.departmentId === defaultDepartmentId)?.doctorId ?? "";
+
+  return {
+    deptCode: defaultDepartmentId,
+    doctorId,
+    visitType: "OUTPATIENT",
+    arrivedAt: "",
+    note: "",
+  };
+}
+
+function buildPatientReservationForm(
+  departments: DepartmentOption[],
+  doctors: DoctorOption[]
+): ReservationForm {
+  const defaultDepartmentId =
+    departments.find((department) =>
+      doctors.some((doctor) => doctor.departmentId === department.departmentId)
+    )?.departmentId ?? departments[0]?.departmentId ?? "";
+  const doctorId =
+    doctors.find((doctor) => doctor.departmentId === defaultDepartmentId)?.doctorId ?? "";
+
+  return {
+    deptCode: defaultDepartmentId,
+    doctorId,
+    scheduledAt: "",
+    note: "",
+  };
+}
+
+function resolveSelectedDepartment(
+  departments: DepartmentOption[],
+  doctors: DoctorOption[],
+  departmentId: string,
+  doctorId: string
+): DepartmentOption | undefined {
+  const selectedDepartment = departments.find((department) => department.departmentId === departmentId);
+  if (selectedDepartment) {
+    return selectedDepartment;
+  }
+
+  const selectedDoctor = doctors.find((doctor) => doctor.doctorId === doctorId);
+  if (!selectedDoctor?.departmentId) {
+    return undefined;
+  }
+
+  return departments.find(
+    (department) => department.departmentId === selectedDoctor.departmentId
+  );
+}
+
+function resolveSelectedDoctor(
+  doctors: DoctorOption[],
+  departmentId: string,
+  doctorId: string
+): DoctorOption | undefined {
+  const selectedDoctor = doctors.find((doctor) => doctor.doctorId === doctorId);
+  if (selectedDoctor && (!departmentId || selectedDoctor.departmentId === departmentId)) {
+    return selectedDoctor;
+  }
+
+  return doctors.find((doctor) => doctor.departmentId === departmentId);
+}
 
 export default function PatientDetailPage() {
   const params = useParams<{ id: string }>();
@@ -73,13 +149,16 @@ export default function PatientDetailPage() {
   const [statusOptions, setStatusOptions] = React.useState<Option[]>([]);
   const [flagOptions, setFlagOptions] = React.useState<Option[]>([]);
   const [restrictionOptions, setRestrictionOptions] = React.useState<Option[]>([]);
+  const [departmentOptions, setDepartmentOptions] = React.useState<DepartmentOption[]>([]);
+  const [doctorOptions, setDoctorOptions] = React.useState<DoctorOption[]>([]);
+  const [masterDataLoading, setMasterDataLoading] = React.useState(false);
 
   const [vipUpdating, setVipUpdating] = React.useState(false);
   const [receptionDialogOpen, setReceptionDialogOpen] = React.useState(false);
   const [receptionSaving, setReceptionSaving] = React.useState(false);
   const [receptionForm, setReceptionForm] = React.useState<ReceptionForm>({
-    deptCode: defaultDepartment.name,
-    doctorId: String(defaultDepartment.doctorId),
+    deptCode: "",
+    doctorId: "",
     visitType: "OUTPATIENT",
     arrivedAt: "",
     note: "",
@@ -88,8 +167,8 @@ export default function PatientDetailPage() {
   const [reservationDialogOpen, setReservationDialogOpen] = React.useState(false);
   const [reservationSaving, setReservationSaving] = React.useState(false);
   const [reservationForm, setReservationForm] = React.useState<ReservationForm>({
-    deptCode: defaultDepartment.name,
-    doctorId: String(defaultDepartment.doctorId),
+    deptCode: "",
+    doctorId: "",
     scheduledAt: "",
     note: "",
   });
@@ -172,6 +251,47 @@ export default function PatientDetailPage() {
     };
   }, []);
 
+  React.useEffect(() => {
+    let mounted = true;
+    const loadMasterData = async () => {
+      try {
+        setMasterDataLoading(true);
+        const [nextDepartments, nextDoctors] = await Promise.all([
+          fetchDepartmentsApi(),
+          fetchDoctorsApi(),
+        ]);
+
+        if (!mounted) return;
+
+        setDepartmentOptions(nextDepartments);
+        setDoctorOptions(nextDoctors);
+        setReceptionForm((prev) =>
+          prev.deptCode || prev.doctorId
+            ? prev
+            : buildPatientReceptionForm(nextDepartments, nextDoctors)
+        );
+        setReservationForm((prev) =>
+          prev.deptCode || prev.doctorId
+            ? prev
+            : buildPatientReservationForm(nextDepartments, nextDoctors)
+        );
+      } catch {
+        if (!mounted) return;
+        setDepartmentOptions([]);
+        setDoctorOptions([]);
+        setReceptionForm(buildPatientReceptionForm([], []));
+        setReservationForm(buildPatientReservationForm([], []));
+      } finally {
+        if (mounted) setMasterDataLoading(false);
+      }
+    };
+
+    loadMasterData();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const onDelete = () => {
     if (!p) return;
     if (!confirm("환자를 비활성 처리할까요?")) return;
@@ -235,23 +355,12 @@ export default function PatientDetailPage() {
   };
 
   const openReservationDialog = () => {
-    setReservationForm({
-      deptCode: defaultDepartment.name,
-      doctorId: String(defaultDepartment.doctorId),
-      scheduledAt: "",
-      note: "",
-    });
+    setReservationForm(buildPatientReservationForm(departmentOptions, doctorOptions));
     setReservationDialogOpen(true);
   };
 
   const openReceptionDialog = () => {
-    setReceptionForm({
-      deptCode: defaultDepartment.name,
-      doctorId: String(defaultDepartment.doctorId),
-      visitType: "OUTPATIENT",
-      arrivedAt: "",
-      note: "",
-    });
+    setReceptionForm(buildPatientReceptionForm(departmentOptions, doctorOptions));
     setReceptionDialogOpen(true);
   };
 
@@ -270,18 +379,31 @@ export default function PatientDetailPage() {
         return;
       }
 
-      const selectedDept = departments.find((dept) => dept.name === reservationForm.deptCode);
-      const selectedByDoctor = departments.find((dept) => String(dept.doctorId) === reservationForm.doctorId);
-      const resolvedDept = selectedDept ?? selectedByDoctor ?? defaultDepartment;
+      const resolvedDept = resolveSelectedDepartment(
+        departmentOptions,
+        doctorOptions,
+        reservationForm.deptCode,
+        reservationForm.doctorId
+      );
+      const resolvedDoctor = resolveSelectedDoctor(
+        doctorOptions,
+        resolvedDept?.departmentId ?? reservationForm.deptCode,
+        reservationForm.doctorId
+      );
+
+      if (!resolvedDept || !resolvedDoctor) {
+        alert("진료과와 의사를 다시 선택해주세요.");
+        return;
+      }
 
       await createReservationApi({
         reservationNo: "",
         patientId: p.patientId,
         patientName: p.name,
-        departmentId: String(resolvedDept.id),
-        departmentName: resolvedDept.name,
-        doctorId: String(reservationForm.doctorId || resolvedDept.doctorId),
-        doctorName: resolvedDept.doctor,
+        departmentId: resolvedDept.departmentId,
+        departmentName: resolvedDept.departmentName,
+        doctorId: resolvedDoctor.doctorId,
+        doctorName: resolvedDoctor.doctorName,
         reservedAt,
         status: "RESERVED",
         note: reservationForm.note?.trim() || null,
@@ -302,16 +424,31 @@ export default function PatientDetailPage() {
 
     try {
       setReceptionSaving(true);
-      const selectedDept = departments.find((dept) => dept.name === receptionForm.deptCode);
-      const selectedByDoctor = departments.find((dept) => String(dept.doctorId) === receptionForm.doctorId);
-      const resolvedDept = selectedDept ?? selectedByDoctor ?? defaultDepartment;
+      const resolvedDept = resolveSelectedDepartment(
+        departmentOptions,
+        doctorOptions,
+        receptionForm.deptCode,
+        receptionForm.doctorId
+      );
+      const resolvedDoctor = resolveSelectedDoctor(
+        doctorOptions,
+        resolvedDept?.departmentId ?? receptionForm.deptCode,
+        receptionForm.doctorId
+      );
+
+      if (!resolvedDept || !resolvedDoctor) {
+        alert("진료과와 의사를 다시 선택해주세요.");
+        return;
+      }
 
       await createReceptionApi({
         receptionNo: "",
         patientId: p.patientId,
         visitType: "OUTPATIENT",
-        departmentId: String(resolvedDept.id),
-        doctorId: String(receptionForm.doctorId || resolvedDept.doctorId),
+        departmentId: resolvedDept.departmentId,
+        departmentName: resolvedDept.departmentName,
+        doctorId: resolvedDoctor.doctorId,
+        doctorName: resolvedDoctor.doctorName,
         arrivedAt: toTodayDateTime(receptionForm.arrivedAt) ?? toLocalDateTime(),
         note: receptionForm.note?.trim() || "환자 상세 화면에서 접수 등록",
       });
@@ -400,8 +537,9 @@ export default function PatientDetailPage() {
         onClose={() => setReceptionDialogOpen(false)}
         form={receptionForm}
         onFormChange={setReceptionForm}
-        departments={departments}
-        saving={receptionSaving}
+        departments={departmentOptions}
+        doctors={doctorOptions}
+        saving={receptionSaving || masterDataLoading}
         onSave={saveReception}
       />
 
@@ -410,8 +548,9 @@ export default function PatientDetailPage() {
         onClose={() => setReservationDialogOpen(false)}
         form={reservationForm}
         onFormChange={setReservationForm}
-        departments={departments}
-        saving={reservationSaving}
+        departments={departmentOptions}
+        doctors={doctorOptions}
+        saving={reservationSaving || masterDataLoading}
         onSave={saveReservation}
       />
 

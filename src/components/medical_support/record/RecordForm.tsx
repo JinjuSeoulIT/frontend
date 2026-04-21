@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -14,6 +14,9 @@ import {
   Grid,
 } from "@mui/material";
 import { RecordFormType } from "@/features/medical_support/record/recordTypes";
+import { useStaffPairSelect } from "@/components/medical_support/common/StaffIdNameSelectFields";
+import type { StaffOption } from "@/lib/medical_support/staffLookupApi";
+import { fetchStaffOptionsApi } from "@/lib/medical_support/staffLookupApi";
 
 interface Props {
   mode: "create" | "edit";
@@ -22,6 +25,7 @@ interface Props {
   onSubmit: () => void;
   onCancel?: () => void;
   onNavigateDetail?: () => void;
+  onToggleActiveStatus?: () => void;
   loading: boolean;
 }
 
@@ -34,12 +38,43 @@ const RecordForm: React.FC<Props> = ({
   onSubmit,
   onCancel,
   onNavigateDetail,
+  onToggleActiveStatus,
   loading,
 }) => {
   const [errors, setErrors] = useState<RecordFormErrors>({});
+  const [staffOptions, setStaffOptions] = useState<StaffOption[]>([]);
   const isEditMode = mode === "edit";
 
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const opts = await fetchStaffOptionsApi({ role: "NURSE" });
+      if (!cancelled) {
+        setStaffOptions(opts);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const toStr = (value: unknown) => String(value ?? "");
+
+  const { idSelect: nurseIdSelect, nameSelect: nurseNameSelect } =
+    useStaffPairSelect({
+      staffOptions,
+      staffId: toStr(form.nursingId),
+      fullName: toStr(form.nurseName),
+      onChange: (next) =>
+        onChange({
+          ...form,
+          nursingId: next.staffId,
+          nurseName: next.fullName,
+        }),
+      idLabel: "간호사 ID",
+      nameLabel: "간호사명",
+    });
 
   const handleFieldChange =
     (field: keyof RecordFormType) =>
@@ -205,13 +240,32 @@ const RecordForm: React.FC<Props> = ({
             </Box>
 
             {isEditMode && onNavigateDetail ? (
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={onNavigateDetail}
-              >
-                상세로
-              </Button>
+              <Stack direction="row" spacing={1}>
+                {onToggleActiveStatus ? (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    color={
+                      String(form.status ?? "").trim().toUpperCase() === "INACTIVE"
+                        ? "success"
+                        : "warning"
+                    }
+                    onClick={onToggleActiveStatus}
+                    disabled={loading}
+                  >
+                    {String(form.status ?? "").trim().toUpperCase() === "INACTIVE"
+                      ? "활성화"
+                      : "비활성화"}
+                  </Button>
+                ) : null}
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={onNavigateDetail}
+                >
+                  상세로
+                </Button>
+              </Stack>
             ) : null}
           </Stack>
         </Box>
@@ -239,16 +293,7 @@ const RecordForm: React.FC<Props> = ({
                   />
                 </Grid>
 
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    label="간호사명"
-                    value={toStr(form.nurseName)}
-                    onChange={handleFieldChange("nurseName")}
-                    size="small"
-                    fullWidth
-                    // InputProps={{ readOnly: true }}
-                  />
-                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>{nurseNameSelect}</Grid>
 
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField
@@ -260,16 +305,7 @@ const RecordForm: React.FC<Props> = ({
                   />
                 </Grid>
 
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField
-                    label="간호사 ID"
-                    value={toStr(form.nursingId)}
-                    onChange={handleFieldChange("nursingId")}
-                    size="small"
-                    fullWidth
-                    // InputProps={{ readOnly: true }}
-                  />
-                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>{nurseIdSelect}</Grid>
 
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField

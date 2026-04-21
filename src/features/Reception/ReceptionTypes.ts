@@ -1,6 +1,5 @@
 ﻿export type ReceptionStatus =
   | "WAITING"
-  | "CALLED"
   | "IN_PROGRESS"
   | "COMPLETED"
   | "PAYMENT_WAIT"

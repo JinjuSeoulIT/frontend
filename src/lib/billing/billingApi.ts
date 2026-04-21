@@ -104,9 +104,19 @@ export const fetchOutstandingBillsApi = async (): Promise<BillSummary[]> => {
   return response.data.result;
 };
 
+export type BillItemCategory =
+  | "CONSULTATION"
+  | "MEDICATION"
+  | "TEST"
+  | "PROCEDURE"
+  | "ETC";
+
 export interface BillItem {
   billItemId: number;
   itemName: string;
+  itemCategory: BillItemCategory | string;
+  quantity: number;
+  unitPrice: number;
   amount: number;
 }
 
@@ -129,6 +139,7 @@ export interface BillHistory {
   description: string;
   amount: number;
   changedBy: string | null;
+  changedByName: string | null;
 }
 
 export interface CalculatedBill {
@@ -147,6 +158,13 @@ export const PAYMENT_METHOD_OPTIONS: {
   { value: "TRANSFER", label: "계좌이체" },
 ];
 
+
+
+export interface PaymentMethodMaster {
+  methodCode: PaymentMethod;
+  methodName: string;
+  useYn: string;
+}
 export const fetchBillDetailApi = async (
   billId: number
 ): Promise<BillDetail> => {
@@ -235,6 +253,8 @@ export interface Payment {
   paidAt: string;
   createdBy: string | null;
   canceledBy: string | null;
+  createdByName: string | null;
+  canceledByName: string | null;
 }
 
 export const createPaymentApi = async (
@@ -334,6 +354,17 @@ export const refundPaymentApi = async (
   return res.data.result;
 };
 
+
+
+export const fetchPaymentMethodsApi = async (): Promise<
+  PaymentMethodMaster[]
+> => {
+  const res = await api.get<PaymentMethodMaster[]>(
+    `/api/billing/payment-methods`
+  );
+
+  return res.data;
+};
 // [수정] billingDate 추가
 export interface FetchBillsParams {
   status?: string | null;
@@ -362,15 +393,10 @@ export const fetchBillsApi = async (
 };
 
 export const confirmBillApi = async (
-  billId: number,
-  staffId: string
+  billId: number
 ): Promise<void> => {
   const res = await api.post<ApiResponse<null>>(
-    `/api/billing/bills/${billId}/confirm`,
-    null,
-    {
-      params: { staffId },
-    }
+    `/api/billing/bills/${billId}/confirm`
   );
 
   if (!res.data.success) {
@@ -379,15 +405,10 @@ export const confirmBillApi = async (
 };
 
 export const cancelBillApi = async (
-  billId: number,
-  staffId: string
+  billId: number
 ): Promise<void> => {
   const res = await api.post<ApiResponse<null>>(
-    `/api/billing/bills/${billId}/cancel`,
-    null,
-    {
-      params: { staffId },
-    }
+    `/api/billing/bills/${billId}/cancel`
   );
 
   if (!res.data.success) {
@@ -396,15 +417,10 @@ export const cancelBillApi = async (
 };
 
 export const unconfirmBillApi = async (
-  billId: number,
-  staffId: string
+  billId: number
 ): Promise<void> => {
   const res = await api.post<ApiResponse<null>>(
-    `/api/billing/bills/${billId}/unconfirm`,
-    null,
-    {
-      params: { staffId },
-    }
+    `/api/billing/bills/${billId}/unconfirm`
   );
 
   if (!res.data.success) {
@@ -413,15 +429,10 @@ export const unconfirmBillApi = async (
 };
 
 export const restoreBillApi = async (
-  billId: number,
-  staffId: string
+  billId: number
 ): Promise<void> => {
   const res = await api.post<ApiResponse<null>>(
-    `/api/billing/bills/${billId}/restore`,
-    null,
-    {
-      params: { staffId },
-    }
+    `/api/billing/bills/${billId}/restore`
   );
 
   if (!res.data.success) {

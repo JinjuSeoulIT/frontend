@@ -1,33 +1,120 @@
-import { cookies } from "next/headers";
-import BillingDashboardClient from "@/app/billing/BillingDashboardClient";
+﻿"use client";
+
+/* ================================
+   수정: NEW 배지 상태 관리를 위해 useState 추가
+================================ */
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
+import type { RootState, AppDispatch } from "@/store/store";
+
+import MainLayout from "@/components/layout/MainLayout";
 import {
-  ACCESS_TOKEN_COOKIE_NAME,
-} from "@/lib/staff/staffServerApi";
+  Box,
+  Card,
+  CardContent,
+  Stack,
+  Typography,
+  Divider,
+  CircularProgress,
+  Button,
+  Chip,
+} from "@mui/material";
+
+import MonetizationOnOutlinedIcon from "@mui/icons-material/MonetizationOnOutlined";
+import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
+import SyncIcon from "@mui/icons-material/Sync";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import TrendingDownIcon from "@mui/icons-material/TrendingDown";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+
+import { fetchBillingStatsRequest } from "@/features/billing/billingSlice";
 import {
-  fetchInitialBillingStats,
-  type ServerBillingStats,
-} from "@/lib/billing/billingServerApi";
+  getBillingStatusLabel,
+  getBillingStatusDescription,
+} from "@/lib/billing/billingStatus";
 
-export const dynamic = "force-dynamic";
+export default function BillingPage() {
+  const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
 
-export default async function BillingPage() {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE_NAME)?.value?.trim() ?? "";
+  const billingStats = useSelector(
+    (state: RootState) => state.billing.billingStats
+  );
+  const statsLoading = useSelector(
+    (state: RootState) => state.billing.statsLoading
+  );
+  const statsError = useSelector(
+    (state: RootState) => state.billing.statsError
+  );
 
-  let initialStats: ServerBillingStats | null = null;
-  let initialError: string | null = null;
+  const refundRate =
+    billingStats && billingStats.totalCompletedAmount > 0
+      ? Math.round(
+          (billingStats.totalRefundedAmount /
+            billingStats.totalCompletedAmount) *
+            100
+        )
+      : 0;
 
-  if (accessToken) {
-    try {
-      initialStats = await fetchInitialBillingStats(accessToken);
-    } catch (error) {
-      initialError =
-        error instanceof Error ? error.message : "수납 통계 조회에 실패했습니다.";
+  const READY_SEEN_COUNT_STORAGE_KEY = "billing:readySeenCount";
+  const BILLING_STATS_POLLING_MS = 10000;
+
+  const [hasNewReadyBadge, setHasNewReadyBadge] = useState(false);
+
+  useEffect(() => {
+    dispatch(fetchBillingStatsRequest());
+
+    const intervalId = window.setInterval(() => {
+      dispatch(fetchBillingStatsRequest());
+    }, BILLING_STATS_POLLING_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!billingStats) return;
+
+    const savedSeenReadyCount = window.localStorage.getItem(
+      READY_SEEN_COUNT_STORAGE_KEY
+    );
+
+    if (savedSeenReadyCount === null) {
+      window.localStorage.setItem(
+        READY_SEEN_COUNT_STORAGE_KEY,
+        String(billingStats.readyCount)
+      );
+      setHasNewReadyBadge(false);
+      return;
     }
-  }
+
+    const seenReadyCount = Number(savedSeenReadyCount);
+
+    if (billingStats.readyCount > seenReadyCount) {
+      setHasNewReadyBadge(true);
+    } else {
+      setHasNewReadyBadge(false);
+    }
+  }, [billingStats]);
+
+  const handleReadyCardClick = () => {
+    if (billingStats) {
+      window.localStorage.setItem(
+        READY_SEEN_COUNT_STORAGE_KEY,
+        String(billingStats.readyCount)
+      );
+    }
+
+    setHasNewReadyBadge(false);
+    router.push("/billing/list?status=READY");
+  };
 
   return (
-<<<<<<< HEAD
     <MainLayout>
       <Box sx={{ display: "grid", gap: 3 }}>
         {billingStats && (
@@ -358,11 +445,186 @@ export default async function BillingPage() {
         </Card>
       </Box>
     </MainLayout>
-=======
-    <BillingDashboardClient
-      initialStats={initialStats}
-      initialError={initialError}
-    />
->>>>>>> develop
+  );
+}
+
+function QuickActionCard({
+  icon,
+  title,
+  description,
+  buttonText,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  buttonText: string;
+  onClick: () => void;
+}) {
+  return (
+    <Card
+      sx={{
+        borderRadius: 3,
+        border: "1px solid rgba(123, 31, 162, 0.14)",
+        boxShadow: "0 8px 18px rgba(0,0,0,0.06)",
+        transition: "all 0.2s ease",
+        "&:hover": {
+          transform: "translateY(-3px)",
+          boxShadow: "0 12px 24px rgba(0,0,0,0.10)",
+        },
+      }}
+    >
+      <CardContent sx={{ p: 2.5 }}>
+        <Stack spacing={2}>
+          <Stack direction="row" spacing={1.2} alignItems="center">
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: 2,
+                display: "grid",
+                placeItems: "center",
+                bgcolor: "rgba(123, 31, 162, 0.10)",
+                color: "#7b1fa2",
+              }}
+            >
+              {icon}
+            </Box>
+
+            <Box>
+              <Typography sx={{ fontWeight: 800, fontSize: 16 }}>
+                {title}
+              </Typography>
+              <Typography sx={{ fontSize: 13, color: "rgba(0,0,0,0.55)" }}>
+                {description}
+              </Typography>
+            </Box>
+          </Stack>
+
+          <Box>
+            <Button
+              variant="outlined"
+              size="small"
+              endIcon={<ArrowForwardIosIcon sx={{ fontSize: 12 }} />}
+              onClick={onClick}
+              sx={{
+                borderRadius: 2,
+                textTransform: "none",
+                fontWeight: 700,
+                color: "#7b1fa2",
+                borderColor: "rgba(123, 31, 162, 0.3)",
+              }}
+            >
+              {buttonText}
+            </Button>
+          </Box>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
+function StatCard({
+  icon,
+  title,
+  description,
+  value,
+  highlight = false,
+  color,
+  onClick,
+  isNew = false,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  value: string | number;
+  highlight?: boolean;
+  color?: string;
+  onClick?: () => void;
+  isNew?: boolean;
+}) {
+  return (
+    <Card
+      onClick={onClick}
+      sx={{
+        cursor: onClick ? "pointer" : "default",
+        borderRadius: 3,
+        p: 1.5,
+        height: "100%",
+        background: highlight
+          ? "linear-gradient(135deg, #e8f5e9, #c8e6c9)"
+          : "white",
+        border: highlight
+          ? "2px solid #2e7d32"
+          : "1px solid rgba(0,0,0,0.08)",
+        transition: "all 0.25s ease",
+        "&:hover": {
+          transform: "translateY(-6px) scale(1.02)",
+          boxShadow: "0 12px 30px rgba(0,0,0,0.12)",
+        },
+      }}
+    >
+      <CardContent>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: 2,
+              display: "grid",
+              placeItems: "center",
+              backgroundColor: "rgba(0,0,0,0.05)",
+            }}
+          >
+            {icon}
+          </Box>
+
+          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+            <Typography
+              variant="subtitle2"
+              sx={{ color: "rgba(0,0,0,0.6)", fontWeight: 600 }}
+            >
+              {title}
+            </Typography>
+
+            {isNew && (
+              <Chip
+                label="NEW"
+                size="small"
+                color="error"
+                sx={{
+                  fontWeight: 800,
+                  height: 22,
+                  "& .MuiChip-label": {
+                    px: 1,
+                  },
+                }}
+              />
+            )}
+          </Stack>
+        </Stack>
+
+        <Typography
+          variant="h4"
+          sx={{
+            fontWeight: 800,
+            mt: 2,
+            color: highlight ? "#1b5e20" : color || "inherit",
+          }}
+        >
+          {value}
+        </Typography>
+
+        <Typography
+          sx={{
+            fontSize: 12,
+            mt: 1,
+            color: "rgba(0,0,0,0.4)",
+          }}
+        >
+          {description}
+        </Typography>
+      </CardContent>
+    </Card>
   );
 }

@@ -1,12 +1,18 @@
 import axios from "axios";
 import type { ApiResponse, PaymentMethod } from "@/lib/billing/billingApi";
 
-const baseURL =
-  typeof window !== "undefined" && window.location.hostname !== "localhost"
-    ? `http://${window.location.hostname}:8081`
-    : "http://192.168.1.68:8081";
+/** 브라우저에서는 Next rewrites(/api/billing → 청구 백엔드)로 동일 출처 호출 */
+function resolveBillingDepositBaseUrl(): string {
+  if (typeof window === "undefined") {
+    return (
+      process.env.NEXT_PUBLIC_BILLING_API_BASE_URL?.trim() ||
+      "http://192.168.1.68:8081"
+    );
+  }
+  return "";
+}
 
-const api = axios.create({ baseURL });
+const api = axios.create({ baseURL: resolveBillingDepositBaseUrl() });
 
 api.interceptors.response.use(
   (res) => res,
@@ -43,6 +49,10 @@ export interface BillingDeposit {
   updatedAt: string;
 }
 
+export interface BillingDepositMemoUpdateRequest {
+  depositMemo?: string | null;
+}
+
 export const createBillingDepositApi = async (
   payload: BillingDepositCreateRequest
 ): Promise<BillingDeposit> => {
@@ -70,6 +80,22 @@ export const fetchBillingDepositsApi = async (
 
   if (!res.data.success) {
     throw new Error(res.data.message || "선수금 목록 조회 실패");
+  }
+
+  return res.data.result;
+};
+
+export const updateBillingDepositMemoApi = async (
+  depositId: number,
+  payload: BillingDepositMemoUpdateRequest
+): Promise<BillingDeposit> => {
+  const res = await api.post<ApiResponse<BillingDeposit>>(
+    `/api/billing/deposits/${depositId}/memo`,
+    payload
+  );
+
+  if (!res.data.success) {
+    throw new Error(res.data.message || "선수금 메모 수정 실패");
   }
 
   return res.data.result;

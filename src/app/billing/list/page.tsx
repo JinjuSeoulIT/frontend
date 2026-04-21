@@ -1,7 +1,17 @@
-import { cookies } from "next/headers";
-import BillingListClient from "@/app/billing/list/BillingListClient";
+"use client";
+
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import type { RootState, AppDispatch } from "@/store/store";
+import { useRouter } from "next/navigation";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { Button } from "@mui/material";
+
+import MainLayout from "@/components/layout/MainLayout";
+import Link from "next/link";
+
 import {
-<<<<<<< HEAD
   Box,
   Typography,
   Stack,
@@ -15,70 +25,198 @@ import {
   TableContainer,
   Paper,
 } from "@mui/material";
-=======
-  fetchInitialBillingList,
-  type ServerBillSummary,
-} from "@/lib/billing/billingServerApi";
-import { fetchInitialPatients } from "@/lib/patient/patientServerApi";
-import { ACCESS_TOKEN_COOKIE_NAME } from "@/lib/staff/staffServerApi";
->>>>>>> develop
 
-export const dynamic = "force-dynamic";
+import { fetchBillsRequest } from "@/features/billing/billingSlice";
+import {
+  getBillingStatusLabel,
+  getBillingStatusColor,
+} from "@/lib/billing/billingStatus";
+import { fetchPatientsApi } from "@/lib/patient/patientApi";
+import type { Patient } from "@/features/patients/patientTypes";
 
-type BillingListPageProps = {
-  searchParams: Promise<{
-    status?: string;
-    confirmedOnly?: string;
-    partialOnly?: string;
-    billingDate?: string;
-  }>;
-};
+export default function BillingListPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const dispatch = useDispatch<AppDispatch>();
 
-export default async function BillingListPage({ searchParams }: BillingListPageProps) {
-  const query = await searchParams;
-  const status = query.status ?? null;
-  const confirmedOnly = query.confirmedOnly === "true";
-  const partialOnly = query.partialOnly === "true";
-  const billingDate = query.billingDate ?? null;
+  const status = searchParams.get("status");
+  const confirmedOnly = searchParams.get("confirmedOnly") === "true";
+  const partialOnly = searchParams.get("partialOnly") === "true";
+  const billingDate = searchParams.get("billingDate");
 
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE_NAME)?.value?.trim() ?? "";
+  const billingList = useSelector(
+    (state: RootState) => state.billing.billingList
+  );
+  const loading = useSelector((state: RootState) => state.billing.loading);
+  const error = useSelector((state: RootState) => state.billing.error);
 
-<<<<<<< HEAD
   const [patientNameById, setPatientNameById] = useState<Record<number, string>>(
     {}
   );
   const [keyword, setKeyword] = useState("");
-=======
-  let initialBillingList: ServerBillSummary[] = [];
-  let patientNameById: Record<number, string> = {};
-  let initialError: string | null = null;
->>>>>>> develop
 
-  if (accessToken && (status || billingDate)) {
-    try {
-      const [bills, patients] = await Promise.all([
-        fetchInitialBillingList(accessToken, {
+  const getTodayString = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const todayString = getTodayString();
+
+  const buildListHref = ({
+    status,
+    confirmedOnly,
+    partialOnly,
+    billingDate,
+  }: {
+    status?: string | null;
+    confirmedOnly?: boolean;
+    partialOnly?: boolean;
+    billingDate?: string | null;
+  }) => {
+    const params = new URLSearchParams();
+
+    if (status) {
+      params.set("status", status);
+    }
+
+    if (confirmedOnly) {
+      params.set("confirmedOnly", "true");
+    }
+
+    if (partialOnly) {
+      params.set("partialOnly", "true");
+    }
+
+    if (billingDate) {
+      params.set("billingDate", billingDate);
+    }
+
+    const queryString = params.toString();
+    return queryString ? `/billing/list?${queryString}` : "/billing/list";
+  };
+
+  const STATUS_OPTIONS = [
+    {
+      key: "READY",
+      label: "미수납",
+      href: buildListHref({
+        status: "READY",
+        billingDate,
+      }),
+    },
+    {
+      key: "PARTIAL",
+      label: "부분 수납",
+      href: buildListHref({
+        status: "CONFIRMED",
+        partialOnly: true,
+        billingDate,
+      }),
+    },
+    {
+      key: "PAID",
+      label: "완납",
+      href: buildListHref({
+        status: "PAID",
+        billingDate,
+      }),
+    },
+    {
+      key: "FINAL_CONFIRMED",
+      label: "청구 확정",
+      href: buildListHref({
+        status: "CONFIRMED",
+        confirmedOnly: true,
+        billingDate,
+      }),
+    },
+    {
+      key: "CANCELED",
+      label: "취소됨",
+      href: buildListHref({
+        status: "CANCELED",
+        billingDate,
+      }),
+    },
+  ] as const;
+
+  useEffect(() => {
+    if (status || billingDate) {
+      dispatch(
+        fetchBillsRequest({
           status,
           confirmedOnly,
           partialOnly,
           billingDate,
-        }),
-        fetchInitialPatients(accessToken),
-      ]);
-
-      initialBillingList = bills;
-      patientNameById = patients.reduce<Record<number, string>>((acc, patient) => {
-        if (patient.patientId && patient.name?.trim()) {
-          acc[patient.patientId] = patient.name.trim();
-        }
-        return acc;
-      }, {});
-    } catch (error) {
-      initialError =
-        error instanceof Error ? error.message : "청구 목록 조회에 실패했습니다.";
+        })
+      );
     }
-  }
+  }, [dispatch, status, confirmedOnly, partialOnly, billingDate]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadPatients = async () => {
+      try {
+        const patients: Patient[] = await fetchPatientsApi();
+
+        if (!active) return;
+
+        const byId = patients.reduce<Record<number, string>>((acc, patient) => {
+          if (patient.patientId && patient.name?.trim()) {
+            acc[patient.patientId] = patient.name.trim();
+          }
+          return acc;
+        }, {});
+
+        setPatientNameById(byId);
+      } catch (err) {
+        console.error("[billing/list] failed to load patients", err);
+
+        if (!active) return;
+        setPatientNameById({});
+      }
+    };
+
+    loadPatients();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const resolvePatientName = useCallback(
+    (patientId: number) => {
+      return patientNameById[patientId] || "-";
+    },
+    [patientNameById]
+  );
+
+  const sortedBillingList = [...(billingList ?? [])].sort((a, b) => {
+    return (
+      new Date(b.treatmentDate).getTime() -
+      new Date(a.treatmentDate).getTime()
+    );
+  });
+
+  const filteredBillingList = sortedBillingList.filter((bill) => {
+    if (confirmedOnly) {
+      return bill.status === "CONFIRMED" && bill.remainingAmount === 0;
+    }
+
+    if (partialOnly) {
+      return bill.status === "CONFIRMED" && bill.remainingAmount > 0;
+    }
+
+    if (!status) {
+      return true;
+    }
+
+    return bill.status === status;
+  });
 
   const keywordNormalized = keyword.trim().toLowerCase();
 
@@ -97,7 +235,6 @@ export default async function BillingListPage({ searchParams }: BillingListPageP
   });
 
   return (
-<<<<<<< HEAD
     <MainLayout>
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
         <Button
@@ -306,16 +443,5 @@ export default async function BillingListPage({ searchParams }: BillingListPageP
         </TableContainer>
       </Box>
     </MainLayout>
-=======
-    <BillingListClient
-      status={status}
-      confirmedOnly={confirmedOnly}
-      partialOnly={partialOnly}
-      billingDate={billingDate}
-      initialBillingList={initialBillingList}
-      patientNameById={patientNameById}
-      initialError={initialError}
-    />
->>>>>>> develop
   );
 }

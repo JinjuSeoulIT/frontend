@@ -220,9 +220,9 @@ const extractMenuList = (data: unknown): LooseMenuNode[] => {
 };
 
 const MENU_ENDPOINT = "/api/menus";
-const MENU_FETCH_ENDPOINT_CANDIDATES = ["/api/admin/menus", MENU_ENDPOINT, "/api/menu"] as const;
-const CREATE_ENDPOINT_CANDIDATES = ["/api/admin/menus", "/api/menus", "/api/menu"] as const;
-const UPDATE_ENDPOINT_CANDIDATES = ["/api/admin/menus", "/api/menus", "/api/menu"] as const;
+const MENU_FETCH_ENDPOINT_CANDIDATES = ["/api/admin/menus", MENU_ENDPOINT] as const;
+const CREATE_ENDPOINT_CANDIDATES = ["/api/admin/menus"] as const;
+const UPDATE_ENDPOINT_CANDIDATES = ["/api/admin/menus"] as const;
 const PERMISSION_FETCH_ENDPOINTS = [
   "/api/admin/permissions/role-menu",
   "/api/admin/menu-permissions",
@@ -322,9 +322,9 @@ const buildMenuMutationPayload = (input: {
     path,
     sortOrder: input.sortOrder,
     orderNo: input.sortOrder,
-    isActive: input.isActive === "Y",
+    isActive: input.isActive,
     activeYn: input.isActive,
-    adminOnly: input.adminOnly === "Y",
+    adminOnly: input.adminOnly,
     adminOnlyYn: input.adminOnly,
   };
 };
@@ -610,29 +610,26 @@ const updateMenuWithToken = async (
   let lastError: Error | null = null;
 
   for (const endpoint of UPDATE_ENDPOINT_CANDIDATES) {
-    for (const method of ["PUT", "PATCH"] as const) {
-      for (const url of [`${baseUrl}${endpoint}/${input.menuId}`, `${baseUrl}${endpoint}`]) {
-        const response = await fetch(url, {
-          method,
-          headers: buildRequestHeaders(accessToken, true),
-          body: JSON.stringify(payload),
-          cache: "no-store",
-        });
+    const url = `${baseUrl}${endpoint}/${input.menuId}`;
+    const response = await fetch(url, {
+      method: "PUT",
+      headers: buildRequestHeaders(accessToken, true),
+      body: JSON.stringify(payload),
+      cache: "no-store",
+    });
 
-        if (response.ok) {
-          return;
-        }
-
-        if ([404, 405].includes(response.status)) {
-          continue;
-        }
-
-        const responseBody = (await response.json().catch(() => null)) as unknown;
-        lastError = new Error(
-          extractApiMessage(responseBody) || `menu update failed with status ${response.status}`
-        );
-      }
+    if (response.ok) {
+      return;
     }
+
+    if ([404, 405].includes(response.status)) {
+      continue;
+    }
+
+    const responseBody = (await response.json().catch(() => null)) as unknown;
+    lastError = new Error(
+      extractApiMessage(responseBody) || `menu update failed with status ${response.status}`
+    );
   }
 
   if (lastError) {

@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   Alert,
   Autocomplete,
@@ -135,12 +136,6 @@ const toJobTitleDisplay = (item: StaffSummaryItem) =>
 const toDepartmentLabel = (item: StaffDepartmentSummaryItem) =>
   item.departmentName ?? (item.departmentId != null ? String(item.departmentId) : "-");
 
-const toLocationLabel = (item: StaffLocationSummaryItem) =>
-  item.locationDisplayName ??
-  item.locationName ??
-  item.locationCode ??
-  (item.locationId != null ? String(item.locationId) : "-");
-
 const cloneFilters = (filters: Filters): Filters => ({
   keyword: filters.keyword,
   role: filters.role,
@@ -207,7 +202,7 @@ export default function StaffListClient({
   );
   const [totalCount, setTotalCount] = useState(initialRows.length);
   const [departments, setDepartments] = useState<StaffDepartmentSummaryItem[]>(initialDepartments);
-  const [locations, setLocations] = useState<StaffLocationSummaryItem[]>(initialLocations);
+  const [, setLocations] = useState<StaffLocationSummaryItem[]>(initialLocations);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [searching, setSearching] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -223,11 +218,12 @@ export default function StaffListClient({
     filters: cloneFilters(INITIAL_FILTERS),
     searchCondition: "name",
   });
+
   const loadedRowCount = useMemo(
-    () =>
-      Object.values(serverPages).reduce((sum, items) => sum + items.length, 0),
+    () => Object.values(serverPages).reduce((sum, items) => sum + items.length, 0),
     [serverPages]
   );
+
   const departmentOptions = useMemo<DepartmentOption[]>(() => {
     const seen = new Set<string>();
     return departments
@@ -246,6 +242,7 @@ export default function StaffListClient({
       })
       .sort((a, b) => a.label.localeCompare(b.label, "ko"));
   }, [departments]);
+
   const selectedDepartmentOption =
     filters.departmentId === ""
       ? null
@@ -448,9 +445,14 @@ export default function StaffListClient({
   return (
     <MainLayout showSidebar={true}>
       <Stack spacing={2.5}>
-        <Typography variant="h4" fontWeight={800}>
-          직원관리
-        </Typography>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1.5}>
+          <Typography variant="h4" fontWeight={800}>
+            직원관리
+          </Typography>
+          <Button component={Link} href="/staff/create" variant="contained">
+            직원 등록
+          </Button>
+        </Stack>
 
         <Card sx={{ borderRadius: 2.5 }}>
           <CardContent>
@@ -600,33 +602,10 @@ export default function StaffListClient({
                         <TextField
                           {...params}
                           label="부서"
-                          placeholder="부서명을 입력해 검색"
+                          placeholder="부서명 또는 부서 ID"
                         />
                       )}
                     />
-
-                    {false ? <FormControl fullWidth size="small">
-                      <InputLabel id="staff-location-label">위치</InputLabel>
-                      <Select
-                        labelId="staff-location-label"
-                        label="위치"
-                        value={filters.locationId}
-                        onChange={(event) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            locationId:
-                              String(event.target.value) === "" ? "" : Number(event.target.value),
-                          }))
-                        }
-                      >
-                        <MenuItem value="">전체</MenuItem>
-                        {locations.map((item) => (
-                          <MenuItem key={item.locationId ?? "none"} value={item.locationId ?? ""}>
-                            {toLocationLabel(item)}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl> : null}
                   </Stack>
                 </Box>
               </Collapse>
@@ -672,7 +651,7 @@ export default function StaffListClient({
                           <MenuItem key={option} value={option}>
                             {option}
                           </MenuItem>
-                          ))}
+                        ))}
                       </Select>
                     </FormControl>
                     {loadingMore ? <CircularProgress size={18} /> : null}
@@ -798,10 +777,7 @@ export default function StaffListClient({
                       <Typography variant="body2" color="text.secondary">
                         {loadedRowCount === 0
                           ? "0 / 0"
-                          : `${page * rowsPerPage + 1}-${Math.min(
-                              (page + 1) * rowsPerPage,
-                              totalCount
-                            )} / ${totalCount}`}
+                          : `${page * rowsPerPage + 1}-${Math.min((page + 1) * rowsPerPage, totalCount)} / ${totalCount}`}
                       </Typography>
                     </Stack>
                   ) : null}
@@ -834,7 +810,7 @@ export default function StaffListClient({
                   {toText(selectedStaff.fullName)}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  {toText(toRoleDisplay(selectedStaff.roleCode))} /{" "}
+                  {toText(toRoleDisplay(selectedStaff.roleCode))} / {" "}
                   {toText(toStaffTypeDisplay(selectedStaff.staffType))}
                 </Typography>
               </Box>

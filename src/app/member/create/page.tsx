@@ -1,5 +1,5 @@
-import MemberCreate from "@/components/member/create/MemberCreate";
+﻿import { redirect } from "next/navigation";
 
 export default function SignupPage() {
-  return <MemberCreate />;
+  redirect("/staff/create");
 }

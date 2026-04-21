@@ -25,14 +25,6 @@ import { StaffIdNameSelectFields } from "@/components/medical_support/common/Sta
 import type { StaffOption } from "@/lib/medical_support/staffLookupApi";
 import { fetchStaffOptionsApi } from "@/lib/medical_support/staffLookupApi";
 
-const EXAM_PERFORMER_EXAM_TYPES = new Set([
-  "IMAGING",
-  "PATHOLOGY",
-  "ENDOSCOPY",
-  "PHYSIOLOGICAL",
-  "SPECIMEN",
-]);
-
 type TestExecutionFormData = {
   testExecutionId: string;
   orderItemId: string;
@@ -251,24 +243,11 @@ export default function TestExecutionForm({
       return;
     }
 
-    const executionKey = form.executionType.trim().toUpperCase();
-    if (!executionKey) {
-      setPerformerStaffOptions([]);
-      return;
-    }
-
     let cancelled = false;
     const load = async () => {
-      const fetchParams = EXAM_PERFORMER_EXAM_TYPES.has(executionKey)
-        ? {
-            role: "EXAM_PERFORMER",
-            examType: executionKey,
-          }
-        : {
-            role: "EXAM_RECEPTION_MANAGER",
-          };
-
-      const opts = await fetchStaffOptionsApi(fetchParams);
+      const opts = await fetchStaffOptionsApi({
+        role: "EXAM_RECEPTION_MANAGER",
+      });
       if (!cancelled) {
         setPerformerStaffOptions(opts);
       }
@@ -278,7 +257,7 @@ export default function TestExecutionForm({
     return () => {
       cancelled = true;
     };
-  }, [isEditMode, form.executionType]);
+  }, [isEditMode]);
 
   return (
     <Box sx={{ maxWidth: 1040, mx: "auto", px: { xs: 2, md: 3 }, py: 3, pb: 2 }}>

@@ -407,7 +407,7 @@ export default function TestResultEdit() {
     let cancelled = false;
     const load = async () => {
       const opts = await fetchStaffOptionsApi({
-        role: "EXAM_RESULT_MANAGER",
+        role: "STF_ONLY",
       });
       if (!cancelled) {
         setResultManagerStaffOptions(opts);

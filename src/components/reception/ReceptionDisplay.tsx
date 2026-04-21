@@ -255,26 +255,32 @@ export default function ReceptionDisplay() {
     );
   }, [list, now]);
 
+  const activeDepartmentNames = React.useMemo(() => {
+    const names = new Set<string>();
+
+    for (const reception of todayOutpatientList) {
+      const name = (reception.departmentName ?? "").trim();
+      if (!name) continue;
+      names.add(name);
+    }
+
+    return names;
+  }, [todayOutpatientList]);
+
   const displayDepartments = React.useMemo(() => {
     const names: string[] = [];
     const seen = new Set<string>();
 
     for (const item of departments) {
       const name = getDepartmentName(item);
-      if (!name || seen.has(name)) continue;
-      seen.add(name);
-      names.push(name);
-    }
-
-    for (const reception of todayOutpatientList) {
-      const name = (reception.departmentName ?? "").trim();
-      if (!name || seen.has(name)) continue;
+      if (!name || seen.has(name) || !activeDepartmentNames.has(name)) continue;
       seen.add(name);
       names.push(name);
     }
 
     return names;
-  }, [departments, todayOutpatientList]);
+  }, [activeDepartmentNames, departments]);
+
 
   const receptionsByDepartment = React.useMemo(() => {
     const map = new Map<string, Reception[]>();

@@ -309,7 +309,7 @@ export default function BillingStatementPage() {
 
                     <Typography>발행일시: {issuedAt || "-"}</Typography>
 
-                    <Typography>
+                    <Typography component="div">
                       청구 상태:
                       <Chip
                         label={getDisplayBillingStatusLabel(

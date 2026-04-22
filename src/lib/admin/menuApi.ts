@@ -14,9 +14,9 @@ const api = axios.create({
 });
 applyAuthInterceptors(api, { redirectOn401: false });
 
-const MENU_ENDPOINT_CANDIDATES = ["/api/admin/menus", "/api/menus", "/api/menu", "/api/my_menus"] as const;
-const CREATE_ENDPOINT_CANDIDATES = ["/api/admin/menus", "/api/menus", "/api/menu"] as const;
-const UPDATE_ENDPOINT_CANDIDATES = ["/api/admin/menus", "/api/menus", "/api/menu"] as const;
+const MENU_ENDPOINT_CANDIDATES = ["/api/admin/menus", "/api/menus"] as const;
+const CREATE_ENDPOINT_CANDIDATES = ["/api/admin/menus"] as const;
+const UPDATE_ENDPOINT_CANDIDATES = ["/api/admin/menus"] as const;
 
 const DISABLED_MENU_CODES = new Set(["ADMIN_COMMON", "ADMIN_ACCOUNT_MANAGEMENT"]);
 const DISABLED_MENU_PATHS = new Set(["/admin/common", "/admin/account-management"]);
@@ -279,9 +279,9 @@ const buildMenuMutationPayload = (input: MenuMutationInput) => {
     path: input.path.trim(),
     sortOrder: input.sortOrder,
     orderNo: input.sortOrder,
-    isActive: input.isActive === "Y",
+    isActive: input.isActive,
     activeYn: input.isActive,
-    adminOnly: input.adminOnly === "Y",
+    adminOnly: input.adminOnly,
     adminOnlyYn: input.adminOnly,
   };
 };
@@ -363,12 +363,7 @@ export const updateMenuApi = async (input: MenuMutationInput): Promise<void> => 
 
   for (const endpoint of UPDATE_ENDPOINT_CANDIDATES) {
     const withId = `${endpoint}/${input.menuId}`;
-    const attempts: Array<() => Promise<unknown>> = [
-      () => api.put(withId, payload),
-      () => api.patch(withId, payload),
-      () => api.put(endpoint, payload),
-      () => api.patch(endpoint, payload),
-    ];
+    const attempts: Array<() => Promise<unknown>> = [() => api.put(withId, payload)];
 
     for (const request of attempts) {
       try {

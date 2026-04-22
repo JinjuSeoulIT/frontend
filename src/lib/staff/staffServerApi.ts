@@ -20,6 +20,15 @@ type PositionApiResponse<T> = {
   data?: T;
 };
 
+type PositionRaw = Partial<{
+  id: string | number | null;
+  title: string | null;
+  positionCode: string | null;
+  domain: string | null;
+  isActive: string | null;
+  sortOrder: string | number | null;
+}>;
+
 export const ACCESS_TOKEN_COOKIE_NAME = "his_access_token";
 
 const toBaseUrl = () => STAFF_API_BASE_URL.replace(/\/+$/, "");
@@ -73,7 +82,7 @@ const requestPositionApi = async (accessToken: string): Promise<PositionResponse
       Authorization: `Bearer ${accessToken}`,
     },
   });
-  const payload = await parseJson<PositionApiResponse<PositionResponse[]>>(response);
+  const payload = await parseJson<PositionApiResponse<PositionRaw[]>>(response);
 
   if (!response.ok || !payload?.success) {
     throw new Error(
@@ -82,7 +91,16 @@ const requestPositionApi = async (accessToken: string): Promise<PositionResponse
     );
   }
 
-  return payload.data ?? [];
+  const rows = payload.data ?? [];
+  return rows.map((item) => ({
+    positionId: String(item.id ?? ""),
+    positionName: item.title ?? "",
+    positionCode: item.positionCode ?? "",
+    positionType: item.domain ?? "",
+    positionLevel: item.sortOrder == null ? "" : String(item.sortOrder),
+    managerYn: item.isActive ?? "",
+    rmk: "",
+  }));
 };
 
 export const fetchInitialStaffSummary = async (
@@ -94,10 +112,16 @@ export const fetchInitialStaffSummary = async (
 export const fetchInitialStaffDepartments = async (
   accessToken: string
 ): Promise<StaffDepartmentSummaryItem[]> => {
-  return requestStaffApi<StaffDepartmentSummaryItem[]>(
+  const rows = await requestStaffApi<Array<{ id?: string | number | null; name?: string | null; departmentId?: string | number | null; departmentName?: string | null; activeFlag?: string | null }>>(
     "/api/staff/departments",
     accessToken
   );
+  return rows.map((item) => ({
+    departmentId:
+      item.departmentId != null ? String(item.departmentId) : item.id != null ? String(item.id) : null,
+    departmentName: item.departmentName ?? item.name ?? null,
+    activeFlag: item.activeFlag ?? null,
+  }));
 };
 
 export const fetchInitialStaffLocations = async (

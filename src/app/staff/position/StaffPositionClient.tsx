@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import {
@@ -78,7 +78,7 @@ export default function StaffPositionClient({
               <TextField
                 size="small"
                 label="직책 검색"
-                placeholder="직책명, 코드, 유형, 레벨"
+                placeholder="직책명, 코드, 유형"
                 value={keyword}
                 onChange={(event) => {
                   setKeyword(event.target.value);
@@ -99,9 +99,9 @@ export default function StaffPositionClient({
                       <TableCell>직책 ID</TableCell>
                       <TableCell>직책명</TableCell>
                       <TableCell>직책 코드</TableCell>
-                      <TableCell>직책 유형</TableCell>
-                      <TableCell>레벨</TableCell>
-                      <TableCell>관리자 여부</TableCell>
+                      <TableCell>직군</TableCell>
+                      <TableCell>정렬</TableCell>
+                      <TableCell>활성 여부</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>

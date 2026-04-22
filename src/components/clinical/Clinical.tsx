@@ -172,6 +172,13 @@ export default function ClinicalPage() {
     return Number.isFinite(parsed) ? parsed : null;
   }, [searchParams]);
 
+  const queryReceptionId = React.useMemo(() => {
+    const raw = searchParams.get("receptionId");
+    if (!raw) return null;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : null;
+  }, [searchParams]);
+
   const loadOrders = React.useCallback(async (visitId: number) => {
     setOrdersLoading(true);
     try {
@@ -269,13 +276,21 @@ export default function ClinicalPage() {
   }, [dispatch]);
 
   React.useEffect(() => {
+    if (queryReceptionId != null) {
+      const byReception = receptions.find((x) => Number(x.receptionId) === Number(queryReceptionId));
+      if (byReception) {
+        setSelectedReception(byReception);
+        setSelectedPatientId(byReception.patientId);
+        return;
+      }
+    }
     if (!queryPatientId) return;
     const r = receptions.find((x) => x.patientId === queryPatientId);
     if (r) {
       setSelectedReception(r);
       setSelectedPatientId(queryPatientId);
     }
-  }, [queryPatientId, receptions]);
+  }, [queryPatientId, queryReceptionId, receptions]);
 
   const patientMap = React.useMemo(() => {
     const m = new Map<number, Patient>();
@@ -862,6 +877,8 @@ export default function ClinicalPage() {
             }
             onVisitCompleted={handleVisitCompleted}
             reopenVitalsSoapTick={reopenVitalsSoapTick}
+            testResultReturnPatientId={selectedReception?.patientId ?? null}
+            testResultReturnReceptionId={selectedReception?.receptionId ?? null}
           />
 
           <ClinicalRightPanel

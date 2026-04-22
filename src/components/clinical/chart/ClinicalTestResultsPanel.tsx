@@ -89,18 +89,34 @@ function canOpenDetail(row: TestResult) {
   return Boolean(String(row.resultId ?? "").trim() && normalizeValue(row.resultType));
 }
 
-function detailPath(row: TestResult) {
+function detailPath(
+  row: TestResult,
+  returnCtx: { patientId: number; receptionId: number } | null
+) {
   const resultId = String(row.resultId ?? "").trim();
   const resultType = normalizeValue(row.resultType);
-  return `/medical_support/testResult/detail/${encodeURIComponent(resultId)}?resultType=${encodeURIComponent(resultType)}&viewOnly=1`;
+  const q = new URLSearchParams();
+  q.set("resultType", resultType);
+  q.set("viewOnly", "1");
+  if (returnCtx != null && Number.isFinite(returnCtx.patientId)) {
+    q.set("returnPatientId", String(returnCtx.patientId));
+    if (Number.isFinite(returnCtx.receptionId)) {
+      q.set("returnReceptionId", String(returnCtx.receptionId));
+    }
+  }
+  return `/medical_support/testResult/detail/${encodeURIComponent(resultId)}?${q.toString()}`;
 }
 
 export function ClinicalTestResultsPanel({
   open,
   patient,
+  returnPatientId,
+  returnReceptionId,
 }: {
   open: boolean;
   patient: Patient | null | undefined;
+  returnPatientId?: number | null;
+  returnReceptionId?: number | null;
 }) {
   const router = useRouter();
   const [rows, setRows] = React.useState<TestResult[]>([]);
@@ -152,14 +168,29 @@ export function ClinicalTestResultsPanel({
     [rows, currentPage, rowsPerPage]
   );
 
+  const returnCtx = React.useMemo(() => {
+    if (returnPatientId == null || !Number.isFinite(Number(returnPatientId))) {
+      return null;
+    }
+    const pid = Number(returnPatientId);
+    const rid =
+      returnReceptionId != null && Number.isFinite(Number(returnReceptionId))
+        ? Number(returnReceptionId)
+        : NaN;
+    return {
+      patientId: pid,
+      receptionId: rid,
+    };
+  }, [returnPatientId, returnReceptionId]);
+
   const goDetail = React.useCallback(
     (row: TestResult) => {
       if (!canOpenDetail(row)) {
         return;
       }
-      router.push(detailPath(row));
+      router.push(detailPath(row, returnCtx));
     },
-    [router]
+    [router, returnCtx]
   );
 
   const onRowKeyDown = React.useCallback(

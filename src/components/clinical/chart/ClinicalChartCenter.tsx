@@ -408,6 +408,8 @@ type Props = {
   onPrescriptionsReload: () => void;
   onVisitCompleted: () => Promise<void>;
   reopenVitalsSoapTick?: number;
+  testResultReturnPatientId?: number | null;
+  testResultReturnReceptionId?: number | null;
 };
 
 function ModalTitleBar({
@@ -980,7 +982,12 @@ export function ClinicalChartCenter(p: Props) {
           onClose={() => setTestResultsOpen(false)}
         />
         <DialogContent dividers sx={{ pt: 2 }}>
-          <ClinicalTestResultsPanel open={testResultsOpen} patient={p.selectedPatient} />
+          <ClinicalTestResultsPanel
+            open={testResultsOpen}
+            patient={p.selectedPatient}
+            returnPatientId={p.testResultReturnPatientId ?? null}
+            returnReceptionId={p.testResultReturnReceptionId ?? null}
+          />
         </DialogContent>
       </Dialog>
 

@@ -88,6 +88,23 @@ function toOptional(v: string) {
   return t.length === 0 ? undefined : t;
 }
 
+function formatPhoneNumber(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (!digits) return "";
+
+  if (digits.startsWith("02")) {
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 5) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+    if (digits.length <= 9) return `${digits.slice(0, 2)}-${digits.slice(2, 5)}-${digits.slice(5)}`;
+    return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  if (digits.length <= 10) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -134,7 +151,7 @@ export default function PatientFormModal({
         email: patient.email ?? "",
         gender: patient.gender ?? "",
         birthDate: patient.birthDate ?? "",
-        phone: patient.phone ?? "",
+        phone: formatPhoneNumber(patient.phone ?? ""),
         address: patient.address ?? "",
         addressDetail: patient.addressDetail ?? "",
         guardianName: patient.guardianName ?? "",
@@ -226,7 +243,7 @@ export default function PatientFormModal({
       email: toOptional(form.email),
       gender: toOptional(form.gender),
       birthDate: toOptional(form.birthDate),
-      phone: toOptional(form.phone),
+      phone: toOptional(formatPhoneNumber(form.phone)),
       address: form.address?.trim() || undefined,
       addressDetail: form.addressDetail?.trim() || undefined,
       guardianName: toOptional(form.guardianName),
@@ -385,7 +402,9 @@ export default function PatientFormModal({
             <TextField
               label="연락처"
               value={form.phone}
-              onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, phone: formatPhoneNumber(e.target.value) }))
+              }
               fullWidth
               placeholder="010-0000-0000"
               sx={fieldSx}

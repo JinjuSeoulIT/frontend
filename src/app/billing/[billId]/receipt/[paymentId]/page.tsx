@@ -395,7 +395,7 @@ export default function BillingReceiptPage() {
                       결제 수단: {getPaymentMethodLabel(targetPayment.method)}
                     </Typography>
 
-                    <Typography>
+                    <Typography component="div">
                       결제 상태:
                       <Chip
                         label={getPaymentStatusLabel(targetPayment.status)}

@@ -31,8 +31,23 @@ import {
   getBillingStatusLabel,
   getBillingStatusColor,
 } from "@/lib/billing/billingStatus";
-import { fetchPatientsApi } from "@/lib/patient/patientApi";
+import { fetchPatientApi, fetchPatientsApi } from "@/lib/patient/patientApi";
 import type { Patient } from "@/features/patients/patientTypes";
+
+const toFinitePatientId = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return null;
+};
 
 export default function BillingListPage() {
   const router = useRouter();
@@ -160,24 +175,101 @@ export default function BillingListPage() {
     let active = true;
 
     const loadPatients = async () => {
+      const reducePatientsToNames = (patients: Patient[]) => {
+        return patients.reduce<Record<number, string>>((acc, patient) => {
+          const id = toFinitePatientId(patient.patientId);
+          const name = patient.name?.trim();
+
+          if (id && name) {
+            acc[id] = name;
+          }
+
+          return acc;
+        }, {});
+      };
+
+      const uniqueBillPatientIds = Array.from(
+        new Set(
+          (billingList ?? [])
+            .map((bill) => toFinitePatientId(bill.patientId))
+            .filter((id): id is number => Boolean(id))
+        )
+      );
+
       try {
         const patients: Patient[] = await fetchPatientsApi();
 
         if (!active) return;
 
-        const byId = patients.reduce<Record<number, string>>((acc, patient) => {
-          if (patient.patientId && patient.name?.trim()) {
-            acc[patient.patientId] = patient.name.trim();
+        const namesFromList = reducePatientsToNames(patients);
+        setPatientNameById((prev) => ({ ...prev, ...namesFromList }));
+
+        const missingAfterList = uniqueBillPatientIds.filter((id) => !namesFromList[id]);
+
+        if (missingAfterList.length === 0) {
+          return;
+        }
+
+        const details = await Promise.allSettled(
+          missingAfterList.map((id) => fetchPatientApi(id))
+        );
+
+        if (!active) return;
+
+        const namesFromDetails = details.reduce<Record<number, string>>((acc, result, idx) => {
+          if (result.status !== "fulfilled") {
+            return acc;
           }
+
+          const patient = result.value;
+          const id = missingAfterList[idx];
+          const name = patient.name?.trim();
+
+          if (id && name) {
+            acc[id] = name;
+          }
+
           return acc;
         }, {});
 
-        setPatientNameById(byId);
+        if (Object.keys(namesFromDetails).length === 0) {
+          return;
+        }
+
+        setPatientNameById((prev) => ({ ...prev, ...namesFromDetails }));
       } catch (err) {
         console.error("[billing/list] failed to load patients", err);
 
         if (!active) return;
-        setPatientNameById({});
+
+        if (uniqueBillPatientIds.length === 0) {
+          setPatientNameById({});
+          return;
+        }
+
+        const details = await Promise.allSettled(
+          uniqueBillPatientIds.map((id) => fetchPatientApi(id))
+        );
+
+        if (!active) return;
+
+        const byId = details.reduce<Record<number, string>>((acc, result, idx) => {
+          if (result.status !== "fulfilled") {
+            return acc;
+          }
+
+          const patient = result.value;
+          const id = uniqueBillPatientIds[idx];
+          const name = patient.name?.trim();
+
+          if (id && name) {
+            acc[id] = name;
+          }
+
+          return acc;
+        }, {});
+
+        setPatientNameById((prev) => ({ ...prev, ...byId }));
       }
     };
 
@@ -186,11 +278,16 @@ export default function BillingListPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [billingList]);
 
   const resolvePatientName = useCallback(
     (patientId: number) => {
-      return patientNameById[patientId] || "-";
+      const id = toFinitePatientId(patientId);
+      if (!id) {
+        return "-";
+      }
+
+      return patientNameById[id] || "-";
     },
     [patientNameById]
   );
